@@ -228,7 +228,7 @@
       align-items: center;
       position: sticky;
       top: 0;
-      z-index: 1020;
+      z-index: 1030;
     }
     .btn-hamburger {
       background: #1a365d;
@@ -297,7 +297,7 @@
     .btn-admin-delete { color: #e53e3e; background: #fff5f5; border-color: #fed7d7; }
     .btn-admin-delete:hover { background: #e53e3e; color: #fff; }
 
-    /* STATISTIC CARDS & TABEL PENGECEKAN TUGAS */
+    /* STATISTIC CARDS & STICKY TABEL PENGECEKAN TUGAS */
     .stat-box {
       border-radius: 12px;
       padding: 14px 18px;
@@ -317,16 +317,52 @@
       font-size: 1.25rem;
       flex-shrink: 0;
     }
-    .table-rekap th {
-      background-color: #1a365d;
-      color: #fff;
+
+    /* CONTAINER TABEL DENGAN SCROLL & STICKY HEADER */
+    .rekap-table-scroll {
+      max-height: 62vh;
+      overflow-y: auto;
+      overflow-x: auto;
+      position: relative;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+    }
+    .rekap-table-scroll::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    .rekap-table-scroll::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .rekap-table-scroll::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 4px;
+    }
+    .rekap-table-scroll::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+
+    .table-rekap {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: 100%;
+    }
+    .table-rekap thead th {
+      position: sticky;
+      top: 0;
+      z-index: 25;
+      background-color: #1a365d !important;
+      color: #ffffff !important;
       font-weight: 600;
       font-size: 0.8rem;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       border: none;
-      padding: 12px 14px;
+      border-bottom: 2px solid #ecc94b;
+      padding: 13px 14px;
       white-space: nowrap;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
     }
     .table-rekap td {
       vertical-align: middle;
@@ -335,7 +371,7 @@
       color: #2d3748;
       border-bottom: 1px solid #edf2f7;
     }
-    .table-rekap tbody tr:hover { background-color: #f8fafc; }
+    .table-rekap tbody tr:hover { background-color: #f1f5f9; }
     .row-checked { background-color: #f0fff4 !important; }
     .badge-mode-file { background: #ebf8ff; color: #2b6cb0; border: 1px solid #bee3f8; font-weight: 600; }
     .badge-mode-pdf { background: #fffaf0; color: #dd6b20; border: 1px solid #fbd38d; font-weight: 600; }
@@ -357,6 +393,7 @@
       .btn-hamburger { display: inline-flex; }
       .top-header { padding: 0.85rem 1rem; }
       .content-body { padding: 1rem; }
+      .rekap-table-scroll { max-height: 68vh; }
     }
   </style>
 </head>
@@ -614,7 +651,7 @@
         <!-- ==================== TAMPILAN 2: PENGECEKAN PENGUMPULAN TUGAS (KHUSUS ADMIN) ==================== -->
         <div id="rekapTugasSection" class="d-none">
           
-          <div class="row g-3 mb-4">
+          <div class="row g-3 mb-3">
             <div class="col-md-4">
               <div class="stat-box shadow-sm">
                 <div class="stat-icon bg-primary bg-opacity-10 text-primary">
@@ -654,7 +691,7 @@
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
               <div>
                 <h5 class="fw-bold text-dark mb-1"><i class="fa-solid fa-clipboard-check text-primary me-2"></i>Daftar Pengecekan Tugas Siswa</h5>
-                <small class="text-muted">Data langsung dari Sheet <strong>Pengumpulan Tugas</strong></small>
+                <small class="text-muted">Data langsung dari Sheet <strong>Pengumpulan Tugas</strong> (Judul kolom terkunci saat di-scroll ke bawah)</small>
               </div>
               <div class="d-flex gap-2 flex-wrap">
                 <button class="btn btn-sm btn-outline-secondary fw-semibold" onclick="resetRekapFilters()">
@@ -730,7 +767,8 @@
               </div>
             </div>
 
-            <div class="table-responsive rounded-3 border">
+            <!-- Tabel Responsif dengan Sticky Header -->
+            <div class="rekap-table-scroll">
               <table class="table table-rekap mb-0">
                 <thead>
                   <tr>
