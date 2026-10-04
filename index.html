@@ -513,6 +513,13 @@
           </a>
         </li>
 
+        <li class="menu-header">Komunikasi</li>
+        <li>
+          <a class="nav-link" id="menu-PENGUMUMAN" onclick="openPengumumanView()">
+            <i class="fa-solid fa-bullhorn"></i> Pengumuman <span class="badge bg-danger rounded-pill ms-1 d-none" id="pengumumanBadge"></span>
+          </a>
+        </li>
+
         <li class="menu-header">Aplikasi Tambahan</li>
         <li>
           <a href="https://fansensei12.github.io/Ruang-Karakter-PKn/" target="_blank" class="nav-link nav-link-portal" onclick="closeSidebar()">
@@ -572,6 +579,7 @@
                       <div class="col-md-4">
                         <select id="materiKelas" class="form-select form-select-sm" required>
                           <option value="">Pilih Kelas...</option>
+                          <option value="SEMUA">Semua Kelas (VII, VIII, IX)</option>
                           <option value="VII">Kelas VII</option>
                           <option value="VIII">Kelas VIII</option>
                           <option value="IX">Kelas IX</option>
@@ -609,6 +617,7 @@
                       <div class="col-md-4">
                         <select id="tugasKelas" class="form-select form-select-sm" required>
                           <option value="">Pilih Kelas...</option>
+                          <option value="SEMUA">Semua Kelas (VII, VIII, IX)</option>
                           <option value="VII">Kelas VII</option>
                           <option value="VIII">Kelas VIII</option>
                           <option value="IX">Kelas IX</option>
@@ -862,6 +871,31 @@
           </div>
         </div>
 
+        <!-- ==================== TAMPILAN 5: PENGUMUMAN / BROADCAST ==================== -->
+        <div id="pengumumanSection" class="d-none">
+          <div id="pengumumanForm" class="card card-item mb-3 border-start border-danger border-4 d-none">
+            <div class="card-body">
+              <h6 class="fw-bold text-danger mb-3"><i class="fa-solid fa-bullhorn me-1"></i> Kirim Pengumuman / Broadcast</h6>
+              <form onsubmit="handleKirimPengumuman(event)">
+                <div class="row g-2 mb-2">
+                  <div class="col-md-4">
+                    <select id="pengumumanTarget" class="form-select form-select-sm">
+                      <option value="SEMUA">Semua Siswa</option>
+                      <option value="VII">Siswa Kelas VII</option>
+                      <option value="VIII">Siswa Kelas VIII</option>
+                      <option value="IX">Siswa Kelas IX</option>
+                    </select>
+                  </div>
+                  <div class="col-md-8"><input type="text" id="pengumumanJudul" class="form-control form-control-sm" placeholder="Judul pesan" required></div>
+                </div>
+                <textarea id="pengumumanIsi" class="form-control form-control-sm mb-2" rows="3" placeholder="Isi pesan untuk siswa..." required></textarea>
+                <button type="submit" id="btnKirimPengumuman" class="btn btn-sm btn-danger fw-bold w-100"><i class="fa-solid fa-paper-plane me-1"></i> Kirim ke Siswa</button>
+              </form>
+            </div>
+          </div>
+          <div id="pengumumanList"></div>
+        </div>
+
       </div>
     </main>
   </div>
@@ -883,7 +917,8 @@
             <div class="mb-2">
               <label class="form-label small fw-bold">Kelas</label>
               <select id="editKelas" class="form-select form-select-sm" required>
-                <option value="VII">Kelas VII</option>
+                <option value="SEMUA">Semua Kelas (VII, VIII, IX)</option>
+                          <option value="VII">Kelas VII</option>
                 <option value="VIII">Kelas VIII</option>
                 <option value="IX">Kelas IX</option>
               </select>
@@ -951,7 +986,7 @@
 
   <script>
     // URL DEPLOYMENT GOOGLE APPS SCRIPT LMS ANDA
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxj4lXAd62wNwY7j4MtylVnLJVIUpzMh0c2XdgCtF1eaJbuEmC3wAJqx0bRB0Q9b_ki/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwCfCPa1_OVBEAmbNkg7HXsLT6jw2YANsMTL0F2_pYho4N0g99paqS0L8bVgjZ2b527/exec";
 
     let currentUser = null;
     let currentClassView = 'ALL';
@@ -1103,6 +1138,7 @@
       }
       
       document.getElementById('userDisplayName').textContent = currentUser.name;
+      refreshPengumumanBadge();
       document.getElementById('userAvatarHeader').textContent = initial;
 
       if (currentUser.role === 'admin') {
@@ -1428,7 +1464,7 @@
           mContainer.innerHTML += `
             <div class="card card-item card-materi p-3 mb-3">
               <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="badge badge-kelas-materi"><i class="fa-solid fa-tag me-1"></i>KELAS ${item.kelas}</span>
+                <span class="badge badge-kelas-materi"><i class="fa-solid fa-tag me-1"></i>${kelasLabel(item.kelas)}</span>
                 ${adminActionsHtml}
               </div>
               <h6 class="fw-bold text-dark mb-1">${item.judul}</h6>
@@ -1480,7 +1516,7 @@
           tContainer.innerHTML += `
             <div class="card card-item card-tugas p-3 mb-3">
               <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="badge badge-kelas-tugas"><i class="fa-solid fa-tag me-1"></i>KELAS ${item.kelas}</span>
+                <span class="badge badge-kelas-tugas"><i class="fa-solid fa-tag me-1"></i>${kelasLabel(item.kelas)}</span>
                 ${adminActionsHtml}
               </div>
               <h6 class="fw-bold text-dark mb-1">${item.judul}</h6>
@@ -1619,6 +1655,7 @@
     function hideNilaiViews() {
       document.getElementById('nilaiSayaSection').classList.add('d-none');
       document.getElementById('inputNilaiSection').classList.add('d-none');
+      document.getElementById('pengumumanSection').classList.add('d-none');
     }
     function showOnlyNilaiView(sectionId, menuId, title) {
       closeSidebar();
@@ -1719,6 +1756,79 @@
       if (!confirm('Hapus nilai siswa ini untuk penilaian "' + judul + '"?')) return;
       const res = await callApi('deleteNilai', { nis, judul });
       if (res && res.success) loadNilaiGrid(); else if (!(res && res.expired)) alert(res ? res.message : 'Gagal menghapus');
+    }
+
+    // ==================== PENGUMUMAN / BROADCAST ====================
+    function kelasLabel(k) { return k === 'SEMUA' ? 'SEMUA KELAS' : 'KELAS ' + k; }
+    function seenKey() { return 'lms_pengumuman_seen_' + (currentUser ? currentUser.username : ''); }
+    function idTime(id) { return Number(String(id).replace(/\D/g, '')) || 0; }
+
+    async function refreshPengumumanBadge() {
+      try {
+        const res = await callApi('getPengumuman');
+        if (!res || !res.success) return;
+        const seen = Number(localStorage.getItem(seenKey()) || 0);
+        const n = res.data.filter(p => idTime(p.id) > seen).length;
+        const b = document.getElementById('pengumumanBadge');
+        b.textContent = n; b.classList.toggle('d-none', n === 0);
+      } catch (e) {}
+    }
+
+    async function openPengumumanView() {
+      if (!currentUser) return;
+      showOnlyNilaiView('pengumumanSection', 'menu-PENGUMUMAN', 'Pengumuman');
+      const isAdmin = currentUser.role === 'admin';
+      document.getElementById('pengumumanForm').classList.toggle('d-none', !isAdmin);
+      const box = document.getElementById('pengumumanList');
+      box.innerHTML = '<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat pengumuman...</div>';
+      try {
+        const res = await callApi('getPengumuman');
+        if (!res || !res.success) { if (res && res.expired) return; throw new Error(res ? res.message : 'Gagal memuat'); }
+        const seenBefore = Number(localStorage.getItem(seenKey()) || 0);
+        box.innerHTML = res.data.length ? res.data.map(p => `
+          <div class="card card-item mb-3 ${idTime(p.id) > seenBefore && !isAdmin ? 'border-danger border-2' : ''}">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <div>
+                  <span class="badge bg-${p.target === 'SEMUA' ? 'primary' : 'info text-dark'} me-1">${p.target === 'SEMUA' ? 'Semua Siswa' : 'Kelas ' + escHtml(p.target)}</span>
+                  ${idTime(p.id) > seenBefore && !isAdmin ? '<span class="badge bg-danger">Baru</span>' : ''}
+                  <h6 class="fw-bold text-dark mt-2 mb-1">${escHtml(p.judul)}</h6>
+                </div>
+                ${isAdmin ? `<button class="btn-admin-action btn-admin-delete" title="Hapus" onclick="hapusPengumuman('${escHtml(p.id)}')"><i class="fa-solid fa-trash"></i></button>` : ''}
+              </div>
+              <div class="small" style="white-space:pre-wrap;">${escHtml(p.isi)}</div>
+              <div class="text-muted mt-2" style="font-size:.75rem;"><i class="fa-regular fa-clock me-1"></i>${escHtml(p.waktu)} &bull; ${escHtml(p.pengirim)}</div>
+            </div>
+          </div>`).join('') : '<div class="text-muted small py-3">Belum ada pengumuman.</div>';
+        if (res.data.length) localStorage.setItem(seenKey(), Math.max(...res.data.map(p => idTime(p.id))));
+        document.getElementById('pengumumanBadge').classList.add('d-none');
+      } catch (err) {
+        box.innerHTML = `<div class="text-danger small">${escHtml(err.message)}</div>`;
+      }
+    }
+
+    async function handleKirimPengumuman(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btnKirimPengumuman'); btn.disabled = true;
+      try {
+        const res = await callApi('addPengumuman', {
+          target: document.getElementById('pengumumanTarget').value,
+          judul: document.getElementById('pengumumanJudul').value,
+          isi: document.getElementById('pengumumanIsi').value
+        });
+        if (res && res.success) {
+          e.target.reset();
+          showSuccessModal('Terkirim!', res.message);
+          openPengumumanView();
+        } else if (!(res && res.expired)) alert(res ? res.message : 'Gagal mengirim');
+      } catch (err) { alert('Gagal terhubung ke server: ' + err.message); }
+      btn.disabled = false;
+    }
+
+    async function hapusPengumuman(id) {
+      if (!confirm('Hapus pengumuman ini?')) return;
+      const res = await callApi('deletePengumuman', { id });
+      if (res && res.success) openPengumumanView(); else if (!(res && res.expired)) alert(res ? res.message : 'Gagal menghapus');
     }
 
     function logout() {
