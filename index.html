@@ -500,6 +500,19 @@
           </a>
         </li>
 
+        <li class="menu-admin-rekap" style="display:none;">
+          <a class="nav-link" id="menu-INPUTNILAI" onclick="openInputNilaiView()">
+            <i class="fa-solid fa-star-half-stroke"></i> Input Nilai Siswa
+          </a>
+        </li>
+
+        <li class="menu-header menu-siswa-nilai" style="display:none;">Hasil Belajar</li>
+        <li class="menu-siswa-nilai" style="display:none;">
+          <a class="nav-link" id="menu-NILAI" onclick="openNilaiSayaView()">
+            <i class="fa-solid fa-star"></i> Nilai Saya
+          </a>
+        </li>
+
         <li class="menu-header">Aplikasi Tambahan</li>
         <li>
           <a href="https://fansensei12.github.io/Ruang-Karakter-PKn/" target="_blank" class="nav-link nav-link-portal" onclick="closeSidebar()">
@@ -794,6 +807,61 @@
           </div>
         </div>
 
+
+        <!-- ==================== TAMPILAN 3: NILAI SAYA (SISWA) ==================== -->
+        <div id="nilaiSayaSection" class="d-none">
+          <div class="row g-3 mb-3">
+            <div class="col-md-4"><div class="stat-box shadow-sm"><div class="stat-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-list-check"></i></div><div><div class="text-muted small fw-semibold">Jumlah Penilaian</div><h4 class="fw-bold mb-0 text-dark" id="nilaiCount">0</h4></div></div></div>
+            <div class="col-md-4"><div class="stat-box shadow-sm"><div class="stat-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-chart-line"></i></div><div><div class="text-muted small fw-semibold">Rata-rata Nilai</div><h4 class="fw-bold mb-0 text-success" id="nilaiAvg">-</h4></div></div></div>
+            <div class="col-md-4"><div class="stat-box shadow-sm"><div class="stat-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-trophy"></i></div><div><div class="text-muted small fw-semibold">Nilai Tertinggi</div><h4 class="fw-bold mb-0 text-dark" id="nilaiMax">-</h4></div></div></div>
+          </div>
+          <div class="card card-item border-top border-success border-4 p-3 p-md-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-star text-warning me-2"></i>Nilai Saya</h5>
+              <button class="btn btn-sm btn-outline-primary fw-semibold" onclick="openNilaiSayaView()"><i class="fa-solid fa-rotate me-1"></i> Refresh</button>
+            </div>
+            <div class="table-responsive">
+              <table class="table align-middle mb-0">
+                <thead><tr><th>Penilaian</th><th class="text-center">Nilai</th><th>Catatan Guru</th><th>Tanggal</th></tr></thead>
+                <tbody id="nilaiSayaBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== TAMPILAN 4: INPUT NILAI (GURU) ==================== -->
+        <div id="inputNilaiSection" class="d-none">
+          <div class="card card-item border-top border-warning border-4 p-3 p-md-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+              <div>
+                <h5 class="fw-bold text-dark mb-1"><i class="fa-solid fa-star-half-stroke text-warning me-2"></i>Input Nilai Siswa</h5>
+                <small class="text-muted">Pilih rombel, isi judul penilaian, lalu isi nilai (0-100). Siswa hanya bisa melihat nilainya sendiri.</small>
+              </div>
+              <a id="btnOpenNilaiSheet" href="#" target="_blank" class="btn btn-sm btn-success fw-semibold d-none"><i class="fa-solid fa-table me-1"></i> Buka Tab Nilai</a>
+            </div>
+            <div class="row g-2 mb-3 bg-light p-3 rounded-3 border">
+              <div class="col-md-3 col-6">
+                <label class="form-label small fw-bold text-secondary mb-1">Rombel</label>
+                <select id="inputNilaiRombel" class="form-select form-select-sm" onchange="loadNilaiGrid()"><option value="">Memuat...</option></select>
+              </div>
+              <div class="col-md-6 col-12">
+                <label class="form-label small fw-bold text-secondary mb-1">Judul Penilaian</label>
+                <input type="text" id="inputNilaiJudul" list="judulNilaiList" class="form-control form-control-sm" placeholder="Misal: Sumatif 1 / Tugas Poster" oninput="renderNilaiGrid()">
+                <datalist id="judulNilaiList"></datalist>
+              </div>
+              <div class="col-md-3 col-12 d-flex align-items-end">
+                <button class="btn btn-sm btn-primary fw-bold w-100" id="btnSimpanNilai" onclick="saveNilaiGrid()"><i class="fa-solid fa-floppy-disk me-1"></i> Simpan Semua Nilai</button>
+              </div>
+            </div>
+            <div class="rekap-table-scroll">
+              <table class="table table-rekap mb-0">
+                <thead><tr><th>No</th><th>Nama Siswa</th><th>NIS</th><th style="width:130px">Nilai</th><th>Catatan (opsional)</th><th class="text-center">Status</th></tr></thead>
+                <tbody id="inputNilaiBody"><tr><td colspan="6" class="text-center py-4 text-muted">Pilih rombel untuk menampilkan daftar siswa...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
       </div>
     </main>
   </div>
@@ -898,9 +966,14 @@
         headers: {
           'Content-Type': 'text/plain;charset=utf-8'
         },
-        body: JSON.stringify({ action: action, ...payload })
+        body: JSON.stringify({ action: action, token: currentUser ? currentUser.token : undefined, ...payload })
       });
-      return await response.json();
+      const data = await response.json();
+      if (data && data.expired) {
+        alert('Sesi Anda berakhir. Silakan login kembali.');
+        logout();
+      }
+      return data;
     }
 
     window.addEventListener('DOMContentLoaded', function() {
@@ -1011,9 +1084,11 @@
     }
 
     function showDashboard() {
+      if (!currentUser.token) { logout(); return; } // sesi lama tanpa token -> login ulang
       document.getElementById('loginSection').classList.add('d-none');
       document.getElementById('dashboardSection').classList.remove('d-none');
       
+      document.querySelectorAll('.menu-siswa-nilai').forEach(el => el.style.display = currentUser.role === 'admin' ? 'none' : 'block');
       const initial = currentUser.name.charAt(0).toUpperCase();
       document.getElementById('profileAvatar').textContent = initial;
       document.getElementById('profileName').textContent = currentUser.name;
@@ -1075,6 +1150,7 @@
 
       document.getElementById('kelasViewSection').classList.remove('d-none');
       document.getElementById('rekapTugasSection').classList.add('d-none');
+      hideNilaiViews();
 
       document.querySelectorAll('.sidebar-menu .nav-link').forEach(link => link.classList.remove('active'));
       const activeMenu = document.getElementById(`menu-${selectedClass}`);
@@ -1109,6 +1185,7 @@
 
       document.getElementById('pageTitle').textContent = 'Pengecekan Pengumpulan Tugas Siswa';
       document.getElementById('kelasViewSection').classList.add('d-none');
+      hideNilaiViews();
       document.getElementById('rekapTugasSection').classList.remove('d-none');
 
       fetchRekapTugas();
@@ -1535,6 +1612,113 @@
         showSuccessModal("Berhasil Dihapus", res.message);
         loadContent(currentClassView);
       }
+    }
+
+    // ==================== FITUR NILAI ====================
+    function escHtml(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function hideNilaiViews() {
+      document.getElementById('nilaiSayaSection').classList.add('d-none');
+      document.getElementById('inputNilaiSection').classList.add('d-none');
+    }
+    function showOnlyNilaiView(sectionId, menuId, title) {
+      closeSidebar();
+      document.getElementById('kelasViewSection').classList.add('d-none');
+      document.getElementById('rekapTugasSection').classList.add('d-none');
+      hideNilaiViews();
+      document.getElementById(sectionId).classList.remove('d-none');
+      document.querySelectorAll('.sidebar-menu .nav-link').forEach(l => l.classList.remove('active'));
+      document.getElementById(menuId).classList.add('active');
+      document.getElementById('pageTitle').textContent = title;
+    }
+    function nilaiColor(n) { return n >= 75 ? 'text-success' : (n >= 60 ? 'text-warning' : 'text-danger'); }
+
+    // --- Siswa ---
+    async function openNilaiSayaView() {
+      if (!currentUser || currentUser.role === 'admin') return;
+      showOnlyNilaiView('nilaiSayaSection', 'menu-NILAI', 'Nilai Saya');
+      const tbody = document.getElementById('nilaiSayaBody');
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat nilai...</td></tr>';
+      try {
+        const res = await callApi('getNilaiSaya');
+        if (!res || !res.success) { if (res && res.expired) return; throw new Error(res ? res.message : 'Gagal memuat'); }
+        const list = res.data || [];
+        document.getElementById('nilaiCount').textContent = list.length;
+        document.getElementById('nilaiAvg').textContent = list.length ? (list.reduce((a, b) => a + b.nilai, 0) / list.length).toFixed(1) : '-';
+        document.getElementById('nilaiMax').textContent = list.length ? Math.max(...list.map(x => x.nilai)) : '-';
+        tbody.innerHTML = list.length ? list.map(n => `
+          <tr><td class="fw-semibold">${escHtml(n.judul)}</td>
+          <td class="text-center fs-5 fw-bold ${nilaiColor(n.nilai)}">${n.nilai}</td>
+          <td class="small text-muted">${escHtml(n.catatan) || '-'}</td>
+          <td class="small">${escHtml(n.tanggal)}</td></tr>`).join('')
+          : '<tr><td colspan="4" class="text-center py-4 text-muted">Belum ada nilai yang diinput guru.</td></tr>';
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-danger">${escHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    // --- Guru ---
+    let siswaAll = [], nilaiCache = [];
+    async function openInputNilaiView() {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      showOnlyNilaiView('inputNilaiSection', 'menu-INPUTNILAI', 'Input Nilai Siswa');
+      if (!siswaAll.length) {
+        const res = await callApi('getSiswaList');
+        if (!res || !res.success) { if (!(res && res.expired)) alert(res ? res.message : 'Gagal memuat siswa'); return; }
+        siswaAll = res.siswa;
+        document.getElementById('inputNilaiRombel').innerHTML = '<option value="">Pilih rombel...</option>' +
+          res.rombelList.map(r => `<option value="${escHtml(r)}">${escHtml(r)}</option>`).join('');
+      }
+    }
+    async function loadNilaiGrid() {
+      const rombel = document.getElementById('inputNilaiRombel').value;
+      if (!rombel) { renderNilaiGrid(); return; }
+      document.getElementById('inputNilaiBody').innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat...</td></tr>';
+      const res = await callApi('getNilaiAdmin', { rombel });
+      if (!res || !res.success) { if (!(res && res.expired)) alert(res ? res.message : 'Gagal memuat nilai'); return; }
+      nilaiCache = res.data || [];
+      if (res.sheetUrl) { const b = document.getElementById('btnOpenNilaiSheet'); b.href = res.sheetUrl; b.classList.remove('d-none'); }
+      document.getElementById('judulNilaiList').innerHTML = [...new Set(nilaiCache.map(n => n.judul))].map(j => `<option value="${escHtml(j)}">`).join('');
+      renderNilaiGrid();
+    }
+    function renderNilaiGrid() {
+      const rombel = document.getElementById('inputNilaiRombel').value;
+      const judul = document.getElementById('inputNilaiJudul').value.trim().toLowerCase();
+      const tbody = document.getElementById('inputNilaiBody');
+      if (!rombel) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Pilih rombel untuk menampilkan daftar siswa...</td></tr>'; return; }
+      const list = siswaAll.filter(s => s.rombel === rombel);
+      tbody.innerHTML = list.map((s, i) => {
+        const ex = judul ? nilaiCache.find(n => n.nis === s.id && n.judul.toLowerCase() === judul) : null;
+        return `<tr>
+          <td>${i + 1}</td><td class="fw-semibold">${escHtml(s.nama)}</td><td class="small text-muted">${escHtml(s.id)}</td>
+          <td><input type="number" min="0" max="100" step="any" class="form-control form-control-sm nilai-input" data-nis="${escHtml(s.id)}" value="${ex ? ex.nilai : ''}"></td>
+          <td><input type="text" class="form-control form-control-sm catatan-input" data-nis="${escHtml(s.id)}" value="${ex ? escHtml(ex.catatan) : ''}"></td>
+          <td class="text-center">${ex ? `<span class="badge bg-success">Tersimpan</span> <button class="btn-admin-action btn-admin-delete" title="Hapus nilai" onclick="deleteNilaiRow('${escHtml(s.id)}')"><i class="fa-solid fa-trash"></i></button>` : '<span class="badge bg-secondary">Belum</span>'}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="6" class="text-center py-4 text-muted">Tidak ada siswa di rombel ini.</td></tr>';
+    }
+    async function saveNilaiGrid() {
+      const judul = document.getElementById('inputNilaiJudul').value.trim();
+      if (!judul) { alert('Isi judul penilaian dulu.'); return; }
+      const items = [];
+      document.querySelectorAll('.nilai-input').forEach(inp => {
+        if (inp.value === '') return;
+        const nis = inp.dataset.nis;
+        items.push({ nis, nilai: inp.value, catatan: document.querySelector(`.catatan-input[data-nis="${CSS.escape(nis)}"]`).value });
+      });
+      if (!items.length) { alert('Belum ada nilai yang diisi.'); return; }
+      const btn = document.getElementById('btnSimpanNilai'); btn.disabled = true;
+      try {
+        const res = await callApi('saveNilaiBatch', { judul, items });
+        if (res && res.success) { showSuccessModal('Nilai Tersimpan', res.message); await loadNilaiGrid(); }
+        else if (!(res && res.expired)) alert(res ? res.message : 'Gagal menyimpan');
+      } catch (err) { alert('Gagal terhubung ke server: ' + err.message); }
+      btn.disabled = false;
+    }
+    async function deleteNilaiRow(nis) {
+      const judul = document.getElementById('inputNilaiJudul').value.trim();
+      if (!confirm('Hapus nilai siswa ini untuk penilaian "' + judul + '"?')) return;
+      const res = await callApi('deleteNilai', { nis, judul });
+      if (res && res.success) loadNilaiGrid(); else if (!(res && res.expired)) alert(res ? res.message : 'Gagal menghapus');
     }
 
     function logout() {
