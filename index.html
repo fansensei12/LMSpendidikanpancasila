@@ -1142,7 +1142,7 @@
     let sessionExpiredShown = false;
 
     // URL DEPLOYMENT GOOGLE APPS SCRIPT LMS ANDA
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKv5zlEhy9I-P7j1tT0fCaYA0P5r9YDvXBb9Rlx5pK3tkFmTrlayJSHWZcY_oCMQC6/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwrJORsOA3wHxpNbUVHng1fqwUaC_5mc6xLGd5ExniVylvTBOrOtwXlVemnPaPgoDY/exec";
 
     let currentUser = null;
     let currentClassView = 'ALL';
@@ -1437,7 +1437,7 @@
           tbody.innerHTML = `
             <tr>
               <td colspan="10" class="text-center py-4 text-danger fw-semibold">
-                <i class="fa-solid fa-triangle-exclamation me-1"></i> ${res ? res.message : 'Gagal memuat data.'}
+                <i class="fa-solid fa-triangle-exclamation me-1"></i> ${escHtml(res ? res.message : 'Gagal memuat data.')}
               </td>
             </tr>`;
         }
@@ -1445,7 +1445,7 @@
         tbody.innerHTML = `
           <tr>
             <td colspan="10" class="text-center py-4 text-danger fw-semibold">
-              <i class="fa-solid fa-triangle-exclamation me-1"></i> Gagal terhubung ke server: ${err.message}
+              <i class="fa-solid fa-triangle-exclamation me-1"></i> Gagal terhubung ke server: ${escHtml(err.message)}
             </td>
           </tr>`;
       }
