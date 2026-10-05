@@ -1021,7 +1021,7 @@
 
             <div class="mb-2">
               <label class="form-label small fw-bold">Tipe Tautan / Link</label>
-              <select id="editTipeLink" class="form-select form-select-sm" onchange="toggleCustomLabelEdit()">
+              <select id="editTipeLink" class="form-select form-select-sm" onchange="toggleCustomLabelEdit(true)">
                 <option value="portal">Portal Pengumpulan Tugas PKn</option>
                 <option value="modul">Pelajari Modul / Pengumpulan Lain</option>
                 <option value="meet">Link Rapat Virtual (Meet/Zoom)</option>
@@ -1039,7 +1039,8 @@
               <input type="url" id="editLink" class="form-control form-control-sm" required>
             </div>
 
-            <button type="submit" class="btn btn-sm btn-primary w-100 fw-bold">Simpan Perubahan</button>
+            <div id="editErr" class="alert alert-danger py-2 small d-none mb-2"></div>
+            <button type="submit" id="btnSaveEdit" class="btn btn-sm btn-primary w-100 fw-bold">Simpan Perubahan</button>
           </form>
         </div>
       </div>
@@ -1144,7 +1145,7 @@
     let sessionExpiredShown = false;
 
     // URL DEPLOYMENT GOOGLE APPS SCRIPT LMS ANDA
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx5wI20kPPZ3SkvWT_d0upxlN_wJIa9b8BagevEoEGBtwqqD8dw9SaU-PsbsJTLfhet/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyVp7ZQayMDJFi3xhWEm3ni9cApl1axedq_inCOmzQBHXsjMCTjftNAdo0kzMR27L0/exec";
 
     let currentUser = null;
     let currentClassView = 'ALL';
@@ -1273,10 +1274,10 @@
       }
     }
 
-    function toggleCustomLabelEdit() {
+    function toggleCustomLabelEdit(fromUser) {
       const tipe = document.getElementById('editTipeLink').value;
       document.getElementById('editCustomLabelGroup').classList.toggle('d-none', tipe !== 'custom');
-      if (tipe === 'portal') {
+      if (fromUser === true && tipe === 'portal') {   // hanya saat guru sendiri memilih tipe Portal
         document.getElementById('editLink').value = "https://fansensei12.github.io/Portal-Sumatif-PKn/";
       }
     }
@@ -1679,162 +1680,145 @@
       filterRekapTable();
     }
 
+    const itemRegistry = {};   // id -> data item (dipakai tombol Edit/Hapus, tanpa menyisipkan JSON ke atribut HTML)
+    function safeUrl(u) { u = String(u == null ? '' : u).trim(); return /^https?:\/\//i.test(u) ? u : '#'; }
+
+    function adminActionsHtml(sheet, type, item) {
+      const id = escHtml(item.id);
+      const del = type === 'materi' ? 'confirmDeleteMateri' : 'confirmDeleteTugas';
+      const nm = type === 'materi' ? 'Materi' : 'Tugas';
+      return `
+        <div class="admin-card-actions">
+          <button onclick="moveItem('${sheet}', '${id}', 'up')" class="btn-admin-action" title="Pindah Ke Atas"><i class="fa-solid fa-arrow-up"></i></button>
+          <button onclick="moveItem('${sheet}', '${id}', 'down')" class="btn-admin-action" title="Pindah Ke Bawah"><i class="fa-solid fa-arrow-down"></i></button>
+          <button onclick="openEditModal('${type}', '${id}')" class="btn-admin-action" title="Edit ${nm}"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+          <button onclick="${del}('${id}')" class="btn-admin-action btn-admin-delete" title="Hapus ${nm}"><i class="fa-solid fa-trash"></i></button>
+        </div>`;
+    }
+
     function renderData(data) {
       const isAdmin = currentUser && currentUser.role === 'admin';
-      
+
       const mContainer = document.getElementById('materiContainer');
-      mContainer.innerHTML = '';
-      
       if (data && data.materi && data.materi.length > 0) {
-        data.materi.forEach(item => {
-          let btnClass = "btn-outline-primary";
-          let btnIcon = "fa-file-pdf";
-          let btnText = "Pelajari Modul";
-
-          if (item.tipeLink === "meet") {
-            btnClass = "btn-outline-danger";
-            btnIcon = "fa-video";
-            btnText = "Gabung Rapat Virtual";
-          } else if (item.tipeLink === "custom" && item.labelCustom) {
-            btnClass = "btn-outline-dark";
-            btnIcon = "fa-arrow-up-right-from-square";
-            btnText = item.labelCustom;
-          }
-
-          const safeItemJson = JSON.stringify(item).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
-
-          const adminActionsHtml = isAdmin ? `
-            <div class="admin-card-actions">
-              <button onclick="moveItem('Materi', '${item.id}', 'up')" class="btn-admin-action" title="Pindah Ke Atas"><i class="fa-solid fa-arrow-up"></i></button>
-              <button onclick="moveItem('Materi', '${item.id}', 'down')" class="btn-admin-action" title="Pindah Ke Bawah"><i class="fa-solid fa-arrow-down"></i></button>
-              <button onclick='openEditModal("materi", ${safeItemJson})' class="btn-admin-action" title="Edit Materi"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
-              <button onclick="confirmDeleteMateri('${item.id}', '${item.judul.replace(/'/g, "\\'")}')" class="btn-admin-action btn-admin-delete" title="Hapus Materi"><i class="fa-solid fa-trash"></i></button>
-            </div>` : '';
-
-          mContainer.innerHTML += `
+        mContainer.innerHTML = data.materi.map(item => {
+          itemRegistry[item.id] = item;
+          let btnClass = "btn-outline-primary", btnIcon = "fa-file-pdf", btnText = "Pelajari Modul";
+          if (item.tipeLink === "meet") { btnClass = "btn-outline-danger"; btnIcon = "fa-video"; btnText = "Gabung Rapat Virtual"; }
+          else if (item.tipeLink === "custom" && item.labelCustom) { btnClass = "btn-outline-dark"; btnIcon = "fa-arrow-up-right-from-square"; btnText = item.labelCustom; }
+          return `
             <div class="card card-item card-materi p-3 mb-3">
               <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="badge badge-kelas-materi"><i class="fa-solid fa-tag me-1"></i>${kelasLabel(item.kelas)}</span>
-                ${adminActionsHtml}
+                <span class="badge badge-kelas-materi"><i class="fa-solid fa-tag me-1"></i>${escHtml(kelasLabel(item.kelas))}</span>
+                ${isAdmin ? adminActionsHtml('Materi', 'materi', item) : ''}
               </div>
-              <h6 class="fw-bold text-dark mb-1">${item.judul}</h6>
-              <p class="text-muted small mb-3">${item.deskripsi}</p>
+              <h6 class="fw-bold text-dark mb-1">${escHtml(item.judul)}</h6>
+              <p class="text-muted small mb-3">${escHtml(item.deskripsi)}</p>
               <div>
-                <a href="${item.link}" target="_blank" class="btn btn-sm ${btnClass}">
-                  <i class="fa-solid ${btnIcon} me-1"></i> ${btnText}
+                <a href="${escHtml(safeUrl(item.link))}" target="_blank" rel="noopener" class="btn btn-sm ${btnClass}">
+                  <i class="fa-solid ${btnIcon} me-1"></i> ${escHtml(btnText)}
                 </a>
               </div>
             </div>`;
-        });
+        }).join('');
       } else {
         mContainer.innerHTML = `<div class="text-muted small">Belum ada materi untuk kelas ini.</div>`;
       }
 
       const tContainer = document.getElementById('tugasContainer');
-      tContainer.innerHTML = '';
-      
       if (data && data.tugas && data.tugas.length > 0) {
-        data.tugas.forEach(item => {
-          let btnClass = "btn-outline-success";
-          let btnIcon = "fa-paper-plane";
-          let btnText = "Buka Pengumpulan";
-
-          if (item.tipeLink === "portal") {
-            btnClass = "btn-success text-white fw-bold";
-            btnIcon = "fa-upload";
-            btnText = "Kirim Tugas Ke Portal";
-          } else if (item.tipeLink === "meet") {
-            btnClass = "btn-outline-danger";
-            btnIcon = "fa-video";
-            btnText = "Gabung Diskusi Rapat Virtual";
-          } else if (item.tipeLink === "custom" && item.labelCustom) {
-            btnClass = "btn-outline-dark";
-            btnIcon = "fa-arrow-up-right-from-square";
-            btnText = item.labelCustom;
-          }
-
-          const safeItemJson = JSON.stringify(item).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
-
-          const adminActionsHtml = isAdmin ? `
-            <div class="admin-card-actions">
-              <button onclick="moveItem('Tugas', '${item.id}', 'up')" class="btn-admin-action" title="Pindah Ke Atas"><i class="fa-solid fa-arrow-up"></i></button>
-              <button onclick="moveItem('Tugas', '${item.id}', 'down')" class="btn-admin-action" title="Pindah Ke Bawah"><i class="fa-solid fa-arrow-down"></i></button>
-              <button onclick='openEditModal("tugas", ${safeItemJson})' class="btn-admin-action" title="Edit Tugas"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
-              <button onclick="confirmDeleteTugas('${item.id}', '${item.judul.replace(/'/g, "\\'")}')" class="btn-admin-action btn-admin-delete" title="Hapus Tugas"><i class="fa-solid fa-trash"></i></button>
-            </div>` : '';
-
-          tContainer.innerHTML += `
+        tContainer.innerHTML = data.tugas.map(item => {
+          itemRegistry[item.id] = item;
+          let btnClass = "btn-outline-success", btnIcon = "fa-paper-plane", btnText = "Buka Pengumpulan";
+          if (item.tipeLink === "portal") { btnClass = "btn-success text-white fw-bold"; btnIcon = "fa-upload"; btnText = "Kirim Tugas Ke Portal"; }
+          else if (item.tipeLink === "meet") { btnClass = "btn-outline-danger"; btnIcon = "fa-video"; btnText = "Gabung Diskusi Rapat Virtual"; }
+          else if (item.tipeLink === "custom" && item.labelCustom) { btnClass = "btn-outline-dark"; btnIcon = "fa-arrow-up-right-from-square"; btnText = item.labelCustom; }
+          return `
             <div class="card card-item card-tugas p-3 mb-3">
               <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="badge badge-kelas-tugas"><i class="fa-solid fa-tag me-1"></i>${kelasLabel(item.kelas)}</span>
-                ${adminActionsHtml}
+                <span class="badge badge-kelas-tugas"><i class="fa-solid fa-tag me-1"></i>${escHtml(kelasLabel(item.kelas))}</span>
+                ${isAdmin ? adminActionsHtml('Tugas', 'tugas', item) : ''}
               </div>
-              <h6 class="fw-bold text-dark mb-1">${item.judul}</h6>
+              <h6 class="fw-bold text-dark mb-1">${escHtml(item.judul)}</h6>
               <p class="text-danger small fw-semibold mb-3">
-                <i class="fa-regular fa-clock me-1"></i> Tenggat: ${item.deadline}
+                <i class="fa-regular fa-clock me-1"></i> Tenggat: ${escHtml(item.deadline)}
               </p>
               <div>
-                <a href="${item.link}" target="_blank" class="btn btn-sm ${btnClass}">
-                  <i class="fa-solid ${btnIcon} me-1"></i> ${btnText}
+                <a href="${escHtml(safeUrl(item.link))}" target="_blank" rel="noopener" class="btn btn-sm ${btnClass}">
+                  <i class="fa-solid ${btnIcon} me-1"></i> ${escHtml(btnText)}
                 </a>
               </div>
             </div>`;
-        });
+        }).join('');
       } else {
         tContainer.innerHTML = `<div class="text-muted small">Belum ada tugas untuk kelas ini.</div>`;
       }
     }
 
+    // Jalankan aksi tulis dengan penanganan error yang jelas; tombol selalu kembali aktif
+    async function runWrite(btn, busyText, action, payload) {
+      const label = btn ? btn.innerHTML : '';
+      if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + busyText; }
+      try {
+        const res = await callApi(action, payload);
+        if (res && res.expired) return { ok: false, silent: true };
+        if (!res || res.success === false) return { ok: false, message: res ? res.message : 'Gagal menyimpan data.' };
+        return { ok: true, message: res.message };
+      } catch (err) {
+        return { ok: false, message: err.message || 'Gagal terhubung ke server.' };
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = label; }
+      }
+    }
+
     async function handleAddMateri(e) {
       e.preventDefault();
-      const btn = document.getElementById('btnSubmitMateri');
-      btn.disabled = true;
-      const payload = {
+      const form = e.target;
+      const r = await runWrite(document.getElementById('btnSubmitMateri'), 'Menyimpan...', 'addMateri', {
         kelas: document.getElementById('materiKelas').value,
         judul: document.getElementById('materiJudul').value,
         deskripsi: document.getElementById('materiDeskripsi').value,
         link: document.getElementById('materiLink').value,
         tipeLink: document.getElementById('materiTipeLink').value,
         labelCustom: document.getElementById('materiLabelCustom').value
-      };
-
-      const res = await callApi('addMateri', payload);
-      btn.disabled = false;
-      showSuccessModal("Modul Berhasil Disimpan!", res.message);
-      e.target.reset();
+      });
+      if (!r.ok) { if (!r.silent) Popup.error(r.message + '\n\nIsi formulir masih tersimpan. Cek dulu daftar materi sebelum menekan Simpan lagi agar tidak dobel.'); return; }
+      form.reset();
       toggleCustomLabel('materi');
       loadContent(currentClassView);
+      showSuccessModal("Modul Berhasil Disimpan!", r.message);
     }
 
     async function handleAddTugas(e) {
       e.preventDefault();
-      const btn = document.getElementById('btnSubmitTugas');
-      btn.disabled = true;
-      const payload = {
+      const form = e.target;
+      const r = await runWrite(document.getElementById('btnSubmitTugas'), 'Menyimpan...', 'addTugas', {
         kelas: document.getElementById('tugasKelas').value,
         judul: document.getElementById('tugasJudul').value,
         deadline: document.getElementById('tugasDeadline').value,
         link: document.getElementById('tugasLink').value,
         tipeLink: document.getElementById('tugasTipeLink').value,
         labelCustom: document.getElementById('tugasLabelCustom').value
-      };
-
-      const res = await callApi('addTugas', payload);
-      btn.disabled = false;
-      showSuccessModal("Tugas Diterbitkan!", res.message);
-      e.target.reset();
+      });
+      if (!r.ok) { if (!r.silent) Popup.error(r.message + '\n\nIsi formulir masih tersimpan. Cek dulu daftar tugas sebelum menekan Simpan lagi agar tidak dobel.'); return; }
+      form.reset();
       toggleCustomLabel('tugas');
       loadContent(currentClassView);
+      showSuccessModal("Tugas Diterbitkan!", r.message);
     }
 
-    function openEditModal(type, item) {
+    function openEditModal(type, id) {
+      const item = itemRegistry[id];
+      if (!item) { Popup.error('Data item tidak ditemukan. Muat ulang halaman lalu coba lagi.'); return; }
+      const errBox = document.getElementById('editErr'); errBox.classList.add('d-none'); errBox.textContent = '';
       document.getElementById('editItemType').value = type;
       document.getElementById('editItemId').value = item.id;
       document.getElementById('editKelas').value = item.kelas;
       document.getElementById('editJudul').value = item.judul;
-      document.getElementById('editLink').value = item.link;
       document.getElementById('editTipeLink').value = item.tipeLink || 'modul';
       document.getElementById('editLabelCustom').value = item.labelCustom || '';
+      toggleCustomLabelEdit(false);                       // tampilkan/sembunyikan label kustom saja
+      document.getElementById('editLink').value = item.link || '';   // link asli item, tidak ditimpa
 
       if (type === 'materi') {
         document.getElementById('editDeskripsiGroup').classList.remove('d-none');
@@ -1845,14 +1829,26 @@
         document.getElementById('editDeadlineGroup').classList.remove('d-none');
         document.getElementById('editDeadline').value = item.deadline || '';
       }
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal')).show();
+    }
 
-      toggleCustomLabelEdit();
-      var modal = new bootstrap.Modal(document.getElementById('editModal'));
-      modal.show();
+    // Tutup modal edit dan tunggu animasinya selesai sebelum popup lain ditampilkan (mencegah layar terkunci)
+    function hideEditModal() {
+      return new Promise(resolve => {
+        const el = document.getElementById('editModal');
+        const m = bootstrap.Modal.getInstance(el);
+        if (!m || !el.classList.contains('show')) return resolve();
+        let done = false; const fin = () => { if (!done) { done = true; resolve(); } };
+        el.addEventListener('hidden.bs.modal', fin, { once: true });
+        setTimeout(fin, 800);
+        m.hide();
+      });
     }
 
     async function handleSaveEdit(e) {
       e.preventDefault();
+      const btn = document.getElementById('btnSaveEdit');
+      if (btn.disabled) return;
       const type = document.getElementById('editItemType').value;
       const payload = {
         id: document.getElementById('editItemId').value,
@@ -1862,42 +1858,49 @@
         tipeLink: document.getElementById('editTipeLink').value,
         labelCustom: document.getElementById('editLabelCustom').value
       };
+      if (type === 'materi') payload.deskripsi = document.getElementById('editDeskripsi').value;
+      else payload.deadline = document.getElementById('editDeadline').value;
 
-      var editModalEl = document.getElementById('editModal');
-      var modal = bootstrap.Modal.getInstance(editModalEl);
-      if (modal) modal.hide();
-
-      if (type === 'materi') {
-        payload.deskripsi = document.getElementById('editDeskripsi').value;
-        const res = await callApi('updateMateri', payload);
-        showSuccessModal("Perubahan Disimpan", res.message);
-      } else {
-        payload.deadline = document.getElementById('editDeadline').value;
-        const res = await callApi('updateTugas', payload);
-        showSuccessModal("Perubahan Disimpan", res.message);
+      const errBox = document.getElementById('editErr'); errBox.classList.add('d-none');
+      const r = await runWrite(btn, 'Menyimpan...', type === 'materi' ? 'updateMateri' : 'updateTugas', payload);
+      if (!r.ok) {
+        if (r.silent) { await hideEditModal(); return; }
+        errBox.textContent = r.message + ' Perubahan Anda masih di formulir, tekan Simpan lagi.';
+        errBox.classList.remove('d-none');
+        return;
       }
+      await hideEditModal();
       loadContent(currentClassView);
+      showSuccessModal("Perubahan Disimpan", r.message);
     }
 
+    let moveBusy = false;
     async function moveItem(sheetName, id, direction) {
-      await callApi('moveRowPosition', { sheetName: sheetName, id: id, direction: direction });
+      if (moveBusy) return;           // cegah klik beruntun yang menggeser baris dua kali
+      moveBusy = true;
+      try {
+        const r = await runWrite(null, '', 'moveRowPosition', { sheetName: sheetName, id: id, direction: direction });
+        if (!r.ok && !r.silent) { Popup.error(r.message); return; }
+        await loadContent(currentClassView);
+      } finally { moveBusy = false; }
+    }
+
+    async function confirmDeleteMateri(id) {
+      const item = itemRegistry[id]; const judul = item ? item.judul : '';
+      if (!await Popup.confirm({ type: 'danger', title: 'Hapus Materi?', text: `Materi "${judul}" akan dihapus permanen dan tidak bisa dikembalikan.`, confirmText: 'Ya, Hapus' })) return;
+      const r = await runWrite(null, '', 'deleteMateri', { id: id });
+      if (!r.ok) { if (!r.silent) Popup.error(r.message); return; }
       loadContent(currentClassView);
+      showSuccessModal("Berhasil Dihapus", r.message);
     }
 
-    async function confirmDeleteMateri(id, judul) {
-      if (await Popup.confirm({ type: 'danger', title: 'Hapus Materi?', text: `Materi "${judul}" akan dihapus permanen dan tidak bisa dikembalikan.`, confirmText: 'Ya, Hapus' })) {
-        const res = await callApi('deleteMateri', { id: id });
-        showSuccessModal("Berhasil Dihapus", res.message);
-        loadContent(currentClassView);
-      }
-    }
-
-    async function confirmDeleteTugas(id, judul) {
-      if (await Popup.confirm({ type: 'danger', title: 'Hapus Tugas?', text: `Tugas "${judul}" akan dihapus permanen dan tidak bisa dikembalikan.`, confirmText: 'Ya, Hapus' })) {
-        const res = await callApi('deleteTugas', { id: id });
-        showSuccessModal("Berhasil Dihapus", res.message);
-        loadContent(currentClassView);
-      }
+    async function confirmDeleteTugas(id) {
+      const item = itemRegistry[id]; const judul = item ? item.judul : '';
+      if (!await Popup.confirm({ type: 'danger', title: 'Hapus Tugas?', text: `Tugas "${judul}" akan dihapus permanen dan tidak bisa dikembalikan.`, confirmText: 'Ya, Hapus' })) return;
+      const r = await runWrite(null, '', 'deleteTugas', { id: id });
+      if (!r.ok) { if (!r.silent) Popup.error(r.message); return; }
+      loadContent(currentClassView);
+      showSuccessModal("Berhasil Dihapus", r.message);
     }
 
     // ==================== FITUR NILAI ====================
