@@ -505,8 +505,18 @@
             <i class="fa-solid fa-star-half-stroke"></i> Input Nilai Siswa
           </a>
         </li>
+        <li class="menu-admin-rekap" style="display:none;">
+          <a class="nav-link" id="menu-ABSENADMIN" onclick="openAbsenAdminView()">
+            <i class="fa-solid fa-user-clock"></i> Kelola Absensi PJJ
+          </a>
+        </li>
 
-        <li class="menu-header menu-siswa-nilai" style="display:none;">Hasil Belajar</li>
+        <li class="menu-header menu-siswa-nilai" style="display:none;">Absensi & Nilai</li>
+        <li class="menu-siswa-nilai" style="display:none;">
+          <a class="nav-link" id="menu-ABSEN" onclick="openAbsenSiswaView()">
+            <i class="fa-solid fa-user-check"></i> Absensi PJJ
+          </a>
+        </li>
         <li class="menu-siswa-nilai" style="display:none;">
           <a class="nav-link" id="menu-NILAI" onclick="openNilaiSayaView()">
             <i class="fa-solid fa-star"></i> Nilai Saya
@@ -896,6 +906,49 @@
           <div id="pengumumanList"></div>
         </div>
 
+        <!-- ==================== TAMPILAN 6: ABSENSI SISWA ==================== -->
+        <div id="absenSiswaSection" class="d-none">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-user-check text-success me-2"></i>Absensi PJJ</h5>
+            <button class="btn btn-sm btn-outline-primary fw-semibold" onclick="openAbsenSiswaView()"><i class="fa-solid fa-rotate me-1"></i> Refresh</button>
+          </div>
+          <div class="alert alert-info small py-2"><i class="fa-solid fa-circle-info me-1"></i> Masukkan <b>token</b> yang diberikan guru saat pembelajaran, lalu klik <b>Hadir</b>.</div>
+          <div id="absenAktifList"></div>
+          <div class="card card-item mt-3"><div class="card-body">
+            <h6 class="fw-bold mb-3">Riwayat Kehadiran Saya</h6>
+            <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+              <thead><tr><th>Pertemuan</th><th>Waktu</th><th class="text-center">Status</th></tr></thead>
+              <tbody id="absenRiwayatBody"></tbody></table></div>
+          </div></div>
+        </div>
+
+        <!-- ==================== TAMPILAN 7: KELOLA ABSENSI (GURU) ==================== -->
+        <div id="absenAdminSection" class="d-none">
+          <div class="card card-item mb-3 border-start border-success border-4"><div class="card-body">
+            <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-door-open me-1"></i> Buka Absensi Baru</h6>
+            <form onsubmit="handleBukaAbsen(event)">
+              <div class="row g-2">
+                <div class="col-md-4"><input type="text" id="absenJudul" class="form-control form-control-sm" placeholder="Judul / Pertemuan (misal: Pertemuan 5)" required></div>
+                <div class="col-md-3"><select id="absenTarget" class="form-select form-select-sm"></select></div>
+                <div class="col-md-2 col-6"><input type="number" id="absenDurasi" class="form-control form-control-sm" value="30" min="1" max="720" title="Durasi (menit)"></div>
+                <div class="col-md-3 col-6"><input type="text" id="absenTokenCustom" class="form-control form-control-sm text-uppercase" maxlength="10" placeholder="Token (kosong = acak)"></div>
+              </div>
+              <button type="submit" id="btnBukaAbsen" class="btn btn-sm btn-success fw-bold w-100 mt-2"><i class="fa-solid fa-play me-1"></i> Buka Absensi</button>
+              <small class="text-muted">Durasi dalam menit. Setelah dibuka, bagikan token ke siswa lewat Zoom / WhatsApp / Meet.</small>
+            </form>
+          </div></div>
+          <div class="card card-item mb-3"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="fw-bold mb-0">Daftar Sesi Absensi</h6>
+              <button class="btn btn-sm btn-outline-primary" onclick="loadSesiAbsenAdmin()"><i class="fa-solid fa-rotate me-1"></i> Refresh</button>
+            </div>
+            <div class="rekap-table-scroll"><table class="table table-rekap mb-0">
+              <thead><tr><th>Pertemuan</th><th>Target</th><th>Token</th><th>Status</th><th class="text-center">Hadir</th><th>Aksi</th></tr></thead>
+              <tbody id="absenSesiBody"></tbody></table></div>
+          </div></div>
+          <div id="absenDetailBox"></div>
+        </div>
+
       </div>
     </main>
   </div>
@@ -986,7 +1039,7 @@
 
   <script>
     // URL DEPLOYMENT GOOGLE APPS SCRIPT LMS ANDA
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLuLpdWaNbxppvUYQ3vgngCS1WVI3L8xgmoR6baMq8xeY-sf44t3gfl72n4lK-QB5h/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbym_0tKV7xT_0NvUWiMz8J1s7VeadwHG9oaprV3XWMEWR79YL5Vt2WEQaWhEAfkbp7n/exec";
 
     let currentUser = null;
     let currentClassView = 'ALL';
@@ -1681,6 +1734,8 @@
       document.getElementById('nilaiSayaSection').classList.add('d-none');
       document.getElementById('inputNilaiSection').classList.add('d-none');
       document.getElementById('pengumumanSection').classList.add('d-none');
+      document.getElementById('absenSiswaSection').classList.add('d-none');
+      document.getElementById('absenAdminSection').classList.add('d-none');
     }
     function showOnlyNilaiView(sectionId, menuId, title) {
       closeSidebar();
@@ -1854,6 +1909,119 @@
       if (!confirm('Hapus pengumuman ini?')) return;
       const res = await callApi('deletePengumuman', { id });
       if (res && res.success) openPengumumanView(); else if (!(res && res.expired)) alert(res ? res.message : 'Gagal menghapus');
+    }
+
+    // ==================== ABSENSI PJJ ====================
+    // --- Siswa ---
+    async function openAbsenSiswaView() {
+      if (!currentUser || currentUser.role === 'admin') return;
+      showOnlyNilaiView('absenSiswaSection', 'menu-ABSEN', 'Absensi PJJ');
+      const box = document.getElementById('absenAktifList');
+      box.innerHTML = '<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat sesi absensi...</div>';
+      try {
+        const res = await callApi('getSesiAbsenAktif');
+        if (!res || !res.success) { if (res && res.expired) return; throw new Error(res ? res.message : 'Gagal memuat'); }
+        box.innerHTML = res.aktif.length ? res.aktif.map(s => `
+          <div class="card card-item mb-3 border-start border-success border-4"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div><h6 class="fw-bold mb-1">${escHtml(s.judul)}</h6>
+                <small class="text-muted"><i class="fa-regular fa-clock me-1"></i>Ditutup ${escHtml(s.tutup)}</small></div>
+              ${s.status ? `<span class="badge bg-success fs-6">${escHtml(s.status)}</span>` : '<span class="badge bg-warning text-dark">Belum absen</span>'}
+            </div>
+            ${s.status ? '' : `<div class="input-group mt-3">
+              <input type="text" id="tok_${escHtml(s.id)}" class="form-control text-uppercase" maxlength="10" autocomplete="off" placeholder="Masukkan token dari guru">
+              <button class="btn btn-success fw-bold" onclick="submitAbsen('${escHtml(s.id)}', this)"><i class="fa-solid fa-hand me-1"></i> Hadir</button></div>`}
+          </div></div>`).join('') : '<div class="text-muted small py-3">Tidak ada sesi absensi yang sedang dibuka untuk kelas Anda.</div>';
+        document.getElementById('absenRiwayatBody').innerHTML = res.riwayat.length ? res.riwayat.map(r => `
+          <tr><td>${escHtml(r.judul)}</td><td class="small">${escHtml(r.tanggal)}</td>
+          <td class="text-center"><span class="badge bg-${r.status === 'Hadir' ? 'success' : (r.status === 'Alpa' ? 'danger' : 'secondary')}">${escHtml(r.status)}</span></td></tr>`).join('')
+          : '<tr><td colspan="3" class="text-center text-muted py-3">Belum ada riwayat.</td></tr>';
+      } catch (err) { box.innerHTML = `<div class="text-danger small">${escHtml(err.message)}</div>`; }
+    }
+    async function submitAbsen(sesiId, btn) {
+      const tok = document.getElementById('tok_' + sesiId).value.trim();
+      if (!tok) { alert('Isi token terlebih dahulu.'); return; }
+      btn.disabled = true;
+      try {
+        const res = await callApi('submitAbsen', { sesiId, token_absen: tok });
+        if (res && res.success) { showSuccessModal('Absen Berhasil', res.message); }
+        else if (!(res && res.expired)) { alert(res ? res.message : 'Gagal mengirim absen'); }
+      } catch (err) { alert('Gagal terhubung ke server: ' + err.message); }
+      openAbsenSiswaView();
+    }
+
+    // --- Guru ---
+    let absenTargetReady = false;
+    async function openAbsenAdminView() {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      showOnlyNilaiView('absenAdminSection', 'menu-ABSENADMIN', 'Kelola Absensi PJJ');
+      document.getElementById('absenDetailBox').innerHTML = '';
+      if (!absenTargetReady) {
+        const res = await callApi('getSiswaList');
+        if (res && res.success) {
+          document.getElementById('absenTarget').innerHTML =
+            '<option value="SEMUA">Semua Siswa</option><option value="VII">Kelas VII</option><option value="VIII">Kelas VIII</option><option value="IX">Kelas IX</option>' +
+            (res.rombelList.length ? '<optgroup label="Per Rombel">' + res.rombelList.map(r => `<option value="${escHtml(r)}">${escHtml(r)}</option>`).join('') + '</optgroup>' : '');
+          absenTargetReady = true;
+        }
+      }
+      loadSesiAbsenAdmin();
+    }
+    async function loadSesiAbsenAdmin() {
+      const tb = document.getElementById('absenSesiBody');
+      tb.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">Memuat...</td></tr>';
+      const res = await callApi('getSesiAbsenAdmin');
+      if (!res || !res.success) { if (!(res && res.expired)) tb.innerHTML = `<tr><td colspan="6" class="text-danger text-center py-3">${escHtml(res ? res.message : 'Gagal memuat')}</td></tr>`; return; }
+      tb.innerHTML = res.data.length ? res.data.map(s => `
+        <tr><td class="fw-semibold">${escHtml(s.judul)}<div class="text-muted" style="font-size:.72rem">${escHtml(s.dibuat)}</div></td>
+        <td>${escHtml(s.target)}</td>
+        <td><span class="fs-5 fw-bold text-primary" style="letter-spacing:2px;font-family:monospace">${escHtml(s.token)}</span></td>
+        <td>${s.buka ? `<span class="badge bg-success">Buka</span><div class="small text-muted">s.d. ${escHtml(s.tutup)}</div>` : '<span class="badge bg-secondary">Tutup</span>'}</td>
+        <td class="text-center fw-bold">${s.hadir}</td>
+        <td><button class="btn btn-sm btn-outline-primary py-0" onclick="showAbsenDetail('${escHtml(s.id)}')">Detail</button>
+            ${s.buka ? `<button class="btn btn-sm btn-outline-danger py-0" onclick="tutupAbsen('${escHtml(s.id)}')">Tutup</button>` : ''}</td></tr>`).join('')
+        : '<tr><td colspan="6" class="text-center py-3 text-muted">Belum ada sesi absensi.</td></tr>';
+    }
+    async function handleBukaAbsen(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btnBukaAbsen'); btn.disabled = true;
+      try {
+        const res = await callApi('createSesiAbsen', {
+          judul: document.getElementById('absenJudul').value, target: document.getElementById('absenTarget').value,
+          durasi: document.getElementById('absenDurasi').value, tokenCustom: document.getElementById('absenTokenCustom').value });
+        if (res && res.success) { e.target.reset(); document.getElementById('absenDurasi').value = 30; showSuccessModal('Absensi Dibuka', res.message); loadSesiAbsenAdmin(); }
+        else if (!(res && res.expired)) alert(res ? res.message : 'Gagal membuka absensi');
+      } catch (err) { alert('Gagal terhubung ke server: ' + err.message); }
+      btn.disabled = false;
+    }
+    async function tutupAbsen(id) {
+      if (!confirm('Tutup sesi absensi ini sekarang?')) return;
+      const res = await callApi('closeSesiAbsen', { sesiId: id });
+      if (res && res.success) loadSesiAbsenAdmin(); else if (!(res && res.expired)) alert(res ? res.message : 'Gagal');
+    }
+    async function showAbsenDetail(id) {
+      const box = document.getElementById('absenDetailBox');
+      box.innerHTML = '<div class="text-muted small py-3">Memuat detail...</div>';
+      const res = await callApi('getAbsenDetail', { sesiId: id });
+      if (!res || !res.success) { if (!(res && res.expired)) box.innerHTML = `<div class="text-danger small">${escHtml(res ? res.message : 'Gagal')}</div>`; return; }
+      const cnt = {}; res.data.forEach(d => cnt[d.status] = (cnt[d.status] || 0) + 1);
+      const opts = ['Hadir', 'Izin', 'Sakit', 'Alpa', 'Belum'];
+      box.innerHTML = `<div class="card card-item"><div class="card-body">
+        <h6 class="fw-bold mb-1">Detail: ${escHtml(res.sesi.judul)} <span class="badge bg-primary">${escHtml(res.sesi.target)}</span></h6>
+        <div class="small text-muted mb-2">${opts.map(o => `${o}: <b>${cnt[o] || 0}</b>`).join(' &bull; ')}</div>
+        <div class="rekap-table-scroll"><table class="table table-rekap mb-0">
+          <thead><tr><th>No</th><th>Nama</th><th>Rombel</th><th>Status</th><th>Jam</th><th>Metode</th></tr></thead><tbody>
+          ${res.data.map((d, i) => `<tr><td>${i + 1}</td><td class="fw-semibold">${escHtml(d.nama)}</td><td>${escHtml(d.rombel)}</td>
+            <td><select class="form-select form-select-sm" style="width:110px" onchange="setAbsenManual('${escHtml(id)}','${escHtml(d.nis)}',this.value)">
+              ${opts.map(o => `<option ${o === d.status ? 'selected' : ''}>${o}</option>`).join('')}</select></td>
+            <td class="small">${escHtml(d.waktu)}</td><td class="small">${escHtml(d.metode)}</td></tr>`).join('')}
+          </tbody></table></div></div></div>`;
+      box.scrollIntoView({ behavior: 'smooth' });
+    }
+    async function setAbsenManual(sesiId, nis, status) {
+      const res = await callApi('setAbsenManual', { sesiId, nis, status });
+      if (!(res && res.success) && !(res && res.expired)) alert(res ? res.message : 'Gagal menyimpan');
+      loadSesiAbsenAdmin();
     }
 
     function logout() {
