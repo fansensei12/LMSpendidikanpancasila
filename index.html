@@ -2,6 +2,8 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
+  <link rel="preconnect" href="https://script.google.com">
+  <link rel="preconnect" href="https://script-google-com.googleusercontent.com" crossorigin>
   <title>LMS Pendidikan Pancasila SMPN 7 Banjarmasin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -754,7 +756,7 @@
                 <button class="btn btn-sm btn-outline-secondary fw-semibold" onclick="resetRekapFilters()">
                   <i class="fa-solid fa-filter-circle-xmark me-1"></i> Reset Filter
                 </button>
-                <button class="btn btn-sm btn-primary fw-semibold" onclick="fetchRekapTugas()">
+                <button class="btn btn-sm btn-primary fw-semibold" onclick="fetchRekapTugas(true)">
                   <i class="fa-solid fa-rotate me-1"></i> Refresh Data
                 </button>
                 <a id="btnOpenSpreadsheet" href="#" target="_blank" class="btn btn-sm btn-success fw-semibold d-none">
@@ -1142,7 +1144,7 @@
     let sessionExpiredShown = false;
 
     // URL DEPLOYMENT GOOGLE APPS SCRIPT LMS ANDA
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwrJORsOA3wHxpNbUVHng1fqwUaC_5mc6xLGd5ExniVylvTBOrOtwXlVemnPaPgoDY/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx5wI20kPPZ3SkvWT_d0upxlN_wJIa9b8BagevEoEGBtwqqD8dw9SaU-PsbsJTLfhet/exec";
 
     let currentUser = null;
     let currentClassView = 'ALL';
@@ -1160,7 +1162,7 @@
       const maxTry = RETRY_ACTIONS.includes(action) ? 4 : 1;
       let lastErr;
       for (let attempt = 0; attempt < maxTry; attempt++) {
-        if (attempt > 0) await sleep(1000 * Math.pow(2, attempt - 1) + Math.random() * 1500); // 1s, 2s, 4s + acak agar tidak serentak
+        if (attempt > 0) await sleep(700 * Math.pow(2, attempt - 1) + Math.random() * 1000); // ~0.7s, 1.4s, 2.8s + acak agar tidak serentak
         try {
           const response = await fetch(SCRIPT_URL, {
             method: 'POST',
@@ -1180,12 +1182,53 @@
             }
           }
           if (data && attempt > 0) data._retried = true;
+          if (MUTATING_ACTIONS.includes(action) && data && data.success !== false) swrClear();
           return data;
         } catch (err) {
           lastErr = (err instanceof TypeError) ? new Error('Koneksi internet terputus atau tidak stabil. Periksa jaringan Anda, lalu coba lagi.') : err;
         }
       }
       throw lastErr;
+    }
+
+    // ===== "Tampilkan data tersimpan dulu, perbarui di latar belakang" =====
+    // Data terakhir disimpan di perangkat. Menu langsung tampil seketika, lalu diperbarui bila ada yang berubah.
+    const MUTATING_ACTIONS = ['addMateri','updateMateri','deleteMateri','addTugas','updateTugas','deleteTugas','moveRowPosition','toggleStatusCekTugas','saveNilaiBatch','deleteNilai','addPengumuman','deletePengumuman','submitAbsen','createSesiAbsen','closeSesiAbsen','updateTokenAbsen','setAbsenManual'];
+    const swrMem = {};
+    function swrKey(action, payload) {
+      const p = Object.assign({}, payload); delete p.fresh;
+      return 'lms_swr_' + (currentUser ? currentUser.username : '') + '_' + action + '_' + JSON.stringify(p);
+    }
+    function swrPeek(action, payload) {
+      const k = swrKey(action, payload);
+      if (swrMem[k]) return swrMem[k];
+      try { const r = localStorage.getItem(k); if (r) { swrMem[k] = r; return r; } } catch (e) {}
+      return null;
+    }
+    function swrClear() {
+      Object.keys(swrMem).forEach(k => delete swrMem[k]);
+      try { Object.keys(localStorage).filter(k => k.startsWith('lms_swr_')).forEach(k => localStorage.removeItem(k)); } catch (e) {}
+    }
+    async function swr(action, payload, render, opts) {
+      payload = payload || {}; opts = opts || {};
+      const k = swrKey(action, payload);
+      const cached = opts.force ? null : swrPeek(action, payload);
+      if (cached) { try { render(JSON.parse(cached), true); } catch (e) {} }
+      let res;
+      try { res = await callApi(action, payload); }
+      catch (err) {
+        if (cached) { Popup.toast('Koneksi lambat, menampilkan data tersimpan', false); return null; }
+        throw err;
+      }
+      if (res && res.expired) return res;
+      if (res && res.success !== false) {
+        const str = JSON.stringify(res);
+        swrMem[k] = str; try { localStorage.setItem(k, str); } catch (e) {}
+        if (str !== cached) render(res, false);
+      } else if (!cached) {
+        render(res, false);
+      }
+      return res;
     }
 
     window.addEventListener('DOMContentLoaded', function() {
@@ -1335,6 +1378,8 @@
 
         document.getElementById('adminPanel').classList.remove('d-none');
         loadContent('ALL');
+        setTimeout(() => { swr('getRekapTugasData', { userRole: 'admin' }, () => {}).catch(() => {}); }, 2000); // siapkan rekap di latar belakang
+        setTimeout(() => { swr('getSiswaList', {}, () => {}).catch(() => {}); swr('getSesiAbsenAdmin', {}, () => {}).catch(() => {}); }, 3500);
       } else {
         const userClass = currentUser.userClass.toString().trim().toUpperCase();
         const userRombel = currentUser.userRombel ? currentUser.userRombel.toString().trim() : '';
@@ -1357,6 +1402,8 @@
         document.getElementById('item-IX').style.display = (userClass === 'IX') ? 'block' : 'none';
 
         loadContent(userClass);
+        // siapkan menu lain di latar belakang agar saat dibuka langsung tampil
+        setTimeout(() => { swr('getNilaiSaya', {}, () => {}).catch(() => {}); swr('getSesiAbsenAktif', {}, () => {}).catch(() => {}); }, 1500);
       }
     }
 
@@ -1376,14 +1423,15 @@
         ? 'Ruang Kelas Digital (Semua Kelas)' 
         : `Ruang Kelas Digital - Kelas ${selectedClass}`;
 
-      document.getElementById('materiContainer').innerHTML = `<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat materi...</div>`;
-      document.getElementById('tugasContainer').innerHTML = `<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat tugas...</div>`;
+      if (!swrPeek('getLmsData', { selectedClass })) {
+        document.getElementById('materiContainer').innerHTML = `<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat materi...</div>`;
+        document.getElementById('tugasContainer').innerHTML = `<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat tugas...</div>`;
+      }
 
       try {
-        const res = await callApi('getLmsData', { selectedClass: selectedClass });
-        if (res && res.success) {
-          renderData(res.data);
-        }
+        await swr('getLmsData', { selectedClass }, res => {
+          if (res && res.success && currentClassView === selectedClass) renderData(res.data);
+        });
       } catch (err) {
         document.getElementById('materiContainer').innerHTML = `<div class="text-danger small">Gagal memuat data.</div>`;
         document.getElementById('tugasContainer').innerHTML = `<div class="text-danger small">Gagal memuat data.</div>`;
@@ -1409,20 +1457,23 @@
       fetchRekapTugas();
     }
 
-    async function fetchRekapTugas() {
+    async function fetchRekapTugas(force) {
       if (!currentUser || currentUser.role !== 'admin') return;
 
       const tbody = document.getElementById('rekapTableBody');
-      tbody.innerHTML = `
+      const payload = { userRole: currentUser.role };
+      if (force === true) payload.fresh = true;   // tombol Refresh Data: abaikan cache server
+      if (force === true || !swrPeek('getRekapTugasData', payload)) {
+        tbody.innerHTML = `
         <tr>
           <td colspan="10" class="text-center py-5">
             <div class="spinner-border text-primary spinner-border-sm me-2" role="status"></div>
             <span class="text-muted fw-semibold">Memuat data dari tab Pengumpulan Tugas...</span>
           </td>
         </tr>`;
+      }
 
-      try {
-        const res = await callApi('getRekapTugasData', { userRole: currentUser.role });
+      const apply = (res) => {
         if (res && res.success) {
           allRekapData = res.data || [];
           rekapLoaded = true;
@@ -1441,6 +1492,10 @@
               </td>
             </tr>`;
         }
+      };
+
+      try {
+        await swr('getRekapTugasData', payload, apply, { force: force === true });
       } catch (err) {
         tbody.innerHTML = `
           <tr>
@@ -1871,9 +1926,9 @@
       if (!currentUser || currentUser.role === 'admin') return;
       showOnlyNilaiView('nilaiSayaSection', 'menu-NILAI', 'Nilai Saya');
       const tbody = document.getElementById('nilaiSayaBody');
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat nilai...</td></tr>';
+      if (!swrPeek('getNilaiSaya', {})) tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat nilai...</td></tr>';
       try {
-        const res = await callApi('getNilaiSaya');
+        await swr('getNilaiSaya', {}, res => {
         if (!res || !res.success) { if (res && res.expired) return; throw new Error(res ? res.message : 'Gagal memuat'); }
         const list = res.data || [];
         document.getElementById('nilaiCount').textContent = list.length;
@@ -1885,6 +1940,7 @@
           <td class="small text-muted">${escHtml(n.catatan) || '-'}</td>
           <td class="small">${escHtml(n.tanggal)}</td></tr>`).join('')
           : '<tr><td colspan="4" class="text-center py-4 text-muted">Belum ada nilai yang diinput guru.</td></tr>';
+        });
       } catch (err) {
         tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-danger">${escHtml(err.message)}</td></tr>`;
       }
@@ -1895,13 +1951,16 @@
     async function openInputNilaiView() {
       if (!currentUser || currentUser.role !== 'admin') return;
       showOnlyNilaiView('inputNilaiSection', 'menu-INPUTNILAI', 'Input Nilai Siswa');
-      if (!siswaAll.length) {
-        const res = await callApi('getSiswaList');
-        if (!res || !res.success) { if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal memuat siswa'); return; }
-        siswaAll = res.siswa;
-        document.getElementById('inputNilaiRombel').innerHTML = '<option value="">Pilih rombel...</option>' +
-          res.rombelList.map(r => `<option value="${escHtml(r)}">${escHtml(r)}</option>`).join('');
-      }
+      try {
+        await swr('getSiswaList', {}, res => {
+          if (!res || !res.success) { if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal memuat siswa'); return; }
+          siswaAll = res.siswa;
+          const sel = document.getElementById('inputNilaiRombel'), cur = sel.value;
+          sel.innerHTML = '<option value="">Pilih rombel...</option>' +
+            res.rombelList.map(r => `<option value="${escHtml(r)}">${escHtml(r)}</option>`).join('');
+          if (cur) sel.value = cur;
+        });
+      } catch (err) { Popup.error(err.message); }
     }
     async function loadNilaiGrid() {
       const rombel = document.getElementById('inputNilaiRombel').value;
@@ -1962,12 +2021,13 @@
 
     async function refreshPengumumanBadge() {
       try {
-        const res = await callApi('getPengumuman');
-        if (!res || !res.success) return;
-        const seen = Number(localStorage.getItem(seenKey()) || 0);
-        const n = res.data.filter(p => idTime(p.id) > seen).length;
-        const b = document.getElementById('pengumumanBadge');
-        b.textContent = n; b.classList.toggle('d-none', n === 0);
+        await swr('getPengumuman', {}, res => {
+          if (!res || !res.success) return;
+          const seen = Number(localStorage.getItem(seenKey()) || 0);
+          const n = res.data.filter(p => idTime(p.id) > seen).length;
+          const b = document.getElementById('pengumumanBadge');
+          b.textContent = n; b.classList.toggle('d-none', n === 0);
+        });
       } catch (e) {}
     }
 
@@ -1977,11 +2037,11 @@
       const isAdmin = currentUser.role === 'admin';
       document.getElementById('pengumumanForm').classList.toggle('d-none', !isAdmin);
       const box = document.getElementById('pengumumanList');
-      box.innerHTML = '<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat pengumuman...</div>';
+      if (!swrPeek('getPengumuman', {})) box.innerHTML = '<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat pengumuman...</div>';
+      const seenBefore = Number(localStorage.getItem(seenKey()) || 0);  // dibaca sekali, agar tanda "Baru" tidak hilang saat data diperbarui
       try {
-        const res = await callApi('getPengumuman');
+        await swr('getPengumuman', {}, res => {
         if (!res || !res.success) { if (res && res.expired) return; throw new Error(res ? res.message : 'Gagal memuat'); }
-        const seenBefore = Number(localStorage.getItem(seenKey()) || 0);
         box.innerHTML = res.data.length ? res.data.map(p => `
           <div class="card card-item mb-3 ${idTime(p.id) > seenBefore && !isAdmin ? 'border-danger border-2' : ''}">
             <div class="card-body">
@@ -1999,6 +2059,7 @@
           </div>`).join('') : '<div class="text-muted small py-3">Belum ada pengumuman.</div>';
         if (res.data.length) localStorage.setItem(seenKey(), Math.max(...res.data.map(p => idTime(p.id))));
         document.getElementById('pengumumanBadge').classList.add('d-none');
+        });
       } catch (err) {
         box.innerHTML = `<div class="text-danger small">${escHtml(err.message)}</div>`;
       }
@@ -2034,10 +2095,12 @@
       if (!currentUser || currentUser.role === 'admin') return;
       showOnlyNilaiView('absenSiswaSection', 'menu-ABSEN', 'Absensi PJJ');
       const box = document.getElementById('absenAktifList');
-      box.innerHTML = '<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat sesi absensi...</div>';
-      try {
-        const res = await callApi('getSesiAbsenAktif');
+      if (!swrPeek('getSesiAbsenAktif', {})) box.innerHTML = '<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat sesi absensi...</div>';
+      const render = res => {
         if (!res || !res.success) { if (res && res.expired) return; throw new Error(res ? res.message : 'Gagal memuat'); }
+        // simpan token yang sedang diketik agar tidak hilang saat data diperbarui di latar belakang
+        const typed = {};
+        box.querySelectorAll('input[id^="tok_"]').forEach(i => { typed[i.id] = i.value; });
         box.innerHTML = res.aktif.length ? res.aktif.map(s => `
           <div class="card card-item mb-3 border-start border-success border-4"><div class="card-body">
             <div class="d-flex justify-content-between align-items-start gap-2">
@@ -2049,12 +2112,16 @@
               <input type="text" id="tok_${escHtml(s.id)}" class="form-control text-uppercase" maxlength="10" autocomplete="off" placeholder="Masukkan token dari guru">
               <button class="btn btn-success fw-bold" onclick="submitAbsen('${escHtml(s.id)}', this)"><i class="fa-solid fa-hand me-1"></i> Hadir</button></div>`}
           </div></div>`).join('') : '<div class="text-muted small py-3">Tidak ada sesi absensi yang sedang dibuka untuk kelas Anda.</div>';
+        Object.keys(typed).forEach(id => { const el = document.getElementById(id); if (el && typed[id]) el.value = typed[id]; });
         document.getElementById('absenRiwayatBody').innerHTML = res.riwayat.length ? res.riwayat.map(r => `
           <tr><td>${escHtml(r.judul)}</td><td class="small">${escHtml(r.tanggal)}</td>
           <td class="text-center"><span class="badge bg-${r.status === 'Hadir' ? 'success' : (r.status === 'Alpa' ? 'danger' : 'secondary')}">${escHtml(r.status)}</span></td></tr>`).join('')
           : '<tr><td colspan="3" class="text-center text-muted py-3">Belum ada riwayat.</td></tr>';
-      } catch (err) { box.innerHTML = `<div class="text-danger small">${escHtml(err.message)}</div>`; }
+      };
+      try { await swr('getSesiAbsenAktif', {}, render); }
+      catch (err) { box.innerHTML = `<div class="text-danger small">${escHtml(err.message)}</div>`; }
     }
+
     async function submitAbsen(sesiId, btn) {
       const tok = document.getElementById('tok_' + sesiId).value.trim();
       if (!tok) { Popup.warning('Isi token terlebih dahulu.'); return; }
@@ -2083,13 +2150,16 @@
       showOnlyNilaiView('absenAdminSection', 'menu-ABSENADMIN', 'Kelola Absensi PJJ');
       document.getElementById('absenDetailBox').innerHTML = '';
       if (!absenTargetReady) {
-        const res = await callApi('getSiswaList');
-        if (res && res.success) {
-          document.getElementById('absenTarget').innerHTML =
+        // dimuat paralel (tidak ditunggu) supaya daftar sesi tidak tertunda
+        swr('getSiswaList', {}, res => {
+          if (!res || !res.success) return;
+          const sel = document.getElementById('absenTarget'), cur = sel.value;
+          sel.innerHTML =
             '<option value="SEMUA">Semua Siswa</option><option value="VII">Kelas VII</option><option value="VIII">Kelas VIII</option><option value="IX">Kelas IX</option>' +
             (res.rombelList.length ? '<optgroup label="Per Rombel">' + res.rombelList.map(r => `<option value="${escHtml(r)}">${escHtml(r)}</option>`).join('') + '</optgroup>' : '');
+          if (cur) sel.value = cur;
           absenTargetReady = true;
-        }
+        }).catch(() => {});
       }
       loadSesiAbsenAdmin();
     }
@@ -2119,9 +2189,9 @@
     }
     async function loadSesiAbsenAdmin() {
       const tb = document.getElementById('absenSesiBody');
-      tb.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">Memuat...</td></tr>';
-      const res = await callApi('getSesiAbsenAdmin');
-      if (!res || !res.success) { if (!(res && res.expired)) tb.innerHTML = `<tr><td colspan="6" class="text-danger text-center py-3">${escHtml(res ? res.message : 'Gagal memuat')}</td></tr>`; return; }
+      if (!swrPeek('getSesiAbsenAdmin', {})) tb.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat...</td></tr>';
+      const render = res => {
+        if (!res || !res.success) { if (!(res && res.expired)) tb.innerHTML = `<tr><td colspan="6" class="text-danger text-center py-3">${escHtml(res ? res.message : 'Gagal memuat')}</td></tr>`; return; }
       absenSesiCache = {}; res.data.forEach(s => absenSesiCache[s.id] = s);
       tb.innerHTML = res.data.length ? res.data.map(s => `
         <tr><td class="fw-semibold">${escHtml(s.judul)}<div class="text-muted" style="font-size:.72rem">${escHtml(s.dibuat)}</div></td>
@@ -2134,7 +2204,11 @@
         <td><button class="btn btn-sm btn-outline-primary py-0" onclick="showAbsenDetail('${escHtml(s.id)}')">Detail</button>
             ${s.buka ? `<button class="btn btn-sm btn-outline-danger py-0" onclick="tutupAbsen('${escHtml(s.id)}')">Tutup</button>` : ''}</td></tr>`).join('')
         : '<tr><td colspan="6" class="text-center py-3 text-muted">Belum ada sesi absensi.</td></tr>';
+      };
+      try { await swr('getSesiAbsenAdmin', {}, render); }
+      catch (err) { tb.innerHTML = `<tr><td colspan="6" class="text-danger text-center py-3">${escHtml(err.message)}</td></tr>`; }
     }
+
     async function handleBukaAbsen(e) {
       e.preventDefault();
       const btn = document.getElementById('btnBukaAbsen'); btn.disabled = true;
@@ -2193,6 +2267,7 @@
     }
 
     function logout() {
+      swrClear();
       closeSidebar();
       currentUser = null;
       localStorage.removeItem('lms_user_session');
