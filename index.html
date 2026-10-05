@@ -395,6 +395,31 @@
       .content-body { padding: 1rem; }
       .rekap-table-scroll { max-height: 68vh; }
     }
+
+    /* ===== POPUP PROFESIONAL ===== */
+    #ppModal .modal-content{border:0;border-radius:20px;box-shadow:0 24px 60px rgba(15,23,42,.28);overflow:hidden}
+    #ppModal{z-index:2000}
+    .modal-backdrop.show:last-of-type{z-index:1990}
+    .pp-body{padding:28px 26px 8px;text-align:center}
+    .pp-icon{width:72px;height:72px;margin:0 auto 14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2rem;animation:ppPop .35s cubic-bezier(.2,1.4,.4,1)}
+    .pp-icon.success{background:#dcfce7;color:#16a34a}.pp-icon.error{background:#fee2e2;color:#dc2626}
+    .pp-icon.warning{background:#fef3c7;color:#d97706}.pp-icon.info{background:#dbeafe;color:#2563eb}
+    .pp-icon.danger{background:#fee2e2;color:#dc2626}.pp-icon.question{background:#e0e7ff;color:#4f46e5}
+    .pp-title{font-weight:700;font-size:1.15rem;color:#0f172a;margin-bottom:6px}
+    .pp-text{color:#64748b;font-size:.92rem;white-space:pre-line;margin-bottom:6px;word-break:break-word}
+    .pp-form{text-align:left;margin-top:14px}
+    .pp-form label{font-size:.78rem;font-weight:700;color:#334155;margin-bottom:4px}
+    .pp-form .pp-help{font-size:.74rem;color:#94a3b8;margin-top:3px}
+    .pp-err{display:none;background:#fef2f2;color:#b91c1c;border-radius:10px;padding:8px 12px;font-size:.82rem;margin-top:10px;text-align:left}
+    .pp-actions{display:flex;gap:10px;justify-content:center;padding:18px 26px 24px}
+    .pp-actions .btn{border-radius:999px;font-weight:700;padding:.5rem 1.5rem;min-width:120px}
+    .pp-token{font-family:monospace;letter-spacing:4px;font-size:1.3rem;text-align:center;font-weight:700;text-transform:uppercase}
+    #ppToastBox{position:fixed;top:16px;right:16px;z-index:2100;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+    .pp-toast{background:#0f172a;color:#fff;border-radius:12px;padding:10px 16px;font-size:.85rem;box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;align-items:center;gap:8px;animation:ppSlide .25s ease-out}
+    .pp-toast.ok i{color:#4ade80}.pp-toast.bad i{color:#f87171}
+    @keyframes ppPop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+    @keyframes ppSlide{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+    @media (prefers-reduced-motion:reduce){.pp-icon,.pp-toast{animation:none}}
   </style>
 </head>
 <body>
@@ -1020,26 +1045,104 @@
   </div>
 
 
-  <!-- ==================== MODAL POP-UP SUKSES ==================== -->
-  <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-      <div class="modal-content border-0 shadow-lg rounded-4 text-center p-3">
-        <div class="modal-body">
-          <div class="mb-3 text-success">
-            <i class="fa-solid fa-circle-check fa-4x"></i>
-          </div>
-          <h5 class="fw-bold text-dark mb-1" id="successModalTitle">Berhasil!</h5>
-          <p class="text-muted small mb-3" id="successModalMessage">Tindakan Anda telah berhasil diproses.</p>
-          <button type="button" class="btn btn-success rounded-pill px-4 btn-sm fw-bold" data-bs-dismiss="modal">Oke, Mengerti</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
 
   <script>
+    // ==================== SISTEM POPUP PROFESIONAL ====================
+    const Popup = (function () {
+      const ICONS = { success: 'fa-circle-check', error: 'fa-circle-xmark', warning: 'fa-triangle-exclamation', info: 'fa-circle-info', danger: 'fa-trash-can', question: 'fa-circle-question' };
+      let queue = Promise.resolve();
+      function ensureDom() {
+        if (document.getElementById('ppModal')) return;
+        document.body.insertAdjacentHTML('beforeend',
+          '<div class="modal fade" id="ppModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static"><div class="modal-dialog modal-dialog-centered" style="max-width:420px"><div class="modal-content">' +
+          '<div class="pp-body"><div class="pp-icon" id="ppIcon"></div><div class="pp-title" id="ppTitle"></div><div class="pp-text" id="ppText"></div>' +
+          '<form class="pp-form d-none" id="ppForm" autocomplete="off"></form><div class="pp-err" id="ppErr"></div></div>' +
+          '<div class="pp-actions"><button type="button" class="btn btn-light border d-none" id="ppCancel"></button><button type="button" class="btn btn-primary" id="ppOk"></button></div>' +
+          '</div></div></div><div id="ppToastBox"></div>');
+      }
+      function randToken() { const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let t = ''; for (let i = 0; i < 6; i++) t += c[Math.floor(Math.random() * c.length)]; return t; }
+
+      function show(o) {
+        ensureDom();
+        return new Promise(resolve => {
+          const el = document.getElementById('ppModal');
+          const type = o.type || 'info';
+          const icon = document.getElementById('ppIcon');
+          icon.className = 'pp-icon ' + type;
+          icon.innerHTML = '<i class="fa-solid ' + (ICONS[type] || ICONS.info) + '"></i>';
+          document.getElementById('ppTitle').textContent = o.title || '';
+          const txt = document.getElementById('ppText');
+          txt.textContent = o.text || ''; txt.style.display = o.text ? '' : 'none';
+          const err = document.getElementById('ppErr'); err.style.display = 'none';
+          const form = document.getElementById('ppForm');
+          form.innerHTML = '';
+          form.classList.toggle('d-none', !(o.fields && o.fields.length));
+          (o.fields || []).forEach(f => {
+            const g = document.createElement('div'); g.className = 'mb-2';
+            const lab = document.createElement('label'); lab.textContent = f.label; lab.htmlFor = 'ppf_' + f.name; g.appendChild(lab);
+            const row = document.createElement('div'); row.className = f.random ? 'input-group' : '';
+            const inp = document.createElement(f.multiline ? 'textarea' : 'input');
+            inp.id = 'ppf_' + f.name; inp.className = 'form-control' + (f.token ? ' pp-token' : '');
+            if (!f.multiline) inp.type = f.type || 'text'; else inp.rows = 3;
+            if (f.value != null) inp.value = f.value;
+            if (f.placeholder) inp.placeholder = f.placeholder;
+            if (f.maxlength) inp.maxLength = f.maxlength;
+            if (f.min != null) inp.min = f.min; if (f.max != null) inp.max = f.max;
+            if (f.token) inp.addEventListener('input', () => { inp.value = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+            row.appendChild(inp);
+            if (f.random) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-outline-secondary'; b.innerHTML = '<i class="fa-solid fa-shuffle me-1"></i>Acak'; b.onclick = () => { inp.value = randToken(); inp.focus(); }; row.appendChild(b); }
+            g.appendChild(row);
+            if (f.help) { const h = document.createElement('div'); h.className = 'pp-help'; h.textContent = f.help; g.appendChild(h); }
+            form.appendChild(g);
+          });
+          const ok = document.getElementById('ppOk'), cancel = document.getElementById('ppCancel');
+          const danger = type === 'danger' || o.danger;
+          ok.className = 'btn ' + (danger ? 'btn-danger' : type === 'success' ? 'btn-success' : type === 'error' ? 'btn-secondary' : 'btn-primary');
+          ok.textContent = o.confirmText || 'Oke, Mengerti';
+          cancel.textContent = o.cancelText || 'Batal';
+          cancel.classList.toggle('d-none', !o.showCancel);
+
+          const modal = bootstrap.Modal.getOrCreateInstance(el);
+          let done = false;
+          const finish = (res) => { if (done) return; done = true; cleanup(); el.addEventListener('hidden.bs.modal', () => resolve(res), { once: true }); modal.hide(); };
+          const values = () => { const v = {}; (o.fields || []).forEach(f => v[f.name] = document.getElementById('ppf_' + f.name).value.trim()); return v; };
+          const onOk = () => {
+            const v = values();
+            if (o.validate) { const m = o.validate(v); if (m) { err.textContent = m; err.style.display = 'block'; return; } }
+            finish({ confirmed: true, values: v });
+          };
+          const onCancel = () => finish({ confirmed: false, values: null });
+          const onKey = (e) => { if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); onOk(); } else if (e.key === 'Escape' && o.showCancel) onCancel(); };
+          function cleanup() { ok.removeEventListener('click', onOk); cancel.removeEventListener('click', onCancel); el.removeEventListener('keydown', onKey); }
+          ok.addEventListener('click', onOk); cancel.addEventListener('click', onCancel); el.addEventListener('keydown', onKey);
+          el.addEventListener('shown.bs.modal', () => { const first = form.querySelector('input,textarea'); (first || ok).focus(); if (first && first.select) first.select(); }, { once: true });
+          modal.show();
+        });
+      }
+      // Antrian: popup tampil satu per satu, tidak saling menimpa
+      function fire(o) { const p = queue.then(() => show(o)); queue = p.catch(() => {}); return p; }
+
+      return {
+        fire,
+        success: (title, text) => fire({ type: 'success', title: title || 'Berhasil', text }),
+        error:   (text, title) => fire({ type: 'error', title: title || 'Terjadi Kesalahan', text }),
+        warning: (text, title) => fire({ type: 'warning', title: title || 'Perhatian', text }),
+        info:    (text, title) => fire({ type: 'info', title: title || 'Informasi', text }),
+        confirm: (o) => fire(Object.assign({ type: 'question', showCancel: true, confirmText: 'Ya, Lanjutkan', cancelText: 'Batal' }, o)).then(r => r.confirmed),
+        form:    (o) => fire(Object.assign({ type: 'question', showCancel: true, confirmText: 'Simpan', cancelText: 'Batal' }, o)).then(r => r.confirmed ? r.values : null),
+        toast: (msg, ok = true) => {
+          ensureDom();
+          const t = document.createElement('div'); t.className = 'pp-toast ' + (ok ? 'ok' : 'bad');
+          t.innerHTML = '<i class="fa-solid ' + (ok ? 'fa-circle-check' : 'fa-circle-xmark') + '"></i>'; t.appendChild(document.createTextNode(msg));
+          document.getElementById('ppToastBox').appendChild(t); setTimeout(() => t.remove(), 2600);
+        },
+        randToken
+      };
+    })();
+    let sessionExpiredShown = false;
+
     // URL DEPLOYMENT GOOGLE APPS SCRIPT LMS ANDA
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbym_0tKV7xT_0NvUWiMz8J1s7VeadwHG9oaprV3XWMEWR79YL5Vt2WEQaWhEAfkbp7n/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbFprGAlrxLVRZTsfbiKbK5PmjViwWXxz2bq0UqmliPdQCgUmc6iV74UlujlAMRWRp/exec";
 
     let currentUser = null;
     let currentClassView = 'ALL';
@@ -1062,8 +1165,11 @@
       try { data = JSON.parse(rawText); }
       catch (e) { throw new Error('Server tidak mengembalikan data yang valid. Pastikan Code.gs sudah di-deploy ulang (Deploy > Manage deployments > New version) dan akses diset "Anyone".'); }
       if (data && data.expired) {
-        alert('Sesi Anda berakhir. Silakan login kembali.');
-        logout();
+        if (!sessionExpiredShown) {
+          sessionExpiredShown = true;
+          logout();
+          Popup.fire({ type: 'warning', title: 'Sesi Berakhir', text: 'Sesi login Anda sudah habis. Silakan masuk kembali.', confirmText: 'Login Ulang' }).then(() => { sessionExpiredShown = false; });
+        }
       }
       return data;
     }
@@ -1094,10 +1200,7 @@
     }
 
     function showSuccessModal(title, message) {
-      document.getElementById('successModalTitle').textContent = title;
-      document.getElementById('successModalMessage').textContent = message;
-      var modal = new bootstrap.Modal(document.getElementById('successModal'));
-      modal.show();
+      return Popup.success(title, message);
     }
 
     function toggleCustomLabel(section) {
@@ -1499,10 +1602,10 @@
         if (res && res.success) {
           targetItem.statusCek = res.newStatus;
         } else {
-          alert(res ? res.message : "Gagal mengubah status.");
+          Popup.error(res ? res.message : "Gagal mengubah status.");
         }
       } catch (err) {
-        alert("Gagal menyimpan status ke Spreadsheet.");
+        Popup.error("Gagal menyimpan status ke Spreadsheet.");
       }
       filterRekapTable();
     }
@@ -1713,7 +1816,7 @@
     }
 
     async function confirmDeleteMateri(id, judul) {
-      if (confirm(`Apakah Anda yakin ingin menghapus materi "${judul}"?`)) {
+      if (await Popup.confirm({ type: 'danger', title: 'Hapus Materi?', text: `Materi "${judul}" akan dihapus permanen dan tidak bisa dikembalikan.`, confirmText: 'Ya, Hapus' })) {
         const res = await callApi('deleteMateri', { id: id });
         showSuccessModal("Berhasil Dihapus", res.message);
         loadContent(currentClassView);
@@ -1721,7 +1824,7 @@
     }
 
     async function confirmDeleteTugas(id, judul) {
-      if (confirm(`Apakah Anda yakin ingin menghapus tugas "${judul}"?`)) {
+      if (await Popup.confirm({ type: 'danger', title: 'Hapus Tugas?', text: `Tugas "${judul}" akan dihapus permanen dan tidak bisa dikembalikan.`, confirmText: 'Ya, Hapus' })) {
         const res = await callApi('deleteTugas', { id: id });
         showSuccessModal("Berhasil Dihapus", res.message);
         loadContent(currentClassView);
@@ -1780,7 +1883,7 @@
       showOnlyNilaiView('inputNilaiSection', 'menu-INPUTNILAI', 'Input Nilai Siswa');
       if (!siswaAll.length) {
         const res = await callApi('getSiswaList');
-        if (!res || !res.success) { if (!(res && res.expired)) alert(res ? res.message : 'Gagal memuat siswa'); return; }
+        if (!res || !res.success) { if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal memuat siswa'); return; }
         siswaAll = res.siswa;
         document.getElementById('inputNilaiRombel').innerHTML = '<option value="">Pilih rombel...</option>' +
           res.rombelList.map(r => `<option value="${escHtml(r)}">${escHtml(r)}</option>`).join('');
@@ -1791,7 +1894,7 @@
       if (!rombel) { renderNilaiGrid(); return; }
       document.getElementById('inputNilaiBody').innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat...</td></tr>';
       const res = await callApi('getNilaiAdmin', { rombel });
-      if (!res || !res.success) { if (!(res && res.expired)) alert(res ? res.message : 'Gagal memuat nilai'); return; }
+      if (!res || !res.success) { if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal memuat nilai'); return; }
       nilaiCache = res.data || [];
       if (res.sheetUrl) { const b = document.getElementById('btnOpenNilaiSheet'); b.href = res.sheetUrl; b.classList.remove('d-none'); }
       document.getElementById('judulNilaiList').innerHTML = [...new Set(nilaiCache.map(n => n.judul))].map(j => `<option value="${escHtml(j)}">`).join('');
@@ -1815,27 +1918,27 @@
     }
     async function saveNilaiGrid() {
       const judul = document.getElementById('inputNilaiJudul').value.trim();
-      if (!judul) { alert('Isi judul penilaian dulu.'); return; }
+      if (!judul) { Popup.warning('Isi judul penilaian dulu.'); return; }
       const items = [];
       document.querySelectorAll('.nilai-input').forEach(inp => {
         if (inp.value === '') return;
         const nis = inp.dataset.nis;
         items.push({ nis, nilai: inp.value, catatan: document.querySelector(`.catatan-input[data-nis="${CSS.escape(nis)}"]`).value });
       });
-      if (!items.length) { alert('Belum ada nilai yang diisi.'); return; }
+      if (!items.length) { Popup.warning('Belum ada nilai yang diisi.'); return; }
       const btn = document.getElementById('btnSimpanNilai'); btn.disabled = true;
       try {
         const res = await callApi('saveNilaiBatch', { judul, items });
         if (res && res.success) { showSuccessModal('Nilai Tersimpan', res.message); await loadNilaiGrid(); }
-        else if (!(res && res.expired)) alert(res ? res.message : 'Gagal menyimpan');
-      } catch (err) { alert('Gagal terhubung ke server: ' + err.message); }
+        else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal menyimpan');
+      } catch (err) { Popup.error('Gagal terhubung ke server: ' + err.message); }
       btn.disabled = false;
     }
     async function deleteNilaiRow(nis) {
       const judul = document.getElementById('inputNilaiJudul').value.trim();
-      if (!confirm('Hapus nilai siswa ini untuk penilaian "' + judul + '"?')) return;
+      if (!(await Popup.confirm({ type: 'danger', title: 'Hapus Nilai?', text: 'Nilai siswa ini untuk penilaian "' + judul + '" akan dihapus.', confirmText: 'Ya, Hapus' }))) return;
       const res = await callApi('deleteNilai', { nis, judul });
-      if (res && res.success) loadNilaiGrid(); else if (!(res && res.expired)) alert(res ? res.message : 'Gagal menghapus');
+      if (res && res.success) loadNilaiGrid(); else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal menghapus');
     }
 
     // ==================== PENGUMUMAN / BROADCAST ====================
@@ -1900,15 +2003,15 @@
           e.target.reset();
           showSuccessModal('Terkirim!', res.message);
           openPengumumanView();
-        } else if (!(res && res.expired)) alert(res ? res.message : 'Gagal mengirim');
-      } catch (err) { alert('Gagal terhubung ke server: ' + err.message); }
+        } else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal mengirim');
+      } catch (err) { Popup.error('Gagal terhubung ke server: ' + err.message); }
       btn.disabled = false;
     }
 
     async function hapusPengumuman(id) {
-      if (!confirm('Hapus pengumuman ini?')) return;
+      if (!(await Popup.confirm({ type: 'danger', title: 'Hapus Pengumuman?', text: 'Pengumuman ini tidak akan terlihat lagi oleh siswa.', confirmText: 'Ya, Hapus' }))) return;
       const res = await callApi('deletePengumuman', { id });
-      if (res && res.success) openPengumumanView(); else if (!(res && res.expired)) alert(res ? res.message : 'Gagal menghapus');
+      if (res && res.success) openPengumumanView(); else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal menghapus');
     }
 
     // ==================== ABSENSI PJJ ====================
@@ -1940,13 +2043,13 @@
     }
     async function submitAbsen(sesiId, btn) {
       const tok = document.getElementById('tok_' + sesiId).value.trim();
-      if (!tok) { alert('Isi token terlebih dahulu.'); return; }
+      if (!tok) { Popup.warning('Isi token terlebih dahulu.'); return; }
       btn.disabled = true;
       try {
         const res = await callApi('submitAbsen', { sesiId, token_absen: tok });
         if (res && res.success) { showSuccessModal('Absen Berhasil', res.message); }
-        else if (!(res && res.expired)) { alert(res ? res.message : 'Gagal mengirim absen'); }
-      } catch (err) { alert('Gagal terhubung ke server: ' + err.message); }
+        else if (!(res && res.expired)) { Popup.error(res ? res.message : 'Gagal mengirim absen'); }
+      } catch (err) { Popup.error('Gagal terhubung ke server: ' + err.message); }
       openAbsenSiswaView();
     }
 
@@ -1967,15 +2070,42 @@
       }
       loadSesiAbsenAdmin();
     }
+    let absenSesiCache = {};
+    function salinTokenAbsen(id) {
+      const s = absenSesiCache[id]; if (!s) return;
+      (navigator.clipboard ? navigator.clipboard.writeText(s.token) : Promise.reject()).then(() => Popup.toast('Token ' + s.token + ' disalin'), () => Popup.toast('Gagal menyalin token', false));
+    }
+    async function ubahTokenAbsen(id) {
+      const s = absenSesiCache[id]; if (!s) return;
+      const v = await Popup.form({
+        type: 'question', title: 'Ubah Token Absensi',
+        text: 'Pertemuan: ' + s.judul + '\nToken saat ini: ' + s.token,
+        confirmText: 'Simpan Token',
+        fields: [
+          { name: 'token', label: 'Token baru', value: s.token, token: true, maxlength: 10, random: true, help: '4-10 huruf/angka tanpa spasi. Kosongkan untuk dibuatkan token acak.' },
+          { name: 'tambah', label: 'Perpanjang durasi (menit, opsional)', type: 'number', value: '0', min: 0, max: 720, help: 'Isi 0 jika waktu tutup tidak diubah. Siswa yang sudah absen tidak terpengaruh.' }
+        ],
+        validate: (f) => (f.token && !/^[A-Z0-9]{4,10}$/.test(f.token)) ? 'Token harus 4-10 karakter huruf atau angka.' : ((Number(f.tambah) || 0) < 0 || (Number(f.tambah) || 0) > 720 ? 'Perpanjangan durasi harus 0-720 menit.' : '')
+      });
+      if (!v) return;
+      try {
+        const res = await callApi('updateTokenAbsen', { sesiId: id, tokenBaru: v.token, tambahMenit: Number(v.tambah) || 0 });
+        if (res && res.success) { await Popup.success('Token Diperbarui', res.message); loadSesiAbsenAdmin(); }
+        else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal mengubah token');
+      } catch (err) { Popup.error('Gagal terhubung ke server: ' + err.message); }
+    }
     async function loadSesiAbsenAdmin() {
       const tb = document.getElementById('absenSesiBody');
       tb.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">Memuat...</td></tr>';
       const res = await callApi('getSesiAbsenAdmin');
       if (!res || !res.success) { if (!(res && res.expired)) tb.innerHTML = `<tr><td colspan="6" class="text-danger text-center py-3">${escHtml(res ? res.message : 'Gagal memuat')}</td></tr>`; return; }
+      absenSesiCache = {}; res.data.forEach(s => absenSesiCache[s.id] = s);
       tb.innerHTML = res.data.length ? res.data.map(s => `
         <tr><td class="fw-semibold">${escHtml(s.judul)}<div class="text-muted" style="font-size:.72rem">${escHtml(s.dibuat)}</div></td>
         <td>${escHtml(s.target)}</td>
-        <td><span class="fs-5 fw-bold text-primary" style="letter-spacing:2px;font-family:monospace">${escHtml(s.token)}</span></td>
+        <td class="text-nowrap"><span class="fs-5 fw-bold text-primary" style="letter-spacing:2px;font-family:monospace">${escHtml(s.token)}</span>
+          <button class="btn btn-sm btn-light border py-0 ms-1" title="Salin token" onclick="salinTokenAbsen('${escHtml(s.id)}')"><i class="fa-regular fa-copy"></i></button>
+          ${s.buka ? `<button class="btn btn-sm btn-outline-warning py-0" title="Ubah token" onclick="ubahTokenAbsen('${escHtml(s.id)}')"><i class="fa-solid fa-pen"></i></button>` : ''}</td>
         <td>${s.buka ? `<span class="badge bg-success">Buka</span><div class="small text-muted">s.d. ${escHtml(s.tutup)}</div>` : '<span class="badge bg-secondary">Tutup</span>'}</td>
         <td class="text-center fw-bold">${s.hadir}</td>
         <td><button class="btn btn-sm btn-outline-primary py-0" onclick="showAbsenDetail('${escHtml(s.id)}')">Detail</button>
@@ -1990,14 +2120,14 @@
           judul: document.getElementById('absenJudul').value, target: document.getElementById('absenTarget').value,
           durasi: document.getElementById('absenDurasi').value, tokenCustom: document.getElementById('absenTokenCustom').value });
         if (res && res.success) { e.target.reset(); document.getElementById('absenDurasi').value = 30; showSuccessModal('Absensi Dibuka', res.message); loadSesiAbsenAdmin(); }
-        else if (!(res && res.expired)) alert(res ? res.message : 'Gagal membuka absensi');
-      } catch (err) { alert('Gagal terhubung ke server: ' + err.message); }
+        else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal membuka absensi');
+      } catch (err) { Popup.error('Gagal terhubung ke server: ' + err.message); }
       btn.disabled = false;
     }
     async function tutupAbsen(id) {
-      if (!confirm('Tutup sesi absensi ini sekarang?')) return;
+      if (!(await Popup.confirm({ type: 'warning', title: 'Tutup Sesi Absensi?', text: 'Siswa tidak bisa lagi mengisi absen setelah sesi ditutup.', confirmText: 'Ya, Tutup Sesi' }))) return;
       const res = await callApi('closeSesiAbsen', { sesiId: id });
-      if (res && res.success) loadSesiAbsenAdmin(); else if (!(res && res.expired)) alert(res ? res.message : 'Gagal');
+      if (res && res.success) loadSesiAbsenAdmin(); else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal');
     }
     async function showAbsenDetail(id) {
       const box = document.getElementById('absenDetailBox');
@@ -2020,7 +2150,7 @@
     }
     async function setAbsenManual(sesiId, nis, status) {
       const res = await callApi('setAbsenManual', { sesiId, nis, status });
-      if (!(res && res.success) && !(res && res.expired)) alert(res ? res.message : 'Gagal menyimpan');
+      if (!(res && res.success) && !(res && res.expired)) Popup.error(res ? res.message : 'Gagal menyimpan');
       loadSesiAbsenAdmin();
     }
 
