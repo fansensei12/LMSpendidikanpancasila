@@ -1142,7 +1142,7 @@
     let sessionExpiredShown = false;
 
     // URL DEPLOYMENT GOOGLE APPS SCRIPT LMS ANDA
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbFprGAlrxLVRZTsfbiKbK5PmjViwWXxz2bq0UqmliPdQCgUmc6iV74UlujlAMRWRp/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKv5zlEhy9I-P7j1tT0fCaYA0P5r9YDvXBb9Rlx5pK3tkFmTrlayJSHWZcY_oCMQC6/exec";
 
     let currentUser = null;
     let currentClassView = 'ALL';
@@ -1151,27 +1151,41 @@
     let rekapLoaded = false;
 
     // Fungsi Helper Pemanggil API Google Apps Script (Bebas Blokir CORS di GitHub Pages)
+    // Aksi yang aman diulang otomatis saat server sibuk (submitAbsen aman: server menolak absen ganda)
+    const RETRY_ACTIONS = ['getLmsData','getPengumuman','getNilaiSaya','getSesiAbsenAktif','submitAbsen','getSesiAbsenAdmin','getAbsenDetail','getSiswaList','getNilaiAdmin','getRekapTugasData'];
+    const SERVER_BUSY_MSG = 'Server tidak dapat merespons saat ini. Kemungkinan banyak siswa mengakses bersamaan. Tunggu beberapa detik, lalu coba lagi.';
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
     async function callApi(action, payload = {}) {
-      const response = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        redirect: 'follow',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8'
-        },
-        body: JSON.stringify({ action: action, token: currentUser ? currentUser.token : undefined, ...payload })
-      });
-      const rawText = await response.text();
-      let data;
-      try { data = JSON.parse(rawText); }
-      catch (e) { throw new Error('Server tidak mengembalikan data yang valid. Pastikan Code.gs sudah di-deploy ulang (Deploy > Manage deployments > New version) dan akses diset "Anyone".'); }
-      if (data && data.expired) {
-        if (!sessionExpiredShown) {
-          sessionExpiredShown = true;
-          logout();
-          Popup.fire({ type: 'warning', title: 'Sesi Berakhir', text: 'Sesi login Anda sudah habis. Silakan masuk kembali.', confirmText: 'Login Ulang' }).then(() => { sessionExpiredShown = false; });
+      const maxTry = RETRY_ACTIONS.includes(action) ? 4 : 1;
+      let lastErr;
+      for (let attempt = 0; attempt < maxTry; attempt++) {
+        if (attempt > 0) await sleep(1000 * Math.pow(2, attempt - 1) + Math.random() * 1500); // 1s, 2s, 4s + acak agar tidak serentak
+        try {
+          const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            redirect: 'follow',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: action, token: currentUser ? currentUser.token : undefined, ...payload })
+          });
+          const rawText = await response.text();
+          let data;
+          try { data = JSON.parse(rawText); }
+          catch (e) { throw new Error(SERVER_BUSY_MSG); }
+          if (data && data.expired) {
+            if (!sessionExpiredShown) {
+              sessionExpiredShown = true;
+              logout();
+              Popup.fire({ type: 'warning', title: 'Sesi Berakhir', text: 'Sesi login Anda sudah habis. Silakan masuk kembali.', confirmText: 'Login Ulang' }).then(() => { sessionExpiredShown = false; });
+            }
+          }
+          if (data && attempt > 0) data._retried = true;
+          return data;
+        } catch (err) {
+          lastErr = (err instanceof TypeError) ? new Error('Koneksi internet terputus atau tidak stabil. Periksa jaringan Anda, lalu coba lagi.') : err;
         }
       }
-      return data;
+      throw lastErr;
     }
 
     window.addEventListener('DOMContentLoaded', function() {
@@ -2044,12 +2058,21 @@
     async function submitAbsen(sesiId, btn) {
       const tok = document.getElementById('tok_' + sesiId).value.trim();
       if (!tok) { Popup.warning('Isi token terlebih dahulu.'); return; }
-      btn.disabled = true;
+      if (btn.dataset.busy) return;
+      btn.dataset.busy = '1'; btn.disabled = true;
+      const label = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Mengirim...';
       try {
         const res = await callApi('submitAbsen', { sesiId, token_absen: tok });
-        if (res && res.success) { showSuccessModal('Absen Berhasil', res.message); }
-        else if (!(res && res.expired)) { Popup.error(res ? res.message : 'Gagal mengirim absen'); }
-      } catch (err) { Popup.error('Gagal terhubung ke server: ' + err.message); }
+        if (res && res.success) { await showSuccessModal('Absen Berhasil', res.message); }
+        // Kiriman pertama sempat gagal di tengah jalan tetapi ternyata sudah tercatat -> tetap sukses
+        else if (res && res._retried && /^Anda sudah tercatat/.test(res.message || '')) { await showSuccessModal('Absen Berhasil', res.message); }
+        else if (!(res && res.expired)) { await Popup.error(res ? res.message : 'Gagal mengirim absen'); }
+      } catch (err) {
+        await Popup.fire({ type: 'warning', title: 'Absen Belum Terkirim', text: err.message + '\n\nToken yang Anda ketik masih tersimpan. Tekan Hadir sekali lagi.', confirmText: 'Coba Lagi Nanti' });
+        btn.innerHTML = label; btn.disabled = false; delete btn.dataset.busy;
+        return; // jangan render ulang: biarkan token tetap terisi
+      }
       openAbsenSiswaView();
     }
 
@@ -2129,9 +2152,9 @@
       const res = await callApi('closeSesiAbsen', { sesiId: id });
       if (res && res.success) loadSesiAbsenAdmin(); else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal');
     }
-    async function showAbsenDetail(id) {
+    async function showAbsenDetail(id, keepScroll) {
       const box = document.getElementById('absenDetailBox');
-      box.innerHTML = '<div class="text-muted small py-3">Memuat detail...</div>';
+      if (!keepScroll) box.innerHTML = '<div class="text-muted small py-3">Memuat detail...</div>';
       const res = await callApi('getAbsenDetail', { sesiId: id });
       if (!res || !res.success) { if (!(res && res.expired)) box.innerHTML = `<div class="text-danger small">${escHtml(res ? res.message : 'Gagal')}</div>`; return; }
       const cnt = {}; res.data.forEach(d => cnt[d.status] = (cnt[d.status] || 0) + 1);
@@ -2142,16 +2165,31 @@
         <div class="rekap-table-scroll"><table class="table table-rekap mb-0">
           <thead><tr><th>No</th><th>Nama</th><th>Rombel</th><th>Status</th><th>Jam</th><th>Metode</th></tr></thead><tbody>
           ${res.data.map((d, i) => `<tr><td>${i + 1}</td><td class="fw-semibold">${escHtml(d.nama)}</td><td>${escHtml(d.rombel)}</td>
-            <td><select class="form-select form-select-sm" style="width:110px" onchange="setAbsenManual('${escHtml(id)}','${escHtml(d.nis)}',this.value)">
+            <td><select class="form-select form-select-sm" style="width:110px" data-prev="${escHtml(d.status)}" onchange="setAbsenManual('${escHtml(id)}','${escHtml(d.nis)}',this)">
               ${opts.map(o => `<option ${o === d.status ? 'selected' : ''}>${o}</option>`).join('')}</select></td>
             <td class="small">${escHtml(d.waktu)}</td><td class="small">${escHtml(d.metode)}</td></tr>`).join('')}
           </tbody></table></div></div></div>`;
-      box.scrollIntoView({ behavior: 'smooth' });
+      if (!keepScroll) box.scrollIntoView({ behavior: 'smooth' });
     }
-    async function setAbsenManual(sesiId, nis, status) {
-      const res = await callApi('setAbsenManual', { sesiId, nis, status });
-      if (!(res && res.success) && !(res && res.expired)) Popup.error(res ? res.message : 'Gagal menyimpan');
-      loadSesiAbsenAdmin();
+    async function setAbsenManual(sesiId, nis, sel) {
+      const status = sel.value, prev = sel.dataset.prev;
+      sel.disabled = true;
+      try {
+        const res = await callApi('setAbsenManual', { sesiId, nis, status });
+        if (res && res.success) {
+          sel.dataset.prev = status;
+          Popup.toast('Status diubah menjadi ' + status);
+          showAbsenDetail(sesiId, true);   // segarkan rekap jumlah tanpa menggulung halaman
+          loadSesiAbsenAdmin();
+        } else {
+          sel.value = prev;                // kembalikan ke status semula
+          if (!(res && res.expired)) await Popup.error(res ? res.message : 'Status gagal disimpan.', 'Status Tidak Berubah');
+        }
+      } catch (err) {
+        sel.value = prev;
+        await Popup.error(err.message, 'Status Tidak Berubah');
+      }
+      sel.disabled = false;
     }
 
     function logout() {
