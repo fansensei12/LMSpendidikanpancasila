@@ -400,8 +400,10 @@
 
     /* ===== POPUP PROFESIONAL ===== */
     #ppModal .modal-content{border:0;border-radius:20px;box-shadow:0 24px 60px rgba(15,23,42,.28);overflow:hidden}
-    #ppModal{z-index:2000}
-    .modal-backdrop.show:last-of-type{z-index:1990}
+    /* Susunan lapisan: modal biasa 1055 < backdrop popup 1060 < popup 1065 < toast 1100.
+       Backdrop popup diberi kelas .pp-backdrop hanya saat popup tampil, jadi modal Edit/lainnya tidak tertutup. */
+    #ppModal{z-index:1065}
+    .modal-backdrop.pp-backdrop{z-index:1060}
     .pp-body{padding:28px 26px 8px;text-align:center}
     .pp-icon{width:72px;height:72px;margin:0 auto 14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2rem;animation:ppPop .35s cubic-bezier(.2,1.4,.4,1)}
     .pp-icon.success{background:#dcfce7;color:#16a34a}.pp-icon.error{background:#fee2e2;color:#dc2626}
@@ -416,7 +418,7 @@
     .pp-actions{display:flex;gap:10px;justify-content:center;padding:18px 26px 24px}
     .pp-actions .btn{border-radius:999px;font-weight:700;padding:.5rem 1.5rem;min-width:120px}
     .pp-token{font-family:monospace;letter-spacing:4px;font-size:1.3rem;text-align:center;font-weight:700;text-transform:uppercase}
-    #ppToastBox{position:fixed;top:16px;right:16px;z-index:2100;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+    #ppToastBox{position:fixed;top:16px;right:16px;z-index:1100;display:flex;flex-direction:column;gap:8px;pointer-events:none}
     .pp-toast{background:#0f172a;color:#fff;border-radius:12px;padding:10px 16px;font-size:.85rem;box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;align-items:center;gap:8px;animation:ppSlide .25s ease-out}
     .pp-toast.ok i{color:#4ade80}.pp-toast.bad i{color:#f87171}
     @keyframes ppPop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
@@ -1119,6 +1121,7 @@
           function cleanup() { ok.removeEventListener('click', onOk); cancel.removeEventListener('click', onCancel); el.removeEventListener('keydown', onKey); }
           ok.addEventListener('click', onOk); cancel.addEventListener('click', onCancel); el.addEventListener('keydown', onKey);
           el.addEventListener('shown.bs.modal', () => { const first = form.querySelector('input,textarea'); (first || ok).focus(); if (first && first.select) first.select(); }, { once: true });
+          el.addEventListener('show.bs.modal', () => { setTimeout(() => { const bds = document.querySelectorAll('.modal-backdrop'); if (bds.length) bds[bds.length - 1].classList.add('pp-backdrop'); }, 0); }, { once: true });
           modal.show();
         });
       }
