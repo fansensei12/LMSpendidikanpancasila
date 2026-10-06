@@ -533,6 +533,10 @@
         <li class="menu-class-item" id="item-IX">
           <a class="nav-link" id="menu-IX" onclick="loadContent('IX')"><i class="fa-solid fa-layer-group"></i> Kelas IX</a>
         </li>
+        <li class="menu-header menu-ekskul-item" style="display:none;">Ekstrakurikuler</li>
+        <li class="menu-class-item menu-ekskul-item" id="item-KODING" style="display:none;">
+          <a class="nav-link" id="menu-KODING" onclick="loadContent('KODING')"><i class="fa-solid fa-code"></i> Ekskul Koding</a>
+        </li>
 
         <!-- MENU KHUSUS ADMIN/GURU -->
         <li class="menu-header menu-admin-rekap" style="display:none;">Menu Khusus Guru</li>
@@ -634,7 +638,7 @@
                           <option value="SEMUA">Semua Kelas (VII, VIII, IX)</option>
                           <option value="VII">Kelas VII</option>
                           <option value="VIII">Kelas VIII</option>
-                          <option value="IX">Kelas IX</option>
+                          <option value="IX">Kelas IX</option><option value="KODING">Ekskul Koding</option>
                         </select>
                       </div>
                       <div class="col-md-8">
@@ -672,7 +676,7 @@
                           <option value="SEMUA">Semua Kelas (VII, VIII, IX)</option>
                           <option value="VII">Kelas VII</option>
                           <option value="VIII">Kelas VIII</option>
-                          <option value="IX">Kelas IX</option>
+                          <option value="IX">Kelas IX</option><option value="KODING">Ekskul Koding</option>
                         </select>
                       </div>
                       <div class="col-md-8">
@@ -802,6 +806,9 @@
                   <optgroup label="Kelas 9">
                     <option value="9A">9A</option><option value="9B">9B</option><option value="9C">9C</option><option value="9D">9D</option>
                     <option value="9E">9E</option><option value="9F">9F</option><option value="9G">9G</option>
+                  </optgroup>
+                  <optgroup label="Ekskul">
+                    <option value="KODING">KODING</option>
                   </optgroup>
                 </select>
               </div>
@@ -959,7 +966,7 @@
                       <option value="SEMUA">Semua Siswa</option>
                       <option value="VII">Siswa Kelas VII</option>
                       <option value="VIII">Siswa Kelas VIII</option>
-                      <option value="IX">Siswa Kelas IX</option>
+                      <option value="IX">Siswa Kelas IX</option><option value="KODING">Anggota Ekskul Koding</option>
                     </select>
                   </div>
                   <div class="col-md-8"><input type="text" id="pengumumanJudul" class="form-control form-control-sm" placeholder="Judul pesan" required></div>
@@ -1075,7 +1082,7 @@
                 <option value="SEMUA">Semua Kelas (VII, VIII, IX)</option>
                           <option value="VII">Kelas VII</option>
                 <option value="VIII">Kelas VIII</option>
-                <option value="IX">Kelas IX</option>
+                <option value="IX">Kelas IX</option><option value="KODING">Ekskul Koding</option>
               </select>
             </div>
 
@@ -1221,7 +1228,7 @@
     let sessionExpiredShown = false;
 
     // URL DEPLOYMENT GOOGLE APPS SCRIPT LMS ANDA
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwCt_GCm5aRkGsAy65GqxClTCAqZM7S525cdPBin3-Dz9mGQWbT3r3JO2nUyutYDxJd/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8vIelsLodXmU77Q45Kqk_xt6nQkcp_-bSXp_G6X-N6WUactfe4YoQ2plRb1PdtnX4/exec";
 
     let currentUser = null;
     let currentClassView = 'ALL';
@@ -1452,6 +1459,7 @@
         document.getElementById('item-VII').style.display = 'block';
         document.getElementById('item-VIII').style.display = 'block';
         document.getElementById('item-IX').style.display = 'block';
+        document.querySelectorAll('.menu-ekskul-item').forEach(el => el.style.display = 'block');
 
         document.getElementById('adminPanel').classList.remove('d-none');
         loadContent('ALL');
@@ -1460,6 +1468,8 @@
       } else {
         const userClass = currentUser.userClass.toString().trim().toUpperCase();
         const userRombel = currentUser.userRombel ? currentUser.userRombel.toString().trim() : '';
+        const userEkskul = (currentUser.userEkskul || '').toString().trim().toUpperCase();
+        const ekskulSiswa = userEkskul.split(/[,;]/).map(s => s.trim()).filter(Boolean);
 
         document.getElementById('profileClassBadge').textContent = `Kelas ${userClass}`;
         if (userRombel) {
@@ -1469,7 +1479,7 @@
           document.getElementById('profileRombelBadge').style.display = 'none';
         }
 
-        document.getElementById('userRoleBadge').textContent = `Siswa Kelas ${userClass} ${userRombel ? '(' + userRombel + ')' : ''}`;
+        document.getElementById('userRoleBadge').textContent = `Siswa Kelas ${userClass} ${userRombel ? '(' + userRombel + ')' : ''}${userEkskul ? ' · Ekskul ' + userEkskul : ''}`;
         document.getElementById('adminPanel').classList.add('d-none');
 
         document.querySelector('.menu-admin-item').style.display = 'none';
@@ -1477,6 +1487,8 @@
         document.getElementById('item-VII').style.display = (userClass === 'VII') ? 'block' : 'none';
         document.getElementById('item-VIII').style.display = (userClass === 'VIII') ? 'block' : 'none';
         document.getElementById('item-IX').style.display = (userClass === 'IX') ? 'block' : 'none';
+        document.querySelectorAll('.menu-ekskul-item').forEach(el => el.style.display = 'none');
+        if (ekskulSiswa.includes('KODING')) document.querySelectorAll('.menu-ekskul-item').forEach(el => el.style.display = 'block');
 
         loadContent(userClass);
         // siapkan menu lain di latar belakang agar saat dibuka langsung tampil
@@ -1498,7 +1510,7 @@
 
       document.getElementById('pageTitle').textContent = selectedClass === 'ALL' 
         ? 'Ruang Kelas Digital (Semua Kelas)' 
-        : `Ruang Kelas Digital - Kelas ${selectedClass}`;
+        : (selectedClass === 'KODING' ? 'Ruang Ekskul Koding' : `Ruang Kelas Digital - Kelas ${selectedClass}`);
 
       if (!swrPeek('getLmsData', { selectedClass })) {
         document.getElementById('materiContainer').innerHTML = `<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat materi...</div>`;
@@ -2501,7 +2513,7 @@
     }
 
     // ==================== PENGUMUMAN / BROADCAST ====================
-    function kelasLabel(k) { return k === 'SEMUA' ? 'SEMUA KELAS' : 'KELAS ' + k; }
+    function kelasLabel(k) { return k === 'SEMUA' ? 'SEMUA KELAS' : (k === 'KODING' ? 'EKSKUL KODING' : 'KELAS ' + k); }
     function seenKey() { return 'lms_pengumuman_seen_' + (currentUser ? currentUser.username : ''); }
     function idTime(id) { return Number(String(id).replace(/\D/g, '')) || 0; }
 
@@ -2641,7 +2653,7 @@
           if (!res || !res.success) return;
           const sel = document.getElementById('absenTarget'), cur = sel.value;
           sel.innerHTML =
-            '<option value="SEMUA">Semua Siswa</option><option value="VII">Kelas VII</option><option value="VIII">Kelas VIII</option><option value="IX">Kelas IX</option>' +
+            '<option value="SEMUA">Semua Siswa</option><option value="VII">Kelas VII</option><option value="VIII">Kelas VIII</option><option value="IX">Kelas IX</option><option value="KODING">Ekskul Koding</option>' +
             (res.rombelList.length ? '<optgroup label="Per Rombel">' + res.rombelList.map(r => `<option value="${escHtml(r)}">${escHtml(r)}</option>`).join('') + '</optgroup>' : '');
           if (cur) sel.value = cur;
           absenTargetReady = true;
