@@ -399,6 +399,14 @@
       .rekap-table-scroll { max-height: 68vh; }
     }
 
+    /* ===== TEMPEL NILAI ===== */
+    .np-table td,.np-table th{font-size:.82rem;padding:.3rem .5rem;vertical-align:middle}
+    .np-table thead th{position:sticky;top:0;background:#f8fafc;z-index:1}
+    .np-table tr.np-ok td:first-child{border-left:3px solid #16a34a}
+    .np-table tr.np-warn td:first-child{border-left:3px solid #d97706}
+    .np-table tr.np-bad td:first-child{border-left:3px solid #dc2626}
+    .np-table tr.np-bad{background:#fef2f2}.np-table tr.np-warn{background:#fffbeb}
+    .nilai-input.np-filled,.catatan-input.np-filled{background:#fef9c3;box-shadow:0 0 0 2px #facc15 inset}
     /* ===== POPUP PROFESIONAL ===== */
     #ppModal .modal-content{border:0;border-radius:20px;box-shadow:0 24px 60px rgba(15,23,42,.28);overflow:hidden}
     /* Susunan lapisan: modal biasa 1055 < backdrop popup 1060 < popup 1065 < toast 1100.
@@ -891,7 +899,7 @@
             <div class="row g-2 mb-3 bg-light p-3 rounded-3 border">
               <div class="col-md-3 col-6">
                 <label class="form-label small fw-bold text-secondary mb-1">Rombel</label>
-                <select id="inputNilaiRombel" class="form-select form-select-sm" onchange="loadNilaiGrid()"><option value="">Memuat...</option></select>
+                <select id="inputNilaiRombel" class="form-select form-select-sm" onchange="onRombelNilaiChange()"><option value="">Memuat...</option></select>
               </div>
               <div class="col-md-6 col-12">
                 <label class="form-label small fw-bold text-secondary mb-1">Judul Penilaian</label>
@@ -901,6 +909,12 @@
               <div class="col-md-3 col-12 d-flex align-items-end">
                 <button class="btn btn-sm btn-primary fw-bold w-100" id="btnSimpanNilai" onclick="saveNilaiGrid()"><i class="fa-solid fa-floppy-disk me-1"></i> Simpan Semua Nilai</button>
               </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+              <button class="btn btn-sm btn-success fw-semibold" onclick="openPasteNilai()"><i class="fa-solid fa-paste me-1"></i> Tempel dari Excel / Sheet</button>
+              <button class="btn btn-sm btn-outline-secondary" onclick="salinDaftarSiswaNilai()"><i class="fa-regular fa-copy me-1"></i> Salin Daftar Siswa</button>
+              <button class="btn btn-sm btn-outline-danger" onclick="kosongkanIsianNilai()"><i class="fa-solid fa-eraser me-1"></i> Kosongkan Isian</button>
+              <small class="text-muted ms-md-auto"><i class="fa-regular fa-lightbulb me-1"></i>Tips: klik kolom <b>Nilai</b> lalu <b>Ctrl+V</b>, kolom angka dari Excel langsung terisi ke bawah. Tekan <b>Enter</b> untuk pindah ke siswa berikutnya.</small>
             </div>
             <div class="rekap-table-scroll">
               <table class="table table-rekap mb-0">
@@ -985,6 +999,42 @@
 
 
   <!-- ==================== MODAL EDIT ITEM ==================== -->
+  <!-- ==================== MODAL TEMPEL NILAI ==================== -->
+  <div class="modal fade" id="npModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered modal-fullscreen-md-down">
+      <div class="modal-content" style="border-radius:16px;border:0">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-paste text-success me-2"></i>Tempel Nilai dari Excel / Sheet</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted mb-2">Salin data dari Excel, Google Sheets, Word, atau tabel apa saja, lalu tempel di kotak ini. Kolom <b>NIS</b>, <b>Nama</b>, <b>Nilai</b>, dan <b>Catatan</b> dikenali otomatis (baris judul boleh ada atau tidak). Jika hanya ada satu kolom angka, nilai diisi berurutan sesuai daftar siswa di tabel.</p>
+          <textarea id="npText" class="form-control font-monospace small" rows="5" oninput="npAnalyze()" placeholder="Tempel di sini (Ctrl+V)..."></textarea>
+          <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="npReadClipboard()"><i class="fa-regular fa-clipboard me-1"></i>Ambil dari Clipboard</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('npText').value='';npAnalyze()"><i class="fa-solid fa-xmark me-1"></i>Bersihkan</button>
+            <div class="form-check ms-md-2">
+              <input class="form-check-input" type="checkbox" id="npSkip" onchange="npAnalyze()">
+              <label class="form-check-label small" for="npSkip">Jangan timpa nilai yang sudah terisi di tabel</label>
+            </div>
+          </div>
+          <div id="npInfo" class="small mt-3"></div>
+          <div class="rekap-table-scroll mt-2" style="max-height:340px">
+            <table class="table table-sm np-table mb-0">
+              <thead><tr><th style="width:42px">#</th><th>Data Tempelan</th><th>Dicocokkan ke Siswa</th><th style="width:70px">Nilai</th><th>Catatan</th><th style="width:150px">Status</th></tr></thead>
+              <tbody id="npPreview"><tr><td colspan="6" class="text-center text-muted py-4">Pratinjau akan muncul setelah data ditempel.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <span id="npSummary" class="small me-auto"></span>
+          <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-success fw-bold" id="npApply" onclick="npApplyToGrid()" disabled><i class="fa-solid fa-check me-1"></i>Terapkan ke Tabel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow-lg rounded-4 p-2">
@@ -1149,7 +1199,7 @@
     let sessionExpiredShown = false;
 
     // URL DEPLOYMENT GOOGLE APPS SCRIPT LMS ANDA
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyVp7ZQayMDJFi3xhWEm3ni9cApl1axedq_inCOmzQBHXsjMCTjftNAdo0kzMR27L0/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbypZC6vouR4sue3ukt0BesOQb8bor0wp6ZB9sjEthhC9wU864xq3jhw3Na2CWk5wdns/exec";
 
     let currentUser = null;
     let currentClassView = 'ALL';
@@ -1990,12 +2040,330 @@
         const ex = judul ? nilaiCache.find(n => n.nis === s.id && n.judul.toLowerCase() === judul) : null;
         return `<tr>
           <td>${i + 1}</td><td class="fw-semibold">${escHtml(s.nama)}</td><td class="small text-muted">${escHtml(s.id)}</td>
-          <td><input type="number" min="0" max="100" step="any" class="form-control form-control-sm nilai-input" data-nis="${escHtml(s.id)}" value="${ex ? ex.nilai : ''}"></td>
-          <td><input type="text" class="form-control form-control-sm catatan-input" data-nis="${escHtml(s.id)}" value="${ex ? escHtml(ex.catatan) : ''}"></td>
+          <td><input type="number" min="0" max="100" step="any" class="form-control form-control-sm nilai-input" data-nis="${escHtml(s.id)}" value="${nilaiValFor(s, ex)}"></td>
+          <td><input type="text" class="form-control form-control-sm catatan-input" data-nis="${escHtml(s.id)}" value="${catatanValFor(s, ex)}"></td>
           <td class="text-center">${ex ? `<span class="badge bg-success">Tersimpan</span> <button class="btn-admin-action btn-admin-delete" title="Hapus nilai" onclick="deleteNilaiRow('${escHtml(s.id)}')"><i class="fa-solid fa-trash"></i></button>` : '<span class="badge bg-secondary">Belum</span>'}</td>
         </tr>`;
       }).join('') || '<tr><td colspan="6" class="text-center py-4 text-muted">Tidak ada siswa di rombel ini.</td></tr>';
     }
+    // ==================== TEMPEL NILAI DARI EXCEL / SHEET / DATA LAIN ====================
+    // Draf = nilai yang sudah diketik/ditempel tetapi belum disimpan. Disimpan agar tidak hilang saat tabel digambar ulang
+    // (misalnya ketika guru mengetik judul penilaian setelah menempel).
+    let nilaiDraft = {};
+    function setDraft(nis, field, val) { (nilaiDraft[nis] = nilaiDraft[nis] || {})[field] = val; }
+    function nilaiValFor(s, ex) { const d = nilaiDraft[s.id]; if (d && d.nilai !== undefined) return escHtml(d.nilai); return ex ? escHtml(ex.nilai) : ''; }
+    function catatanValFor(s, ex) { const d = nilaiDraft[s.id]; if (d && d.catatan !== undefined) return escHtml(d.catatan); return ex ? escHtml(ex.catatan) : ''; }
+    function onRombelNilaiChange() { nilaiDraft = {}; loadNilaiGrid(); }
+
+    function npNorm(s) { return String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
+    function npId(x) { return String(x == null ? '' : x).trim().replace(/\.0+$/, '').replace(/^0+/, ''); }   // Excel sering membuang angka 0 di depan NIS
+    function npLev(a, b) {
+      if (a === b) return 0;
+      const m = a.length, n = b.length; if (!m) return n; if (!n) return m;
+      let prev = Array.from({ length: n + 1 }, (_, j) => j);
+      for (let i = 1; i <= m; i++) {
+        const cur = [i];
+        for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        prev = cur;
+      }
+      return prev[n];
+    }
+    // Nilai: "85", "85,5", "85.5", "90%" -> angka 0-100. {empty}=kosong, {bad}=tidak valid
+    function npNum(v) {
+      let s = String(v == null ? '' : v).trim().replace(/%$/, '').trim();
+      if (s === '') return { empty: true };
+      s = s.replace(/^(\d+),(\d+)$/, '$1.$2');
+      if (!/^\d+(\.\d+)?$/.test(s)) return { bad: true };
+      const n = Math.round(parseFloat(s) * 100) / 100;
+      if (n < 0 || n > 100) return { bad: true };
+      return { n };
+    }
+    // Pecah teks tempelan menjadi tabel (Excel/Sheets = tab; juga ; , dan "Nama 85")
+    function npSplit(text) {
+      text = String(text || '').replace(/\r/g, '').replace(/^\uFEFF/, '');
+      const lines = text.split('\n');
+      while (lines.length && lines[lines.length - 1].trim() === '') lines.pop();   // baris kosong di akhir
+      if (!lines.length) return [];
+      const nonEmpty = lines.filter(l => l.trim() !== '');
+      let delim = null;
+      if (nonEmpty.some(l => l.includes('\t'))) delim = '\t';
+      else if (nonEmpty.some(l => l.includes(';'))) delim = ';';
+      else if (nonEmpty.some(l => l.includes(',') && !/^\s*\d+,\d+\s*%?\s*$/.test(l))) delim = ',';
+      if (delim) return lines.map(l => l.split(delim).map(c => c.trim().replace(/^"(.*)"$/, '$1')));
+      return lines.map(l => {
+        const t = l.trim(), m = t.match(/^(.*\S)\s+(\d{1,3}(?:[.,]\d+)?\s*%?)$/);
+        return (m && /[A-Za-z]/.test(m[1])) ? [m[1], m[2]] : [t];
+      });
+    }
+    function npBuildIndex(all) {
+      const idx = { byId: {}, byName: {}, list: [] };
+      all.forEach(s => {
+        [s.id, s.nisn].forEach(x => { const k = npId(x); if (k) idx.byId[k] = s; });
+        const n = npNorm(s.nama);
+        (idx.byName[n] = idx.byName[n] || []).push(s);
+        idx.list.push({ s, n, t: n.split(' ') });
+      });
+      return idx;
+    }
+    function npFindName(raw, idx, rombel) {
+      const n = npNorm(raw); if (!n) return null;
+      const ex = idx.byName[n];
+      if (ex && ex.length) return { s: ex.find(s => s.rombel === rombel) || ex[0], fuzzy: false };
+      const t = n.split(' '), cands = [];
+      idx.list.forEach(e => {
+        const sub = (t.length >= 2 || e.t.length >= 2) && (t.every(x => e.t.includes(x)) || e.t.every(x => t.includes(x)));
+        const near = npLev(n, e.n) <= Math.max(1, Math.floor(Math.max(n.length, e.n.length) * 0.15));
+        if (sub || near) cands.push(e.s);
+      });
+      if (!cands.length) return null;
+      const inR = cands.filter(s => s.rombel === rombel);
+      if (inR.length === 1) return { s: inR[0], fuzzy: true };
+      if (inR.length > 1) return { ambiguous: true };
+      return cands.length === 1 ? { s: cands[0], fuzzy: true } : { ambiguous: true };
+    }
+
+    // Inti: teks -> daftar baris yang sudah dicocokkan ke siswa. ctx = { all: semua siswa, rombel, offset }
+    function npAnalyzeText(text, ctx) {
+      const out = { rows: [], map: {}, count: { ok: 0, nomatch: 0, other: 0, bad: 0, empty: 0, dup: 0, over: 0, fuzzy: 0 }, error: '' };
+      const table = npSplit(text);
+      if (!table.length) return out;
+      const idx = npBuildIndex(ctx.all), rombel = ctx.rombel;
+      const ordered = ctx.all.filter(s => s.rombel === rombel);
+      const ncols = Math.max(...table.map(r => r.length));
+
+      // 1. baris judul?
+      const hmap = {};
+      table[0].forEach((c, i) => {
+        const t = npNorm(c); if (!t) return;
+        if (/(^| )(nis|nisn|induk|id)( |$)/.test(t) && hmap.nis == null) hmap.nis = i;
+        else if (/nama/.test(t) && hmap.nama == null) hmap.nama = i;
+        else if (/(nilai|skor|score|hasil|angka|poin)/.test(t) && hmap.nilai == null) hmap.nilai = i;
+        else if (/(catatan|ket|komentar)/.test(t) && hmap.cat == null) hmap.cat = i;
+      });
+      const isHeader = Object.keys(hmap).length > 0 && !table[0].some(c => npNum(c).n != null);
+      const data = isHeader ? table.slice(1) : table;
+      const colVals = c => data.map(r => r[c]).filter(v => v != null && String(v).trim() !== '');
+      const frac = (c, fn) => { const v = colVals(c); return v.length ? v.filter(fn).length / v.length : 0; };
+
+      // 2. kenali kolom
+      const m = isHeader ? { nis: hmap.nis, nama: hmap.nama, nilai: hmap.nilai, cat: hmap.cat } : {};
+      const cols = [...Array(ncols).keys()];
+      if (m.nis == null) { let best = -1, bf = 0.3; cols.forEach(c => { const f = frac(c, v => idx.byId[npId(v)]); if (f >= bf && f > 0) { bf = f; best = c; } }); if (best >= 0) m.nis = best; }
+      if (m.nilai == null) {
+        const isSeq = c => { const v = colVals(c).map(Number); return v.length > 1 && v.every((x, i) => x === i + 1); };
+        const numeric = cols.filter(c => c !== m.nis && frac(c, v => npNum(v).n != null) >= 0.6);
+        let cand = numeric.filter(c => !(ncols >= 2 && isSeq(c)));   // kolom "No" urut 1..n bukan nilai
+        if (!cand.length && ncols === 1) cand = numeric;
+        if (cand.length) m.nilai = cand[cand.length - 1];
+        // Ada kolom NIS/nama tetapi kolom angkanya banyak yang salah: tetap anggap kolom nilai, agar baris bermasalah ditampilkan
+        if (m.nilai == null && ncols >= 2) {
+          const dig = cols.filter(c => c !== m.nis && frac(c, v => /\d/.test(String(v))) >= 0.5);
+          if (dig.length) m.nilai = dig[dig.length - 1];
+        }
+      }
+      if (m.nilai == null) { out.error = 'Kolom nilai (angka 0-100) tidak ditemukan pada data yang ditempel.'; out.map = m; return out; }
+      const textCols = cols.filter(c => c !== m.nis && c !== m.nilai && frac(c, v => npNum(v).n != null) < 0.4 && colVals(c).length);
+      if (m.nama == null) {
+        let best = -1, bf = 0.3;
+        textCols.forEach(c => { const f = frac(c, v => { const r = npFindName(v, idx, rombel); return r && r.s; }); if (f >= bf) { bf = f; best = c; } });
+        if (best < 0) { const before = textCols.filter(c => c < m.nilai); if (before.length) best = before[0]; }
+        if (best >= 0) m.nama = best;
+      }
+      if (m.cat == null) { const after = textCols.filter(c => c > m.nilai && c !== m.nama); if (after.length) m.cat = after[0]; }
+      m.header = isHeader; m.ncols = ncols; m.mode = (m.nis != null || m.nama != null) ? 'id' : 'order';
+      out.map = m;
+
+      // 3. cocokkan tiap baris
+      const seen = {};
+      data.forEach((r, i) => {
+        const rawNil = r[m.nilai], parsed = npNum(rawNil);
+        const rawId = m.nis != null ? (r[m.nis] || '') : '', rawName = m.nama != null ? (r[m.nama] || '') : '';
+        const cat = m.cat != null ? String(r[m.cat] || '').trim() : '';
+        const row = { i: i + 1, rawId, rawName, rawVal: rawNil == null ? '' : String(rawNil), cat, s: null, method: '', fuzzy: false, status: '', n: null };
+        out.rows.push(row);
+        if (parsed.empty) { row.status = 'empty'; out.count.empty++; return; }
+        if (parsed.bad) { row.status = 'bad'; out.count.bad++; return; }
+        row.n = parsed.n;
+        let s = null;
+        if (m.mode === 'order') { s = ordered[i + (ctx.offset || 0)] || null; row.method = 'Urutan'; if (!s) { row.status = 'over'; out.count.over++; return; } }
+        else {
+          if (m.nis != null && String(rawId).trim() !== '') { s = idx.byId[npId(rawId)] || null; if (s) row.method = 'NIS'; }
+          if (!s && m.nama != null && String(rawName).trim() !== '') {
+            const f = npFindName(rawName, idx, rombel);
+            if (f && f.s) { s = f.s; row.fuzzy = f.fuzzy; row.method = f.fuzzy ? 'Nama (mirip)' : 'Nama'; }
+            else if (f && f.ambiguous) row.note = 'Nama ambigu';
+          }
+          if (!s) { row.status = 'nomatch'; out.count.nomatch++; return; }
+        }
+        row.s = s;
+        if (s.rombel !== rombel) { row.status = 'other'; out.count.other++; return; }
+        if (seen[s.id]) { row.status = 'dup'; out.count.dup++; return; }
+        seen[s.id] = true; row.status = 'ok'; out.count.ok++; if (row.fuzzy) out.count.fuzzy++;
+      });
+      return out;
+    }
+
+    // ---- Tampilan modal ----
+    let NP = { result: null };
+    function npCtx(offset) { return { all: siswaAll, rombel: document.getElementById('inputNilaiRombel').value, offset: offset || 0 }; }
+    function openPasteNilai(prefill) {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      if (!document.getElementById('inputNilaiRombel').value) { Popup.warning('Pilih rombel terlebih dahulu, lalu tempel nilainya.', 'Rombel Belum Dipilih'); return; }
+      if (!siswaAll.length) { Popup.warning('Daftar siswa belum termuat. Tunggu sebentar lalu coba lagi.'); return; }
+      document.getElementById('npText').value = typeof prefill === 'string' ? prefill : '';
+      npAnalyze();
+      const el = document.getElementById('npModal');
+      bootstrap.Modal.getOrCreateInstance(el).show();
+      el.addEventListener('shown.bs.modal', () => document.getElementById('npText').focus(), { once: true });
+    }
+    async function npReadClipboard() {
+      try { const t = await navigator.clipboard.readText(); document.getElementById('npText').value = t; npAnalyze(); }
+      catch (e) { Popup.info('Browser tidak mengizinkan membaca clipboard otomatis. Klik kotak teks lalu tekan Ctrl+V (atau tahan lama lalu pilih Tempel di HP).', 'Tempel Manual'); }
+    }
+    const NP_STATUS = {
+      ok: ['<span class="badge bg-success">Siap diisi</span>', 'np-ok'],
+      skip: ['<span class="badge bg-secondary">Dilewati (sudah terisi)</span>', ''],
+      nomatch: ['<span class="badge bg-danger">Siswa tidak ditemukan</span>', 'np-bad'],
+      other: ['<span class="badge bg-warning text-dark">Rombel lain</span>', 'np-warn'],
+      bad: ['<span class="badge bg-danger">Nilai tidak valid</span>', 'np-bad'],
+      dup: ['<span class="badge bg-warning text-dark">Ganda (dilewati)</span>', 'np-warn'],
+      over: ['<span class="badge bg-warning text-dark">Melebihi jumlah siswa</span>', 'np-warn'],
+      empty: ['<span class="badge bg-light text-muted border">Kosong</span>', '']
+    };
+    function npAnalyze() {
+      const text = document.getElementById('npText').value;
+      const tb = document.getElementById('npPreview'), info = document.getElementById('npInfo'), sum = document.getElementById('npSummary'), btn = document.getElementById('npApply');
+      btn.disabled = true; NP.result = null;
+      if (!text.trim()) { info.innerHTML = ''; sum.textContent = ''; tb.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Pratinjau akan muncul setelah data ditempel.</td></tr>'; return; }
+      const res = npAnalyzeText(text, npCtx(0));
+      const skipExisting = document.getElementById('npSkip').checked;
+      let overwrite = 0;
+      res.rows.forEach(r => {
+        if (r.status !== 'ok') return;
+        const cur = document.querySelector(`.nilai-input[data-nis="${CSS.escape(r.s.id)}"]`);
+        if (cur && cur.value !== '') { if (skipExisting) { r.status = 'skip'; res.count.ok--; } else if (Number(cur.value) !== r.n) overwrite++; }
+      });
+      NP.result = res;
+      if (res.error) {
+        info.innerHTML = `<div class="alert alert-danger py-2 mb-0"><i class="fa-solid fa-triangle-exclamation me-1"></i>${escHtml(res.error)}</div>`;
+        tb.innerHTML = ''; sum.textContent = ''; return;
+      }
+      const m = res.map, L = c => c == null ? null : 'kolom ' + (c + 1);
+      const parts = [];
+      parts.push(m.header ? 'Baris judul terdeteksi' : 'Tanpa baris judul');
+      if (m.nis != null) parts.push('NIS → ' + L(m.nis));
+      if (m.nama != null) parts.push('Nama → ' + L(m.nama));
+      parts.push('Nilai → ' + L(m.nilai));
+      if (m.cat != null) parts.push('Catatan → ' + L(m.cat));
+      const how = m.mode === 'order' ? 'Dicocokkan <b>berurutan</b> sesuai daftar siswa di tabel (baris pertama = siswa pertama).' : 'Dicocokkan berdasarkan ' + (m.nis != null && m.nama != null ? '<b>NIS</b>, cadangan <b>nama</b>' : m.nis != null ? '<b>NIS</b>' : '<b>nama siswa</b>') + '.';
+      info.innerHTML = `<div class="p-2 rounded-3 bg-light border"><i class="fa-solid fa-wand-magic-sparkles text-primary me-1"></i>${parts.map(escHtml).join(' &bull; ')}<br>${how}${overwrite ? ` <span class="text-warning fw-semibold">${overwrite} nilai yang sudah terisi akan ditimpa.</span>` : ''}</div>`;
+      const shown = res.rows.slice(0, 400);
+      tb.innerHTML = shown.map(r => {
+        const st = NP_STATUS[r.status] || ['', ''];
+        const tmp = [r.rawId, r.rawName].filter(x => String(x).trim() !== '').join(' · ') || ('Baris ' + r.i);
+        const stu = r.s ? `<span class="fw-semibold">${escHtml(r.s.nama)}</span> <span class="text-muted">(${escHtml(r.s.id)}${r.s.rombel ? ', ' + escHtml(r.s.rombel) : ''})</span>${r.fuzzy ? ' <span class="badge bg-warning text-dark">mirip</span>' : ''}<div class="text-muted" style="font-size:.7rem">${escHtml(r.method)}</div>` : (r.note ? `<span class="text-danger">${escHtml(r.note)}</span>` : '<span class="text-muted">-</span>');
+        return `<tr class="${r.fuzzy && r.status === 'ok' ? 'np-warn' : st[1]}"><td>${r.i}</td><td>${escHtml(tmp)}</td><td>${stu}</td><td class="fw-bold">${r.n != null ? r.n : escHtml(r.rawVal)}</td><td class="small">${escHtml(r.cat)}</td><td>${st[0]}</td></tr>`;
+      }).join('') + (res.rows.length > shown.length ? `<tr><td colspan="6" class="text-center text-muted small">… dan ${res.rows.length - shown.length} baris lainnya</td></tr>` : '');
+      const c = res.count, bits = [];
+      bits.push(`<span class="text-success fw-bold">${c.ok} siap diisi</span>`);
+      const problem = c.nomatch + c.bad + c.other + c.dup + c.over;
+      if (problem) bits.push(`<span class="text-danger fw-bold">${problem} bermasalah (dilewati)</span>`);
+      if (c.fuzzy) bits.push(`<span class="text-warning fw-bold">${c.fuzzy} cocok berdasarkan nama mirip, periksa lagi</span>`);
+      sum.innerHTML = bits.join(' &bull; ');
+      btn.disabled = c.ok === 0;
+      btn.innerHTML = `<i class="fa-solid fa-check me-1"></i>Terapkan ${c.ok} Nilai ke Tabel`;
+    }
+    function npFlash(inp) { inp.classList.add('np-filled'); setTimeout(() => inp.classList.remove('np-filled'), 2500); }
+    async function npApplyToGrid() {
+      const res = NP.result; if (!res || res.error) return;
+      let n = 0, first = null;
+      res.rows.forEach(r => {
+        if (r.status !== 'ok') return;
+        const sel = CSS.escape(r.s.id);
+        const inp = document.querySelector(`.nilai-input[data-nis="${sel}"]`); if (!inp) return;
+        inp.value = String(r.n); setDraft(r.s.id, 'nilai', inp.value); npFlash(inp); n++;
+        if (!first) first = inp;
+        if (r.cat) { const ci = document.querySelector(`.catatan-input[data-nis="${sel}"]`); if (ci) { ci.value = r.cat; setDraft(r.s.id, 'catatan', r.cat); npFlash(ci); } }
+      });
+      const el = document.getElementById('npModal');
+      await new Promise(resolve => { el.addEventListener('hidden.bs.modal', resolve, { once: true }); bootstrap.Modal.getOrCreateInstance(el).hide(); });
+      if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const needJudul = !document.getElementById('inputNilaiJudul').value.trim();
+      await Popup.fire({ type: 'success', title: n + ' Nilai Ditempel', text: needJudul ? 'Nilai sudah masuk ke tabel (ditandai kuning). Isi Judul Penilaian, lalu klik "Simpan Semua Nilai" untuk menyimpan.' : 'Nilai sudah masuk ke tabel (ditandai kuning). Periksa sekali lagi, lalu klik "Simpan Semua Nilai" untuk menyimpan.', confirmText: 'Oke' });
+      if (needJudul) document.getElementById('inputNilaiJudul').focus();
+    }
+
+    // ---- Tempel langsung di kolom Nilai / Catatan (Ctrl+V) + Enter pindah baris ----
+    function initNilaiPaste() {
+      const tbody = document.getElementById('inputNilaiBody'); if (!tbody || tbody.dataset.npInit) return; tbody.dataset.npInit = '1';
+      tbody.addEventListener('input', e => {
+        const t = e.target;
+        if (t.classList.contains('nilai-input')) setDraft(t.dataset.nis, 'nilai', t.value);
+        else if (t.classList.contains('catatan-input')) setDraft(t.dataset.nis, 'catatan', t.value);
+      });
+      tbody.addEventListener('keydown', e => {
+        const t = e.target;
+        if (!(t.classList.contains('nilai-input') || t.classList.contains('catatan-input'))) return;
+        if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          const all = [...tbody.querySelectorAll('.' + (t.classList.contains('nilai-input') ? 'nilai-input' : 'catatan-input'))];
+          const nxt = all[all.indexOf(t) + (e.key === 'ArrowUp' ? -1 : 1)];
+          if (nxt) { e.preventDefault(); nxt.focus(); if (nxt.select) nxt.select(); }
+          else if (e.key === 'Enter') e.preventDefault();
+        }
+      });
+      tbody.addEventListener('paste', e => {
+        const t = e.target, isNilai = t.classList && t.classList.contains('nilai-input'), isCat = t.classList && t.classList.contains('catatan-input');
+        if (!isNilai && !isCat) return;
+        const text = (e.clipboardData || window.clipboardData).getData('text'); if (!text) return;
+        const rows = npSplit(text);
+        const multiCol = rows.some(r => r.length > 1), multiRow = rows.length > 1;
+        if (!multiCol && !multiRow) {   // satu nilai: rapikan "85,5" -> 85.5
+          if (isNilai) { const p = npNum(rows[0] ? rows[0][0] : ''); if (p.n != null) { e.preventDefault(); t.value = String(p.n); setDraft(t.dataset.nis, 'nilai', t.value); } }
+          return;
+        }
+        e.preventDefault();
+        if (multiCol) { openPasteNilai(text); return; }   // banyak kolom: buka pratinjau agar dicocokkan dengan benar
+        const sel = isNilai ? '.nilai-input' : '.catatan-input';
+        const inputs = [...tbody.querySelectorAll(sel)], start = inputs.indexOf(t);
+        let ok = 0, bad = 0;
+        rows.forEach((r, i) => {
+          const inp = inputs[start + i], v = r[0] == null ? '' : String(r[0]).trim();
+          if (!inp || v === '') return;
+          if (isNilai) {
+            const p = npNum(v); if (p.n == null) { bad++; return; }
+            inp.value = String(p.n); setDraft(inp.dataset.nis, 'nilai', inp.value);
+          } else { inp.value = v; setDraft(inp.dataset.nis, 'catatan', v); }
+          npFlash(inp); ok++;
+        });
+        Popup.toast(ok + (isNilai ? ' nilai' : ' catatan') + ' ditempel' + (bad ? ', ' + bad + ' tidak valid dilewati' : ''), ok > 0);
+      });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initNilaiPaste); else initNilaiPaste();
+
+    async function npCopyText(text) {
+      try { await navigator.clipboard.writeText(text); return true; }
+      catch (e) {
+        const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select();
+        let ok = false; try { ok = document.execCommand('copy'); } catch (_) {} ta.remove(); return ok;
+      }
+    }
+    async function salinDaftarSiswaNilai() {
+      const rombel = document.getElementById('inputNilaiRombel').value;
+      if (!rombel) { Popup.warning('Pilih rombel terlebih dahulu.', 'Rombel Belum Dipilih'); return; }
+      const list = siswaAll.filter(s => s.rombel === rombel);
+      const txt = 'NIS\tNama\tNilai\n' + list.map(s => s.id + '\t' + s.nama + '\t').join('\n');
+      const ok = await npCopyText(txt);
+      Popup.toast(ok ? 'Daftar ' + list.length + ' siswa disalin. Tempel di Excel, isi kolom Nilai, lalu salin balik.' : 'Gagal menyalin daftar siswa', ok);
+    }
+    async function kosongkanIsianNilai() {
+      if (!document.getElementById('inputNilaiRombel').value) return;
+      if (!(await Popup.confirm({ type: 'warning', title: 'Kosongkan Isian?', text: 'Semua isian nilai dan catatan yang belum disimpan di tabel ini akan dihapus. Nilai yang sudah tersimpan di sheet tidak terpengaruh.', confirmText: 'Ya, Kosongkan' }))) return;
+      nilaiDraft = {};
+      document.querySelectorAll('#inputNilaiBody .nilai-input, #inputNilaiBody .catatan-input').forEach(i => { i.value = ''; });
+      document.querySelectorAll('#inputNilaiBody .nilai-input').forEach(i => setDraft(i.dataset.nis, 'nilai', ''));
+      document.querySelectorAll('#inputNilaiBody .catatan-input').forEach(i => setDraft(i.dataset.nis, 'catatan', ''));
+    }
+
     async function saveNilaiGrid() {
       const judul = document.getElementById('inputNilaiJudul').value.trim();
       if (!judul) { Popup.warning('Isi judul penilaian dulu.'); return; }
@@ -2009,7 +2377,7 @@
       const btn = document.getElementById('btnSimpanNilai'); btn.disabled = true;
       try {
         const res = await callApi('saveNilaiBatch', { judul, items });
-        if (res && res.success) { showSuccessModal('Nilai Tersimpan', res.message); await loadNilaiGrid(); }
+        if (res && res.success) { showSuccessModal('Nilai Tersimpan', res.message); nilaiDraft = {}; await loadNilaiGrid(); }
         else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal menyimpan');
       } catch (err) { Popup.error('Gagal terhubung ke server: ' + err.message); }
       btn.disabled = false;
@@ -2018,7 +2386,7 @@
       const judul = document.getElementById('inputNilaiJudul').value.trim();
       if (!(await Popup.confirm({ type: 'danger', title: 'Hapus Nilai?', text: 'Nilai siswa ini untuk penilaian "' + judul + '" akan dihapus.', confirmText: 'Ya, Hapus' }))) return;
       const res = await callApi('deleteNilai', { nis, judul });
-      if (res && res.success) loadNilaiGrid(); else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal menghapus');
+      if (res && res.success) { delete nilaiDraft[nis]; loadNilaiGrid(); } else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal menghapus');
     }
 
     // ==================== PENGUMUMAN / BROADCAST ====================
