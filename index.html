@@ -399,6 +399,10 @@
       .rekap-table-scroll { max-height: 68vh; }
     }
 
+    /* ===== PRESENSI DI INPUT NILAI ===== */
+    #inputNilaiBody tr.pres-absen{background:#fff7f7}
+    #inputNilaiBody tr.pres-absen td:first-child{border-left:3px solid #f87171}
+    .pres-cell{white-space:nowrap}
     /* ===== TEMPEL NILAI ===== */
     .np-table td,.np-table th{font-size:.82rem;padding:.3rem .5rem;vertical-align:middle}
     .np-table thead th{position:sticky;top:0;background:#f8fafc;z-index:1}
@@ -910,6 +914,24 @@
                 <button class="btn btn-sm btn-primary fw-bold w-100" id="btnSimpanNilai" onclick="saveNilaiGrid()"><i class="fa-solid fa-floppy-disk me-1"></i> Simpan Semua Nilai</button>
               </div>
             </div>
+            <div class="row g-2 mb-3 p-3 rounded-3 border align-items-end" style="background:#f0fdf4">
+              <div class="col-lg-6 col-12">
+                <label class="form-label small fw-bold text-secondary mb-1"><i class="fa-solid fa-user-check text-success me-1"></i>Presensi Acuan <span id="presensiTerbaru" class="badge bg-success d-none ms-1">Terbaru</span></label>
+                <select id="presensiSesi" class="form-select form-select-sm" onchange="onPresensiSesiChange()" disabled><option value="">Pilih rombel dulu...</option></select>
+              </div>
+              <div class="col-lg-6 col-12 d-flex flex-wrap gap-2 align-items-end">
+                <div>
+                  <label class="form-label small fw-bold text-secondary mb-1 d-block">Tampilkan siswa</label>
+                  <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" id="pf-all" class="btn btn-outline-secondary active" onclick="setPresensiFilter('all')">Semua</button>
+                    <button type="button" id="pf-hadir" class="btn btn-outline-success" onclick="setPresensiFilter('hadir')">Sudah Hadir</button>
+                    <button type="button" id="pf-tidak" class="btn btn-outline-danger" onclick="setPresensiFilter('tidak')">Belum / Tidak Hadir</button>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="loadPresensiNilai(false)" title="Muat ulang presensi"><i class="fa-solid fa-rotate me-1"></i>Muat Ulang</button>
+              </div>
+              <div class="col-12"><div id="presensiRingkas" class="small text-muted">Pilih rombel untuk melihat presensi.</div></div>
+            </div>
             <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
               <button class="btn btn-sm btn-success fw-semibold" onclick="openPasteNilai()"><i class="fa-solid fa-paste me-1"></i> Tempel dari Excel / Sheet</button>
               <button class="btn btn-sm btn-outline-secondary" onclick="salinDaftarSiswaNilai()"><i class="fa-regular fa-copy me-1"></i> Salin Daftar Siswa</button>
@@ -918,8 +940,8 @@
             </div>
             <div class="rekap-table-scroll">
               <table class="table table-rekap mb-0">
-                <thead><tr><th>No</th><th>Nama Siswa</th><th>NIS</th><th style="width:130px">Nilai</th><th>Catatan (opsional)</th><th class="text-center">Status</th></tr></thead>
-                <tbody id="inputNilaiBody"><tr><td colspan="6" class="text-center py-4 text-muted">Pilih rombel untuk menampilkan daftar siswa...</td></tr></tbody>
+                <thead><tr><th>No</th><th>Nama Siswa</th><th>NIS</th><th style="width:120px">Presensi</th><th style="width:130px">Nilai</th><th>Catatan (opsional)</th><th class="text-center">Status</th></tr></thead>
+                <tbody id="inputNilaiBody"><tr><td colspan="7" class="text-center py-4 text-muted">Pilih rombel untuk menampilkan daftar siswa...</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -1199,7 +1221,7 @@
     let sessionExpiredShown = false;
 
     // URL DEPLOYMENT GOOGLE APPS SCRIPT LMS ANDA
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbypZC6vouR4sue3ukt0BesOQb8bor0wp6ZB9sjEthhC9wU864xq3jhw3Na2CWk5wdns/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwCt_GCm5aRkGsAy65GqxClTCAqZM7S525cdPBin3-Dz9mGQWbT3r3JO2nUyutYDxJd/exec";
 
     let currentUser = null;
     let currentClassView = 'ALL';
@@ -1209,7 +1231,7 @@
 
     // Fungsi Helper Pemanggil API Google Apps Script (Bebas Blokir CORS di GitHub Pages)
     // Aksi yang aman diulang otomatis saat server sibuk (submitAbsen aman: server menolak absen ganda)
-    const RETRY_ACTIONS = ['getLmsData','getPengumuman','getNilaiSaya','getSesiAbsenAktif','submitAbsen','getSesiAbsenAdmin','getAbsenDetail','getSiswaList','getNilaiAdmin','getRekapTugasData'];
+    const RETRY_ACTIONS = ['getPresensiNilai','getLmsData','getPengumuman','getNilaiSaya','getSesiAbsenAktif','submitAbsen','getSesiAbsenAdmin','getAbsenDetail','getSiswaList','getNilaiAdmin','getRekapTugasData'];
     const SERVER_BUSY_MSG = 'Server tidak dapat merespons saat ini. Kemungkinan banyak siswa mengakses bersamaan. Tunggu beberapa detik, lalu coba lagi.';
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -2021,8 +2043,9 @@
     }
     async function loadNilaiGrid() {
       const rombel = document.getElementById('inputNilaiRombel').value;
+      loadPresensiNilai(false);   // presensi dimuat paralel dengan nilai
       if (!rombel) { renderNilaiGrid(); return; }
-      document.getElementById('inputNilaiBody').innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat...</td></tr>';
+      document.getElementById('inputNilaiBody').innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat...</td></tr>';
       const res = await callApi('getNilaiAdmin', { rombel });
       if (!res || !res.success) { if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal memuat nilai'); return; }
       nilaiCache = res.data || [];
@@ -2034,18 +2057,106 @@
       const rombel = document.getElementById('inputNilaiRombel').value;
       const judul = document.getElementById('inputNilaiJudul').value.trim().toLowerCase();
       const tbody = document.getElementById('inputNilaiBody');
-      if (!rombel) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Pilih rombel untuk menampilkan daftar siswa...</td></tr>'; return; }
+      if (!rombel) { tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">Pilih rombel untuk menampilkan daftar siswa...</td></tr>'; return; }
       const list = siswaAll.filter(s => s.rombel === rombel);
       tbody.innerHTML = list.map((s, i) => {
         const ex = judul ? nilaiCache.find(n => n.nis === s.id && n.judul.toLowerCase() === judul) : null;
-        return `<tr>
-          <td>${i + 1}</td><td class="fw-semibold">${escHtml(s.nama)}</td><td class="small text-muted">${escHtml(s.id)}</td>
+        return `<tr data-nis="${escHtml(s.id)}">
+          <td>${i + 1}</td><td class="fw-semibold">${escHtml(s.nama)}</td><td class="small text-muted">${escHtml(s.id)}</td><td class="pres-cell">${presensiCellHtml(s.id)}</td>
           <td><input type="number" min="0" max="100" step="any" class="form-control form-control-sm nilai-input" data-nis="${escHtml(s.id)}" value="${nilaiValFor(s, ex)}"></td>
           <td><input type="text" class="form-control form-control-sm catatan-input" data-nis="${escHtml(s.id)}" value="${catatanValFor(s, ex)}"></td>
           <td class="text-center">${ex ? `<span class="badge bg-success">Tersimpan</span> <button class="btn-admin-action btn-admin-delete" title="Hapus nilai" onclick="deleteNilaiRow('${escHtml(s.id)}')"><i class="fa-solid fa-trash"></i></button>` : '<span class="badge bg-secondary">Belum</span>'}</td>
         </tr>`;
-      }).join('') || '<tr><td colspan="6" class="text-center py-4 text-muted">Tidak ada siswa di rombel ini.</td></tr>';
+      }).join('') || '<tr><td colspan="7" class="text-center py-4 text-muted">Tidak ada siswa di rombel ini.</td></tr>';
+      paintPresensi();
     }
+    // ==================== PRESENSI DI INPUT NILAI ====================
+    // Menampilkan status absen tiap siswa dari sesi absensi TERBARU untuk rombel yang dipilih (bisa diganti ke sesi lain).
+    let presensi = { rombel: '', sesiId: '', auto: true, list: [], sesi: null, map: {}, ringkas: {}, total: 0, loaded: false, error: '', at: '' };
+    let presensiFilter = 'all';
+    const PRES_BADGE = { Hadir: 'bg-success', Izin: 'bg-info text-dark', Sakit: 'bg-warning text-dark', Alpa: 'bg-danger', Belum: 'bg-secondary' };
+    function presensiReset(rombel) { presensi = { rombel, sesiId: '', auto: true, list: [], sesi: null, map: {}, ringkas: {}, total: 0, loaded: false, error: '', at: '' }; }
+    function presLabel(st) { return st === 'Belum' ? 'Belum Absen' : st; }
+    function presensiStatusOf(nis) { return (!presensi.loaded || !presensi.sesi) ? '' : ((presensi.map[nis] || {}).status || 'Belum'); }
+    function presensiCellHtml(nis) {
+      if (!presensi.loaded) return '<span class="text-muted small">…</span>';
+      if (!presensi.sesi) return '<span class="text-muted small">-</span>';
+      const m = presensi.map[nis] || { status: 'Belum', waktu: '' };
+      return `<span class="badge ${PRES_BADGE[m.status] || 'bg-secondary'}">${escHtml(presLabel(m.status))}</span>${m.waktu ? `<div class="text-muted" style="font-size:.68rem">${escHtml(m.waktu)}</div>` : ''}`;
+    }
+    function renderPresensiSelect() {
+      const sel = document.getElementById('presensiSesi'), tag = document.getElementById('presensiTerbaru');
+      if (!presensi.rombel) { sel.innerHTML = '<option value="">Pilih rombel dulu...</option>'; sel.disabled = true; tag.classList.add('d-none'); return; }
+      if (!presensi.loaded) { sel.innerHTML = '<option value="">Memuat sesi absensi...</option>'; sel.disabled = true; tag.classList.add('d-none'); return; }
+      if (!presensi.list.length) { sel.innerHTML = '<option value="">' + (presensi.error ? 'Presensi gagal dimuat' : 'Belum ada sesi absensi untuk rombel ini') + '</option>'; sel.disabled = true; tag.classList.add('d-none'); return; }
+      sel.innerHTML = presensi.list.map((x, i) => `<option value="${escHtml(x.id)}">${i === 0 ? '★ Terbaru · ' : ''}${escHtml(x.judul)} · ${escHtml(x.dibuat)} · ${x.buka ? 'Dibuka' : 'Ditutup'}</option>`).join('');
+      sel.value = presensi.sesi.id; sel.disabled = false;
+      tag.classList.toggle('d-none', presensi.sesi.id !== presensi.list[0].id);
+    }
+    // Perbarui sel presensi & filter TANPA menggambar ulang tabel (isian yang sedang diketik tidak terganggu)
+    function paintPresensi() {
+      document.querySelectorAll('#inputNilaiBody tr[data-nis]').forEach(tr => {
+        const nis = tr.dataset.nis, st = presensiStatusOf(nis);
+        const cell = tr.querySelector('.pres-cell'); if (cell) cell.innerHTML = presensiCellHtml(nis);
+        tr.dataset.pres = st;
+        tr.classList.toggle('pres-absen', st === 'Belum' || st === 'Alpa');
+        const hide = st === '' ? false : (presensiFilter === 'hadir' ? st !== 'Hadir' : presensiFilter === 'tidak' ? st === 'Hadir' : false);
+        tr.classList.toggle('d-none', hide);
+      });
+      const box = document.getElementById('presensiRingkas'); if (!box) return;
+      if (!presensi.rombel) { box.className = 'small text-muted'; box.textContent = 'Pilih rombel untuk melihat presensi.'; return; }
+      if (!presensi.loaded) { box.className = 'small text-muted'; box.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Memuat presensi...'; return; }
+      if (presensi.error) { box.className = 'small text-danger'; box.textContent = 'Presensi tidak dapat dimuat: ' + presensi.error + ' Klik "Muat Ulang".'; return; }
+      if (!presensi.sesi) { box.className = 'small text-warning'; box.innerHTML = '<i class="fa-solid fa-circle-info me-1"></i>Belum ada sesi absensi untuk rombel ini. Buat sesi di menu <b>Kelola Absensi PJJ</b>, lalu klik Muat Ulang.'; return; }
+      const r = presensi.ringkas, b = (cls, n, t) => `<span class="badge ${cls} me-1">${n} ${t}</span>`;
+      box.className = 'small';
+      box.innerHTML = `<b>${escHtml(presensi.sesi.judul)}</b> ` + b('bg-success', r.Hadir || 0, 'Hadir') + b('bg-info text-dark', r.Izin || 0, 'Izin') + b('bg-warning text-dark', r.Sakit || 0, 'Sakit') + b('bg-danger', r.Alpa || 0, 'Alpa') + b('bg-secondary', r.Belum || 0, 'Belum Absen') +
+        `<span class="text-muted">dari ${presensi.total} siswa &bull; diperbarui ${escHtml(presensi.at)}</span>`;
+    }
+    async function loadPresensiNilai(silent) {
+      const rombel = document.getElementById('inputNilaiRombel').value;
+      if (!rombel) { presensiReset(''); renderPresensiSelect(); paintPresensi(); return; }
+      if (presensi.rombel !== rombel) presensiReset(rombel);
+      if (!silent) { presensi.loaded = false; presensi.error = ''; renderPresensiSelect(); paintPresensi(); }
+      const sid = presensi.auto ? '' : presensi.sesiId;   // auto = selalu ikuti sesi terbaru
+      try {
+        const res = await callApi('getPresensiNilai', { rombel, sesiId: sid });
+        if (document.getElementById('inputNilaiRombel').value !== rombel) return;   // rombel sudah diganti
+        if (res && res.expired) return;
+        if (!res || !res.success) throw new Error(res ? res.message : 'Gagal memuat presensi');
+        presensi.list = res.sesiList || []; presensi.sesi = res.sesi || null; presensi.sesiId = res.sesi ? res.sesi.id : '';
+        presensi.map = {}; (res.data || []).forEach(d => { presensi.map[d.nis] = d; });
+        presensi.ringkas = res.ringkas || {}; presensi.total = res.total || 0; presensi.error = ''; presensi.loaded = true;
+        const d = new Date(); presensi.at = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      } catch (err) {
+        if (silent && presensi.loaded) return;   // pembaruan otomatis gagal: biarkan data lama
+        presensi.error = err.message; presensi.loaded = true; presensi.sesi = null; presensi.list = [];
+      }
+      renderPresensiSelect(); paintPresensi();
+    }
+    function onPresensiSesiChange() {
+      const v = document.getElementById('presensiSesi').value; if (!v) return;
+      presensi.sesiId = v; presensi.auto = !!presensi.list.length && v === presensi.list[0].id;
+      loadPresensiNilai(false);
+    }
+    function setPresensiFilter(f) {
+      presensiFilter = f;
+      ['all', 'hadir', 'tidak'].forEach(k => document.getElementById('pf-' + k).classList.toggle('active', k === f));
+      paintPresensi();
+    }
+    // Siswa yang sedang tampil di tabel (mengikuti filter presensi), urut seperti di layar
+    function visibleNilaiStudents() {
+      const rows = [...document.querySelectorAll('#inputNilaiBody tr[data-nis]')].filter(tr => !tr.classList.contains('d-none'));
+      return rows.map(tr => siswaAll.find(s => s.id === tr.dataset.nis)).filter(Boolean);
+    }
+    // Pembaruan otomatis tiap 30 detik selama halaman Input Nilai terbuka (siswa yang baru absen langsung terlihat)
+    setInterval(() => {
+      if (document.hidden || !currentUser || currentUser.role !== 'admin') return;
+      const sec = document.getElementById('inputNilaiSection');
+      if (!sec || sec.classList.contains('d-none') || !document.getElementById('inputNilaiRombel').value) return;
+      loadPresensiNilai(true);
+    }, 30000);
+
     // ==================== TEMPEL NILAI DARI EXCEL / SHEET / DATA LAIN ====================
     // Draf = nilai yang sudah diketik/ditempel tetapi belum disimpan. Disimpan agar tidak hilang saat tabel digambar ulang
     // (misalnya ketika guru mengetik judul penilaian setelah menempel).
@@ -2128,7 +2239,7 @@
       const table = npSplit(text);
       if (!table.length) return out;
       const idx = npBuildIndex(ctx.all), rombel = ctx.rombel;
-      const ordered = ctx.all.filter(s => s.rombel === rombel);
+      const ordered = ctx.ordered || ctx.all.filter(s => s.rombel === rombel);
       const ncols = Math.max(...table.map(r => r.length));
 
       // 1. baris judul?
@@ -2205,7 +2316,7 @@
 
     // ---- Tampilan modal ----
     let NP = { result: null };
-    function npCtx(offset) { return { all: siswaAll, rombel: document.getElementById('inputNilaiRombel').value, offset: offset || 0 }; }
+    function npCtx(offset) { const vis = visibleNilaiStudents(); return { all: siswaAll, rombel: document.getElementById('inputNilaiRombel').value, offset: offset || 0, ordered: vis.length ? vis : undefined }; }
     function openPasteNilai(prefill) {
       if (!currentUser || currentUser.role !== 'admin') return;
       if (!document.getElementById('inputNilaiRombel').value) { Popup.warning('Pilih rombel terlebih dahulu, lalu tempel nilainya.', 'Rombel Belum Dipilih'); return; }
@@ -2255,13 +2366,13 @@
       if (m.nama != null) parts.push('Nama → ' + L(m.nama));
       parts.push('Nilai → ' + L(m.nilai));
       if (m.cat != null) parts.push('Catatan → ' + L(m.cat));
-      const how = m.mode === 'order' ? 'Dicocokkan <b>berurutan</b> sesuai daftar siswa di tabel (baris pertama = siswa pertama).' : 'Dicocokkan berdasarkan ' + (m.nis != null && m.nama != null ? '<b>NIS</b>, cadangan <b>nama</b>' : m.nis != null ? '<b>NIS</b>' : '<b>nama siswa</b>') + '.';
+      const how = m.mode === 'order' ? 'Dicocokkan <b>berurutan</b> sesuai daftar siswa di tabel (baris pertama = siswa pertama)' + (presensiFilter !== 'all' ? ' <span class="text-primary">&mdash; filter presensi aktif: hanya siswa yang tampil di tabel.</span>' : '.') : 'Dicocokkan berdasarkan ' + (m.nis != null && m.nama != null ? '<b>NIS</b>, cadangan <b>nama</b>' : m.nis != null ? '<b>NIS</b>' : '<b>nama siswa</b>') + '.';
       info.innerHTML = `<div class="p-2 rounded-3 bg-light border"><i class="fa-solid fa-wand-magic-sparkles text-primary me-1"></i>${parts.map(escHtml).join(' &bull; ')}<br>${how}${overwrite ? ` <span class="text-warning fw-semibold">${overwrite} nilai yang sudah terisi akan ditimpa.</span>` : ''}</div>`;
       const shown = res.rows.slice(0, 400);
       tb.innerHTML = shown.map(r => {
         const st = NP_STATUS[r.status] || ['', ''];
         const tmp = [r.rawId, r.rawName].filter(x => String(x).trim() !== '').join(' · ') || ('Baris ' + r.i);
-        const stu = r.s ? `<span class="fw-semibold">${escHtml(r.s.nama)}</span> <span class="text-muted">(${escHtml(r.s.id)}${r.s.rombel ? ', ' + escHtml(r.s.rombel) : ''})</span>${r.fuzzy ? ' <span class="badge bg-warning text-dark">mirip</span>' : ''}<div class="text-muted" style="font-size:.7rem">${escHtml(r.method)}</div>` : (r.note ? `<span class="text-danger">${escHtml(r.note)}</span>` : '<span class="text-muted">-</span>');
+        const stu = r.s ? `<span class="fw-semibold">${escHtml(r.s.nama)}</span> <span class="text-muted">(${escHtml(r.s.id)}${r.s.rombel ? ', ' + escHtml(r.s.rombel) : ''})</span>${r.fuzzy ? ' <span class="badge bg-warning text-dark">mirip</span>' : ''}${presensiStatusOf(r.s.id) ? ` <span class="badge ${PRES_BADGE[presensiStatusOf(r.s.id)]}" style="font-size:.65rem">${escHtml(presLabel(presensiStatusOf(r.s.id)))}</span>` : ''}<div class="text-muted" style="font-size:.7rem">${escHtml(r.method)}</div>` : (r.note ? `<span class="text-danger">${escHtml(r.note)}</span>` : '<span class="text-muted">-</span>');
         return `<tr class="${r.fuzzy && r.status === 'ok' ? 'np-warn' : st[1]}"><td>${r.i}</td><td>${escHtml(tmp)}</td><td>${stu}</td><td class="fw-bold">${r.n != null ? r.n : escHtml(r.rawVal)}</td><td class="small">${escHtml(r.cat)}</td><td>${st[0]}</td></tr>`;
       }).join('') + (res.rows.length > shown.length ? `<tr><td colspan="6" class="text-center text-muted small">… dan ${res.rows.length - shown.length} baris lainnya</td></tr>` : '');
       const c = res.count, bits = [];
@@ -2305,7 +2416,7 @@
         const t = e.target;
         if (!(t.classList.contains('nilai-input') || t.classList.contains('catatan-input'))) return;
         if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-          const all = [...tbody.querySelectorAll('.' + (t.classList.contains('nilai-input') ? 'nilai-input' : 'catatan-input'))];
+          const all = [...tbody.querySelectorAll('.' + (t.classList.contains('nilai-input') ? 'nilai-input' : 'catatan-input'))].filter(i => !i.closest('tr').classList.contains('d-none'));
           const nxt = all[all.indexOf(t) + (e.key === 'ArrowUp' ? -1 : 1)];
           if (nxt) { e.preventDefault(); nxt.focus(); if (nxt.select) nxt.select(); }
           else if (e.key === 'Enter') e.preventDefault();
@@ -2324,7 +2435,7 @@
         e.preventDefault();
         if (multiCol) { openPasteNilai(text); return; }   // banyak kolom: buka pratinjau agar dicocokkan dengan benar
         const sel = isNilai ? '.nilai-input' : '.catatan-input';
-        const inputs = [...tbody.querySelectorAll(sel)], start = inputs.indexOf(t);
+        const inputs = [...tbody.querySelectorAll(sel)].filter(i => !i.closest('tr').classList.contains('d-none')), start = inputs.indexOf(t);
         let ok = 0, bad = 0;
         rows.forEach((r, i) => {
           const inp = inputs[start + i], v = r[0] == null ? '' : String(r[0]).trim();
@@ -2350,7 +2461,7 @@
     async function salinDaftarSiswaNilai() {
       const rombel = document.getElementById('inputNilaiRombel').value;
       if (!rombel) { Popup.warning('Pilih rombel terlebih dahulu.', 'Rombel Belum Dipilih'); return; }
-      const list = siswaAll.filter(s => s.rombel === rombel);
+      const vis = visibleNilaiStudents(), list = vis.length ? vis : siswaAll.filter(s => s.rombel === rombel);
       const txt = 'NIS\tNama\tNilai\n' + list.map(s => s.id + '\t' + s.nama + '\t').join('\n');
       const ok = await npCopyText(txt);
       Popup.toast(ok ? 'Daftar ' + list.length + ' siswa disalin. Tempel di Excel, isi kolom Nilai, lalu salin balik.' : 'Gagal menyalin daftar siswa', ok);
