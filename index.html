@@ -437,6 +437,10 @@
     @keyframes ppPop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
     @keyframes ppSlide{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
     @media (prefers-reduced-motion:reduce){.pp-icon,.pp-toast{animation:none}}
+      .online-chip{background:#e6f7ed;color:#15803d;border:1px solid #bbf0cd;font-weight:600;font-size:.78rem;border-radius:999px;padding:.25rem .7rem;white-space:nowrap;line-height:1.3}
+    .online-chip i{color:#22c55e;margin-right:4px}
+    .online-chip.readonly{cursor:default;pointer-events:none}
+    .online-row{display:flex;justify-content:space-between;align-items:center;padding:.35rem 0;border-bottom:1px solid #eef2f7;font-size:.88rem}
   </style>
 </head>
 <body>
@@ -606,6 +610,7 @@
           </div>
         </div>
         <div class="d-flex align-items-center gap-2">
+          <button type="button" id="onlineChip" class="btn online-chip d-none" onclick="openOnlineList()" title="Sedang online"><i class="fa-solid fa-circle fa-2xs"></i><span id="onlineCount">0</span> online</button>
           <div class="text-end d-none d-sm-block">
             <div class="fw-bold text-dark" id="userDisplayName"></div>
             <small class="text-success fw-semibold"><i class="fa-solid fa-circle fa-2xs me-1"></i>Online</small>
@@ -1131,6 +1136,22 @@
 
 
 
+  <div class="modal fade" id="onlineModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h6 class="modal-title fw-bold"><i class="fa-solid fa-circle text-success fa-2xs me-1"></i> Sedang Online</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="onlineBody"></div>
+        <div class="modal-footer">
+          <small class="text-muted me-auto">Online = aktif dalam &plusmn;3 menit terakhir</small>
+          <button class="btn btn-sm btn-outline-primary" onclick="loadOnlineList()"><i class="fa-solid fa-rotate me-1"></i>Segarkan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ==================== SISTEM POPUP PROFESIONAL ====================
     const Popup = (function () {
@@ -1228,7 +1249,7 @@
     let sessionExpiredShown = false;
 
     // URL DEPLOYMENT GOOGLE APPS SCRIPT LMS ANDA
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8vIelsLodXmU77Q45Kqk_xt6nQkcp_-bSXp_G6X-N6WUactfe4YoQ2plRb1PdtnX4/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxMR-b3ZeOBWkThFhLQTBzx32fWqSIlzDQNOl1F7VYcZAfeUPWydiewlvFugvufacgU/exec";
 
     let currentUser = null;
     let currentClassView = 'ALL';
@@ -1446,6 +1467,8 @@
       
       document.getElementById('userDisplayName').textContent = currentUser.name;
       refreshPengumumanBadge();
+      startPresence();
+      checkPengumumanPopup();
       document.getElementById('userAvatarHeader').textContent = initial;
 
       if (currentUser.role === 'admin') {
@@ -2545,7 +2568,7 @@
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-start gap-2">
                 <div>
-                  <span class="badge bg-${p.target === 'SEMUA' ? 'primary' : 'info text-dark'} me-1">${p.target === 'SEMUA' ? 'Semua Siswa' : 'Kelas ' + escHtml(p.target)}</span>
+                  <span class="badge bg-${p.target === 'SEMUA' ? 'primary' : 'info text-dark'} me-1">${p.target === 'SEMUA' ? 'Semua Siswa' : (p.target === 'KODING' ? 'Ekskul Koding' : 'Kelas ' + escHtml(p.target))}</span>
                   ${idTime(p.id) > seenBefore && !isAdmin ? '<span class="badge bg-danger">Baru</span>' : ''}
                   <h6 class="fw-bold text-dark mt-2 mb-1">${escHtml(p.judul)}</h6>
                 </div>
@@ -2764,7 +2787,93 @@
       sel.disabled = false;
     }
 
+    // ==================== ONLINE (PRESENCE) & POPUP PESAN BARU ====================
+    const PING_MS = 90000;           // kirim "saya online" tiap 90 detik (hanya saat tab terlihat)
+    let pingTimer = null, lastPv = null, popupBusy = false;
+
+    function startPresence() {
+      stopPresence();
+      doPing();
+      pingTimer = setInterval(() => { if (!document.hidden) doPing(); }, PING_MS);
+    }
+    function stopPresence() {
+      if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
+      lastPv = null;
+      const chip = document.getElementById('onlineChip'); if (chip) chip.classList.add('d-none');
+    }
+    async function doPing() {
+      if (!currentUser) return;
+      try {
+        const r = await callApi('ping', {});
+        if (!currentUser || !r || !r.success) return;
+        renderOnline(r.online);
+        // versi pengumuman berubah = ada pesan baru dari guru saat siswa sedang membuka LMS
+        if (lastPv !== null && r.pv !== lastPv && currentUser.role !== 'admin') { refreshPengumumanBadge(); checkPengumumanPopup(); }
+        lastPv = r.pv;
+      } catch (e) {}
+    }
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && currentUser) doPing(); });
+
+    function renderOnline(o) {
+      const chip = document.getElementById('onlineChip');
+      if (!o || !chip) return;
+      document.getElementById('onlineCount').textContent = o.total;
+      chip.title = 'Siswa ' + o.siswa + ' • Guru ' + o.guru;
+      chip.classList.toggle('readonly', !currentUser || currentUser.role !== 'admin');   // detail nama hanya untuk guru
+      chip.classList.remove('d-none');
+    }
+
+    async function openOnlineList() {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('onlineModal')).show();
+      loadOnlineList();
+    }
+    async function loadOnlineList() {
+      const box = document.getElementById('onlineBody');
+      box.innerHTML = '<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat...</div>';
+      try {
+        const r = await callApi('getOnlineList', {});
+        if (!r || !r.success) { box.innerHTML = '<div class="text-danger small">' + escHtml(r ? r.message : 'Gagal memuat') + '</div>'; return; }
+        renderOnline(r);
+        const rows = arr => arr.map(x => `<div class="online-row"><span>${escHtml(x.nama)}</span>${x.kelas ? `<span class="badge bg-light text-dark border">${escHtml(x.kelas)}</span>` : ''}</div>`).join('');
+        const guru = r.list.filter(x => x.role === 'admin'), siswa = r.list.filter(x => x.role !== 'admin');
+        box.innerHTML =
+          `<div class="d-flex gap-2 mb-3"><span class="badge bg-success">Total ${r.total}</span><span class="badge bg-primary">Siswa ${r.siswa}</span><span class="badge bg-secondary">Guru ${r.guru}</span></div>` +
+          (guru.length ? `<div class="fw-bold small text-secondary mb-1">Guru</div>${rows(guru)}` : '') +
+          (siswa.length ? `<div class="fw-bold small text-secondary mt-3 mb-1">Siswa</div>${rows(siswa)}` : '') +
+          (!r.list.length ? '<div class="text-muted small">Belum ada yang online.</div>' : '');
+      } catch (err) { box.innerHTML = '<div class="text-danger small">' + escHtml(err.message) + '</div>'; }
+    }
+
+    // Popup otomatis bila ada pengumuman/broadcast baru (saat login, buka ulang, atau saat guru mengirim ketika siswa sedang online)
+    function popupKey() { return 'lms_pengumuman_popup_' + (currentUser ? currentUser.username : ''); }
+    async function checkPengumumanPopup() {
+      if (!currentUser || currentUser.role === 'admin' || popupBusy) return;
+      popupBusy = true;
+      try {
+        const res = await callApi('getPengumuman', {});
+        if (!currentUser || !res || !res.success) return;
+        const seen = Number(localStorage.getItem(seenKey()) || 0);
+        const shown = Number(localStorage.getItem(popupKey()) || 0);
+        const batas = Math.max(seen, shown, Date.now() - 7 * 86400000);   // pesan lama (>7 hari) tidak dimunculkan sebagai popup
+        const baru = res.data.filter(p => idTime(p.id) > batas);
+        if (!baru.length) return;
+        localStorage.setItem(popupKey(), Math.max(...baru.map(p => idTime(p.id))));
+        const satu = baru.length === 1;
+        const text = satu
+          ? baru[0].judul + '\n\n' + (baru[0].isi.length > 220 ? baru[0].isi.slice(0, 220) + '…' : baru[0].isi)
+          : baru.slice(0, 4).map(p => '• ' + p.judul).join('\n') + (baru.length > 4 ? '\n• …dan ' + (baru.length - 4) + ' lainnya' : '');
+        const r = await Popup.fire({
+          type: 'info', showCancel: true,
+          title: satu ? 'Pesan Baru dari ' + (baru[0].pengirim || 'Guru') : baru.length + ' Pesan Baru dari Guru',
+          text, confirmText: 'Baca Sekarang', cancelText: 'Nanti'
+        });
+        if (r && r.confirmed && currentUser) openPengumumanView();
+      } catch (e) {} finally { popupBusy = false; }
+    }
+
     function logout() {
+      stopPresence();
       swrClear();
       closeSidebar();
       currentUser = null;
