@@ -441,12 +441,64 @@
     .online-chip i{color:#22c55e;margin-right:4px}
     .online-chip.readonly{cursor:default;pointer-events:none}
     .online-row{display:flex;justify-content:space-between;align-items:center;padding:.35rem 0;border-bottom:1px solid #eef2f7;font-size:.88rem}
-  </style>
+      /* ===== ANIMASI LOGIN (ringan: hanya transform & opacity, tanpa JS/canvas/blur) ===== */
+    .login-wrapper { position: relative; overflow: hidden; isolation: isolate; }
+    .login-fx { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .fx-orbs span { position: absolute; border-radius: 50%; will-change: transform;
+      background: radial-gradient(circle, rgba(212,175,55,.22) 0%, rgba(212,175,55,0) 65%); }
+    .fx-orbs .o1 { width: 520px; height: 520px; left: -140px; top: -160px; animation: orbDrift 18s ease-in-out infinite alternate; }
+    .fx-orbs .o2 { width: 460px; height: 460px; right: -120px; bottom: -140px; animation: orbDrift 22s ease-in-out infinite alternate-reverse; }
+    .fx-orbs .o3 { width: 300px; height: 300px; left: 55%; top: 18%; opacity: .7; animation: orbDrift 26s ease-in-out infinite alternate; }
+    @keyframes orbDrift { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(60px,40px,0) scale(1.15); } }
+    .fx-sparks span { position: absolute; bottom: -12px; left: var(--x); width: var(--s); height: var(--s);
+      border-radius: 50%; background: #f3e5ab; opacity: 0; will-change: transform, opacity;
+      animation: sparkUp var(--d) linear var(--dl) infinite; }
+    @keyframes sparkUp {
+      0%   { transform: translate3d(0,0,0); opacity: 0; }
+      12%  { opacity: .75; }
+      88%  { opacity: .45; }
+      100% { transform: translate3d(var(--dx), -105vh, 0); opacity: 0; }
+    }
+    .card-login { position: relative; z-index: 1; animation: cardIn .7s cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes cardIn { from { opacity: 0; transform: translate3d(0,26px,0) scale(.97); } to { opacity: 1; transform: none; } }
+    .login-header .icon-box { position: relative; animation: fadeUp .6s ease .15s both; }
+    .login-header .icon-box i { display: inline-block; animation: capFloat 4s ease-in-out infinite; }
+    .login-header .icon-box::after { content: ''; position: absolute; inset: -2px; border-radius: 50%;
+      border: 2px solid #d4af37; opacity: 0; animation: ringPulse 2.6s ease-out 1s infinite; }
+    .login-header h4 { animation: fadeUp .6s ease .28s both; }
+    .login-header p { animation: fadeUp .6s ease .38s both; }
+    .login-header .login-toggle { animation: fadeUp .6s ease .48s both; }
+    @keyframes fadeUp { from { opacity: 0; transform: translate3d(0,14px,0); } to { opacity: 1; transform: none; } }
+    @keyframes capFloat { 0%,100% { transform: translate3d(0,0,0); } 50% { transform: translate3d(0,-3px,0); } }
+    @keyframes ringPulse { 0% { transform: scale(1); opacity: .55; } 100% { transform: scale(1.7); opacity: 0; } }
+    @media (max-width: 576px), (hover: none) and (pointer: coarse) {
+      .fx-sparks span:nth-child(n+9) { display: none; }
+      .fx-orbs .o3 { display: none; }
+      .fx-orbs .o1 { width: 360px; height: 360px; }
+      .fx-orbs .o2 { width: 320px; height: 320px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .fx-orbs span, .fx-sparks span, .card-login, .login-header .icon-box, .login-header .icon-box i,
+      .login-header .icon-box::after, .login-header h4, .login-header p, .login-header .login-toggle { animation: none !important; }
+      .fx-sparks { display: none; }
+    }
+
+    /* ===== PANEL GURU: sembunyikan / tampilkan ===== */
+    #adminPanel.panel-collapsed > .card-body { display: none; }
+    #adminPanel.panel-collapsed > .card-header { border-bottom: 0; }
+    #adminPanel .panel-title { cursor: pointer; user-select: none; }
+    #adminPanel .panel-chevron { transition: transform .25s ease; }
+    #adminPanel.panel-collapsed .panel-chevron { transform: rotate(-90deg); }
+</style>
 </head>
 <body>
 
   <!-- ==================== LOGIN SECTION ==================== -->
   <div id="loginSection" class="login-wrapper">
+    <div class="login-fx" aria-hidden="true">
+      <div class="fx-orbs"><span class="o1"></span><span class="o2"></span><span class="o3"></span></div>
+      <div class="fx-sparks"><span style="--x:6%;--s:4px;--d:11s;--dl:-1s;--dx:30px"></span><span style="--x:14%;--s:3px;--d:15s;--dl:-6s;--dx:-20px"></span><span style="--x:22%;--s:5px;--d:13s;--dl:-3s;--dx:25px"></span><span style="--x:31%;--s:3px;--d:17s;--dl:-9s;--dx:-35px"></span><span style="--x:39%;--s:4px;--d:12s;--dl:-4s;--dx:20px"></span><span style="--x:47%;--s:6px;--d:16s;--dl:-11s;--dx:-25px"></span><span style="--x:55%;--s:3px;--d:14s;--dl:-2s;--dx:30px"></span><span style="--x:63%;--s:4px;--d:18s;--dl:-8s;--dx:-30px"></span><span style="--x:71%;--s:5px;--d:12s;--dl:-5s;--dx:22px"></span><span style="--x:78%;--s:3px;--d:15s;--dl:-12s;--dx:-18px"></span><span style="--x:86%;--s:4px;--d:13s;--dl:-7s;--dx:28px"></span><span style="--x:93%;--s:5px;--d:17s;--dl:-10s;--dx:-22px"></span><span style="--x:18%;--s:3px;--d:19s;--dl:-14s;--dx:15px"></span><span style="--x:67%;--s:3px;--d:20s;--dl:-16s;--dx:-15px"></span></div>
+    </div>
     <div class="card card-login">
       <div class="login-header">
         <div class="icon-box"><i class="fa-solid fa-graduation-cap fa-2x"></i></div>
@@ -625,10 +677,15 @@
         <div id="kelasViewSection">
           <div id="adminPanel" class="card card-item mb-4 border-start border-warning border-4 d-none">
             <div class="card-header bg-white fw-bold py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-              <span><i class="fa-solid fa-sliders text-warning me-2"></i>Panel Pengelolaan Guru</span>
-              <button class="btn btn-sm btn-primary fw-bold" onclick="openRekapTugasView()">
-                <i class="fa-solid fa-clipboard-check me-1"></i> Buka Pengecekan Pengumpulan Tugas
-              </button>
+              <span class="panel-title" onclick="toggleAdminPanel()" role="button" title="Klik untuk sembunyikan / tampilkan"><i class="fa-solid fa-sliders text-warning me-2"></i>Panel Pengelolaan Guru <i class="fa-solid fa-chevron-down panel-chevron ms-2 small text-muted"></i></span>
+              <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-sm btn-primary fw-bold" onclick="openRekapTugasView()">
+                  <i class="fa-solid fa-clipboard-check me-1"></i> Buka Pengecekan Pengumpulan Tugas
+                </button>
+                <button type="button" id="btnTogglePanel" class="btn btn-sm btn-outline-secondary fw-bold" onclick="toggleAdminPanel()">
+                  <i class="fa-solid fa-eye-slash me-1"></i><span>Sembunyikan</span>
+                </button>
+              </div>
             </div>
             <div class="card-body">
               <div class="row g-3">
@@ -1249,7 +1306,7 @@
     let sessionExpiredShown = false;
 
     // URL DEPLOYMENT GOOGLE APPS SCRIPT LMS ANDA
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxMR-b3ZeOBWkThFhLQTBzx32fWqSIlzDQNOl1F7VYcZAfeUPWydiewlvFugvufacgU/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwCt_GCm5aRkGsAy65GqxClTCAqZM7S525cdPBin3-Dz9mGQWbT3r3JO2nUyutYDxJd/exec";
 
     let currentUser = null;
     let currentClassView = 'ALL';
@@ -1446,6 +1503,22 @@
       }
     }
 
+    // ==================== PANEL GURU: SEMBUNYIKAN / TAMPILKAN ====================
+    function applyAdminPanelState() {
+      const p = document.getElementById('adminPanel'); if (!p) return;
+      let hidden = false;
+      try { hidden = localStorage.getItem('lms_admin_panel_hidden') === '1'; } catch (e) {}
+      p.classList.toggle('panel-collapsed', hidden);
+      const b = document.getElementById('btnTogglePanel');
+      if (b) b.innerHTML = hidden ? '<i class="fa-solid fa-eye me-1"></i><span>Tampilkan</span>' : '<i class="fa-solid fa-eye-slash me-1"></i><span>Sembunyikan</span>';
+    }
+    function toggleAdminPanel() {
+      const p = document.getElementById('adminPanel'); if (!p) return;
+      try { localStorage.setItem('lms_admin_panel_hidden', p.classList.contains('panel-collapsed') ? '0' : '1'); } catch (e) {}
+      applyAdminPanelState();
+    }
+    applyAdminPanelState();
+
     function showDashboard() {
       if (!currentUser.token) { logout(); return; } // sesi lama tanpa token -> login ulang
       document.getElementById('loginSection').classList.add('d-none');
@@ -1485,6 +1558,7 @@
         document.querySelectorAll('.menu-ekskul-item').forEach(el => el.style.display = 'block');
 
         document.getElementById('adminPanel').classList.remove('d-none');
+        applyAdminPanelState();
         loadContent('ALL');
         setTimeout(() => { swr('getRekapTugasData', { userRole: 'admin' }, () => {}).catch(() => {}); }, 2000); // siapkan rekap di latar belakang
         setTimeout(() => { swr('getSiswaList', {}, () => {}).catch(() => {}); swr('getSesiAbsenAdmin', {}, () => {}).catch(() => {}); }, 3500);
