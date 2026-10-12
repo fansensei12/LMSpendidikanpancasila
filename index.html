@@ -437,6 +437,66 @@
     @keyframes ppPop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
     @keyframes ppSlide{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
     @media (prefers-reduced-motion:reduce){.pp-icon,.pp-toast{animation:none}}
+      .online-chip{background:#e6f7ed;color:#15803d;border:1px solid #bbf0cd;font-weight:600;font-size:.78rem;border-radius:999px;padding:.25rem .7rem;white-space:nowrap;line-height:1.3}
+    .online-chip i{color:#22c55e;margin-right:4px}
+    .online-chip.readonly{cursor:default;pointer-events:none}
+    .online-row{display:flex;justify-content:space-between;align-items:center;padding:.35rem 0;border-bottom:1px solid #eef2f7;font-size:.88rem}
+      /* ===== ANIMASI LOGIN (ringan: hanya transform & opacity, tanpa JS/canvas/blur) ===== */
+    .login-wrapper { position: relative; overflow: hidden; isolation: isolate; }
+    .login-fx { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .fx-orbs span { position: absolute; border-radius: 50%; will-change: transform;
+      background: radial-gradient(circle, rgba(212,175,55,.22) 0%, rgba(212,175,55,0) 65%); }
+    .fx-orbs .o1 { width: 520px; height: 520px; left: -140px; top: -160px; animation: orbDrift 18s ease-in-out infinite alternate; }
+    .fx-orbs .o2 { width: 460px; height: 460px; right: -120px; bottom: -140px; animation: orbDrift 22s ease-in-out infinite alternate-reverse; }
+    .fx-orbs .o3 { width: 300px; height: 300px; left: 55%; top: 18%; opacity: .7; animation: orbDrift 26s ease-in-out infinite alternate; }
+    @keyframes orbDrift { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(60px,40px,0) scale(1.15); } }
+    .fx-sparks span { position: absolute; bottom: -12px; left: var(--x); width: var(--s); height: var(--s);
+      border-radius: 50%; background: #f3e5ab; opacity: 0; will-change: transform, opacity;
+      animation: sparkUp var(--d) linear var(--dl) infinite; }
+    @keyframes sparkUp {
+      0%   { transform: translate3d(0,0,0); opacity: 0; }
+      12%  { opacity: .75; }
+      88%  { opacity: .45; }
+      100% { transform: translate3d(var(--dx), -105vh, 0); opacity: 0; }
+    }
+    .card-login { position: relative; z-index: 1; animation: cardIn .7s cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes cardIn { from { opacity: 0; transform: translate3d(0,26px,0) scale(.97); } to { opacity: 1; transform: none; } }
+    .login-header .icon-box { position: relative; animation: fadeUp .6s ease .15s both; }
+    .login-header .icon-box i { display: inline-block; animation: capFloat 4s ease-in-out infinite; }
+    .login-header .icon-box::after { content: ''; position: absolute; inset: -2px; border-radius: 50%;
+      border: 2px solid #d4af37; opacity: 0; animation: ringPulse 2.6s ease-out 1s infinite; }
+    .login-header h4 { animation: fadeUp .6s ease .28s both; }
+    .login-header p { animation: fadeUp .6s ease .38s both; }
+    .login-header .login-toggle { animation: fadeUp .6s ease .48s both; }
+    @keyframes fadeUp { from { opacity: 0; transform: translate3d(0,14px,0); } to { opacity: 1; transform: none; } }
+    @keyframes capFloat { 0%,100% { transform: translate3d(0,0,0); } 50% { transform: translate3d(0,-3px,0); } }
+    @keyframes ringPulse { 0% { transform: scale(1); opacity: .55; } 100% { transform: scale(1.7); opacity: 0; } }
+    @media (max-width: 576px), (hover: none) and (pointer: coarse) {
+      .fx-sparks span:nth-child(n+9) { display: none; }
+      .fx-orbs .o3 { display: none; }
+      .fx-orbs .o1 { width: 360px; height: 360px; }
+      .fx-orbs .o2 { width: 320px; height: 320px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .fx-orbs span, .fx-sparks span, .card-login, .login-header .icon-box, .login-header .icon-box i,
+      .login-header .icon-box::after, .login-header h4, .login-header p, .login-header .login-toggle { animation: none !important; }
+      .fx-sparks { display: none; }
+    }
+
+    /* ===== PANEL GURU: sembunyikan / tampilkan ===== */
+    #adminPanel.panel-collapsed > .card-body { display: none; }
+    #adminPanel.panel-collapsed > .card-header { border-bottom: 0; }
+    #adminPanel .panel-title { cursor: pointer; user-select: none; }
+    #adminPanel .panel-chevron { transition: transform .25s ease; }
+    #adminPanel.panel-collapsed .panel-chevron { transform: rotate(-90deg); }
+    /* ===== REKAP NILAI (GURU) ===== */
+    #rnWrap { max-height: 68vh; overflow: auto; border: 1px solid #e5e9f0; border-radius: 10px; }
+    #rnTable { margin: 0; font-size: .86rem; }
+    #rnTable thead th { position: sticky; top: 0; background: #f1f5f9; z-index: 2; white-space: nowrap; text-align: center; vertical-align: middle; }
+    #rnTable .rn-nama { position: sticky; left: 0; background: #fff; z-index: 1; min-width: 160px; text-align: left; }
+    #rnTable thead th.rn-nama { z-index: 3; background: #f1f5f9; }
+    #rnTable tfoot td { position: sticky; bottom: 0; background: #f8fafc; font-weight: 700; text-align: center; border-top: 2px solid #cbd5e1; }
+    #rnTable tfoot td.rn-nama { text-align: left; z-index: 3; background: #f8fafc; }
 
     /* ==================== UPLOAD TUGAS (tergabung di LMS) ==================== */
     .ut-id-card { background: linear-gradient(135deg, #1a365d, #2b6cb0); color: #fff; border-radius: 14px; padding: 14px 16px; }
@@ -502,12 +562,16 @@
     .ut-cam-strip img { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; border: 2px solid rgba(255,255,255,.6); flex-shrink: 0; }
     .ut-cam-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 8; transition: opacity .05s; }
     .ut-cam-flash.on { opacity: .85; }
-  </style>
+</style>
 </head>
 <body>
 
   <!-- ==================== LOGIN SECTION ==================== -->
   <div id="loginSection" class="login-wrapper">
+    <div class="login-fx" aria-hidden="true">
+      <div class="fx-orbs"><span class="o1"></span><span class="o2"></span><span class="o3"></span></div>
+      <div class="fx-sparks"><span style="--x:6%;--s:4px;--d:11s;--dl:-1s;--dx:30px"></span><span style="--x:14%;--s:3px;--d:15s;--dl:-6s;--dx:-20px"></span><span style="--x:22%;--s:5px;--d:13s;--dl:-3s;--dx:25px"></span><span style="--x:31%;--s:3px;--d:17s;--dl:-9s;--dx:-35px"></span><span style="--x:39%;--s:4px;--d:12s;--dl:-4s;--dx:20px"></span><span style="--x:47%;--s:6px;--d:16s;--dl:-11s;--dx:-25px"></span><span style="--x:55%;--s:3px;--d:14s;--dl:-2s;--dx:30px"></span><span style="--x:63%;--s:4px;--d:18s;--dl:-8s;--dx:-30px"></span><span style="--x:71%;--s:5px;--d:12s;--dl:-5s;--dx:22px"></span><span style="--x:78%;--s:3px;--d:15s;--dl:-12s;--dx:-18px"></span><span style="--x:86%;--s:4px;--d:13s;--dl:-7s;--dx:28px"></span><span style="--x:93%;--s:5px;--d:17s;--dl:-10s;--dx:-22px"></span><span style="--x:18%;--s:3px;--d:19s;--dl:-14s;--dx:15px"></span><span style="--x:67%;--s:3px;--d:20s;--dl:-16s;--dx:-15px"></span></div>
+    </div>
     <div class="card card-login">
       <div class="login-header">
         <div class="icon-box"><i class="fa-solid fa-graduation-cap fa-2x"></i></div>
@@ -598,6 +662,10 @@
         <li class="menu-class-item" id="item-IX">
           <a class="nav-link" id="menu-IX" onclick="loadContent('IX')"><i class="fa-solid fa-layer-group"></i> Kelas IX</a>
         </li>
+        <li class="menu-header menu-ekskul-item" style="display:none;">Ekstrakurikuler</li>
+        <li class="menu-class-item menu-ekskul-item" id="item-KODING" style="display:none;">
+          <a class="nav-link" id="menu-KODING" onclick="loadContent('KODING')"><i class="fa-solid fa-code"></i> Ekskul Koding</a>
+        </li>
 
         <!-- MENU KHUSUS ADMIN/GURU -->
         <li class="menu-header menu-admin-rekap" style="display:none;">Menu Khusus Guru</li>
@@ -613,12 +681,17 @@
           </a>
         </li>
         <li class="menu-admin-rekap" style="display:none;">
+          <a class="nav-link" id="menu-REKAPNILAI" onclick="openRekapNilaiView()">
+            <i class="fa-solid fa-table-list"></i> Lihat Rekap Nilai
+          </a>
+        </li>
+        <li class="menu-admin-rekap" style="display:none;">
           <a class="nav-link" id="menu-ABSENADMIN" onclick="openAbsenAdminView()">
-            <i class="fa-solid fa-user-clock"></i> Kelola Absensi PJJ
+            <i class="fa-solid fa-user-clock"></i> Kelola Presensi
           </a>
         </li>
 
-        <li class="menu-header menu-siswa-nilai" style="display:none;">Tugas, Absensi & Nilai</li>
+        <li class="menu-header menu-siswa-nilai" style="display:none;">Tugas, Presensi & Nilai</li>
         <li class="menu-siswa-nilai" style="display:none;">
           <a class="nav-link nav-link-tugas" id="menu-UPLOAD" onclick="openUploadView()">
             <i class="fa-solid fa-cloud-arrow-up"></i> Kumpulkan Tugas
@@ -626,7 +699,7 @@
         </li>
         <li class="menu-siswa-nilai" style="display:none;">
           <a class="nav-link" id="menu-ABSEN" onclick="openAbsenSiswaView()">
-            <i class="fa-solid fa-user-check"></i> Absensi PJJ
+            <i class="fa-solid fa-user-check"></i> Presensi
           </a>
         </li>
         <li class="menu-siswa-nilai" style="display:none;">
@@ -667,6 +740,7 @@
           </div>
         </div>
         <div class="d-flex align-items-center gap-2">
+          <button type="button" id="onlineChip" class="btn online-chip d-none" onclick="openOnlineList()" title="Sedang online"><i class="fa-solid fa-circle fa-2xs"></i><span id="onlineCount">0</span> online</button>
           <div class="text-end d-none d-sm-block">
             <div class="fw-bold text-dark" id="userDisplayName"></div>
             <small class="text-success fw-semibold"><i class="fa-solid fa-circle fa-2xs me-1"></i>Online</small>
@@ -681,10 +755,15 @@
         <div id="kelasViewSection">
           <div id="adminPanel" class="card card-item mb-4 border-start border-warning border-4 d-none">
             <div class="card-header bg-white fw-bold py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-              <span><i class="fa-solid fa-sliders text-warning me-2"></i>Panel Pengelolaan Guru</span>
-              <button class="btn btn-sm btn-primary fw-bold" onclick="openRekapTugasView()">
-                <i class="fa-solid fa-clipboard-check me-1"></i> Buka Pengecekan Pengumpulan Tugas
-              </button>
+              <span class="panel-title" onclick="toggleAdminPanel()" role="button" title="Klik untuk sembunyikan / tampilkan"><i class="fa-solid fa-sliders text-warning me-2"></i>Panel Pengelolaan Guru <i class="fa-solid fa-chevron-down panel-chevron ms-2 small text-muted"></i></span>
+              <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-sm btn-primary fw-bold" onclick="openRekapTugasView()">
+                  <i class="fa-solid fa-clipboard-check me-1"></i> Buka Pengecekan Pengumpulan Tugas
+                </button>
+                <button type="button" id="btnTogglePanel" class="btn btn-sm btn-outline-secondary fw-bold" onclick="toggleAdminPanel()">
+                  <i class="fa-solid fa-eye-slash me-1"></i><span>Sembunyikan</span>
+                </button>
+              </div>
             </div>
             <div class="card-body">
               <div class="row g-3">
@@ -699,7 +778,7 @@
                           <option value="SEMUA">Semua Kelas (VII, VIII, IX)</option>
                           <option value="VII">Kelas VII</option>
                           <option value="VIII">Kelas VIII</option>
-                          <option value="IX">Kelas IX</option>
+                          <option value="IX">Kelas IX</option><option value="KODING">Ekskul Koding</option>
                         </select>
                       </div>
                       <div class="col-md-8">
@@ -737,7 +816,7 @@
                           <option value="SEMUA">Semua Kelas (VII, VIII, IX)</option>
                           <option value="VII">Kelas VII</option>
                           <option value="VIII">Kelas VIII</option>
-                          <option value="IX">Kelas IX</option>
+                          <option value="IX">Kelas IX</option><option value="KODING">Ekskul Koding</option>
                         </select>
                       </div>
                       <div class="col-md-8">
@@ -868,6 +947,9 @@
                     <option value="9A">9A</option><option value="9B">9B</option><option value="9C">9C</option><option value="9D">9D</option>
                     <option value="9E">9E</option><option value="9F">9F</option><option value="9G">9G</option>
                   </optgroup>
+                  <optgroup label="Ekskul">
+                    <option value="KODING">KODING</option>
+                  </optgroup>
                 </select>
               </div>
 
@@ -956,6 +1038,44 @@
         </div>
 
         <!-- ==================== TAMPILAN 4: INPUT NILAI (GURU) ==================== -->
+        <!-- ==================== REKAP NILAI SISWA (GURU) ==================== -->
+        <div id="rekapNilaiSection" class="d-none">
+          <div class="card card-item border-top border-primary border-4 p-3 p-md-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+              <div>
+                <h5 class="fw-bold text-dark mb-1"><i class="fa-solid fa-table-list text-primary me-2"></i>Rekap Nilai Siswa</h5>
+                <small class="text-muted">Semua nilai yang sudah diinput, per siswa dan per judul penilaian. Arahkan kursor ke nilai untuk melihat catatan.</small>
+              </div>
+              <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-sm btn-outline-primary fw-semibold" onclick="loadRekapNilai()"><i class="fa-solid fa-rotate me-1"></i> Muat Ulang</button>
+                <button class="btn btn-sm btn-outline-secondary fw-semibold" onclick="salinRekapNilai()"><i class="fa-regular fa-copy me-1"></i> Salin</button>
+                <button class="btn btn-sm btn-success fw-semibold" onclick="unduhRekapNilai()"><i class="fa-solid fa-file-csv me-1"></i> Unduh CSV</button>
+              </div>
+            </div>
+            <div class="row g-2 mb-3 bg-light p-3 rounded-3 border">
+              <div class="col-md-3 col-6">
+                <label class="form-label small fw-bold text-secondary mb-1">Rombel</label>
+                <select id="rnRombel" class="form-select form-select-sm" onchange="loadRekapNilai()"><option value="">Semua Rombel</option></select>
+              </div>
+              <div class="col-md-5 col-12 order-md-2">
+                <label class="form-label small fw-bold text-secondary mb-1">Cari siswa</label>
+                <input type="text" id="rnCari" class="form-control form-control-sm" placeholder="Nama atau NIS..." oninput="renderRekapNilai()">
+              </div>
+              <div class="col-md-4 col-6 order-md-3">
+                <label class="form-label small fw-bold text-secondary mb-1">Urutkan</label>
+                <select id="rnUrut" class="form-select form-select-sm" onchange="renderRekapNilai()">
+                  <option value="nama">Rombel &amp; nama</option>
+                  <option value="tinggi">Rata-rata tertinggi</option>
+                  <option value="rendah">Rata-rata terendah</option>
+                  <option value="belum">Belum ada nilai dulu</option>
+                </select>
+              </div>
+            </div>
+            <div id="rnRingkas" class="small mb-2 text-muted"></div>
+            <div id="rnWrap"><table class="table table-hover table-sm align-middle" id="rnTable"><tbody><tr><td class="text-center text-muted py-4">Memuat...</td></tr></tbody></table></div>
+          </div>
+        </div>
+
         <div id="inputNilaiSection" class="d-none">
           <div class="card card-item border-top border-warning border-4 p-3 p-md-4">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -1024,7 +1144,7 @@
                       <option value="SEMUA">Semua Siswa</option>
                       <option value="VII">Siswa Kelas VII</option>
                       <option value="VIII">Siswa Kelas VIII</option>
-                      <option value="IX">Siswa Kelas IX</option>
+                      <option value="IX">Siswa Kelas IX</option><option value="KODING">Anggota Ekskul Koding</option>
                     </select>
                   </div>
                   <div class="col-md-8"><input type="text" id="pengumumanJudul" class="form-control form-control-sm" placeholder="Judul pesan" required></div>
@@ -1037,10 +1157,10 @@
           <div id="pengumumanList"></div>
         </div>
 
-        <!-- ==================== TAMPILAN 6: ABSENSI SISWA ==================== -->
+        <!-- ==================== TAMPILAN 6: PRESENSI SISWA ==================== -->
         <div id="absenSiswaSection" class="d-none">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-user-check text-success me-2"></i>Absensi PJJ</h5>
+            <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-user-check text-success me-2"></i>Presensi</h5>
             <button class="btn btn-sm btn-outline-primary fw-semibold" onclick="openAbsenSiswaView()"><i class="fa-solid fa-rotate me-1"></i> Refresh</button>
           </div>
           <div class="alert alert-info small py-2"><i class="fa-solid fa-circle-info me-1"></i> Masukkan <b>token</b> yang diberikan guru saat pembelajaran, lalu klik <b>Hadir</b>.</div>
@@ -1053,10 +1173,10 @@
           </div></div>
         </div>
 
-        <!-- ==================== TAMPILAN 7: KELOLA ABSENSI (GURU) ==================== -->
+        <!-- ==================== TAMPILAN 7: KELOLA PRESENSI (GURU) ==================== -->
         <div id="absenAdminSection" class="d-none">
           <div class="card card-item mb-3 border-start border-success border-4"><div class="card-body">
-            <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-door-open me-1"></i> Buka Absensi Baru</h6>
+            <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-door-open me-1"></i> Buka Presensi Baru</h6>
             <form onsubmit="handleBukaAbsen(event)">
               <div class="row g-2">
                 <div class="col-md-4"><input type="text" id="absenJudul" class="form-control form-control-sm" placeholder="Judul / Pertemuan (misal: Pertemuan 5)" required></div>
@@ -1064,13 +1184,14 @@
                 <div class="col-md-2 col-6"><input type="number" id="absenDurasi" class="form-control form-control-sm" value="30" min="1" max="720" title="Durasi (menit)"></div>
                 <div class="col-md-3 col-6"><input type="text" id="absenTokenCustom" class="form-control form-control-sm text-uppercase" maxlength="10" placeholder="Token (kosong = acak)"></div>
               </div>
-              <button type="submit" id="btnBukaAbsen" class="btn btn-sm btn-success fw-bold w-100 mt-2"><i class="fa-solid fa-play me-1"></i> Buka Absensi</button>
+              <textarea id="absenMateri" class="form-control form-control-sm mt-2" rows="2" maxlength="500" placeholder="Materi / keterangan pertemuan (opsional) — misal: Bab 3, Pancasila sebagai Dasar Negara"></textarea>
+              <button type="submit" id="btnBukaAbsen" class="btn btn-sm btn-success fw-bold w-100 mt-2"><i class="fa-solid fa-play me-1"></i> Buka Presensi</button>
               <small class="text-muted">Durasi dalam menit. Setelah dibuka, bagikan token ke siswa lewat Zoom / WhatsApp / Meet.</small>
             </form>
           </div></div>
           <div class="card card-item mb-3"><div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <h6 class="fw-bold mb-0">Daftar Sesi Absensi</h6>
+              <h6 class="fw-bold mb-0">Daftar Sesi Presensi</h6>
               <button class="btn btn-sm btn-outline-primary" onclick="loadSesiAbsenAdmin()"><i class="fa-solid fa-rotate me-1"></i> Refresh</button>
             </div>
             <div class="rekap-table-scroll"><table class="table table-rekap mb-0">
@@ -1318,7 +1439,7 @@
                 <option value="SEMUA">Semua Kelas (VII, VIII, IX)</option>
                           <option value="VII">Kelas VII</option>
                 <option value="VIII">Kelas VIII</option>
-                <option value="IX">Kelas IX</option>
+                <option value="IX">Kelas IX</option><option value="KODING">Ekskul Koding</option>
               </select>
             </div>
 
@@ -1366,6 +1487,22 @@
   </div>
 
 
+
+  <div class="modal fade" id="onlineModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h6 class="modal-title fw-bold"><i class="fa-solid fa-circle text-success fa-2xs me-1"></i> Sedang Online</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="onlineBody"></div>
+        <div class="modal-footer">
+          <small class="text-muted me-auto">Online = aktif dalam &plusmn;3 menit terakhir</small>
+          <button class="btn btn-sm btn-outline-primary" onclick="loadOnlineList()"><i class="fa-solid fa-rotate me-1"></i>Segarkan</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
     // ==================== SISTEM POPUP PROFESIONAL ====================
@@ -1464,7 +1601,7 @@
     let sessionExpiredShown = false;
 
     // URL DEPLOYMENT GOOGLE APPS SCRIPT LMS ANDA
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwCt_GCm5aRkGsAy65GqxClTCAqZM7S525cdPBin3-Dz9mGQWbT3r3JO2nUyutYDxJd/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx4z7wLOtAWUxoqP18-crnLFEVOkuId0P1pqliZsW8MQ1c_s8sPPBLITDpCF0JnT7M/exec";
 
     let currentUser = null;
     let currentClassView = 'ALL';
@@ -1661,6 +1798,108 @@
       }
     }
 
+    // ==================== REKAP NILAI SISWA (GURU) ====================
+    let rnNilai = [], rnLoaded = false, rnView = { head: [], body: [], foot: [] };
+    async function openRekapNilaiView() {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      showOnlyNilaiView('rekapNilaiSection', 'menu-REKAPNILAI', 'Rekap Nilai Siswa');
+      try {
+        await swr('getSiswaList', {}, res => {
+          if (!res || !res.success) { if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal memuat siswa'); return; }
+          siswaAll = res.siswa;
+          const sel = document.getElementById('rnRombel'), cur = sel.value;
+          sel.innerHTML = '<option value="">Semua Rombel</option>' + res.rombelList.map(r => `<option value="${escHtml(r)}">${escHtml(r)}</option>`).join('');
+          if (cur) sel.value = cur;
+          if (rnLoaded) renderRekapNilai();
+        });
+      } catch (err) { Popup.error(err.message); return; }
+      loadRekapNilai();
+    }
+    async function loadRekapNilai() {
+      const rombel = document.getElementById('rnRombel').value;
+      document.getElementById('rnTable').innerHTML = '<tbody><tr><td class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Memuat nilai...</td></tr></tbody>';
+      try {
+        const res = await callApi('getNilaiAdmin', { rombel });
+        if (document.getElementById('rnRombel').value !== rombel) return;   // rombel sudah diganti
+        if (!res || !res.success) { if (res && res.expired) return; throw new Error(res ? res.message : 'Gagal memuat nilai'); }
+        rnNilai = res.data || []; rnLoaded = true;
+        renderRekapNilai();
+      } catch (err) {
+        document.getElementById('rnTable').innerHTML = `<tbody><tr><td class="text-center text-danger py-4">${escHtml(err.message)}</td></tr></tbody>`;
+      }
+    }
+    function renderRekapNilai() {
+      if (!rnLoaded) return;
+      const rombel = document.getElementById('rnRombel').value;
+      const q = document.getElementById('rnCari').value.trim().toLowerCase();
+      const urut = document.getElementById('rnUrut').value;
+      const map = {}, juduls = [];
+      rnNilai.forEach(n => { (map[npId(n.nis)] = map[npId(n.nis)] || {})[n.judul] = n; if (!juduls.includes(n.judul)) juduls.push(n.judul); });
+      const avgOf = a => { const f = a.filter(v => v !== null); return f.length ? f.reduce((x, y) => x + y, 0) / f.length : null; };
+      let rows = siswaAll.filter(s => (!rombel || s.rombel === rombel) && (!q || s.nama.toLowerCase().includes(q) || String(s.id).includes(q)))
+        .map(s => { const m = map[npId(s.id)] || {}; const vals = juduls.map(j => m[j] ? m[j].nilai : null); return { s, m, vals, n: vals.filter(v => v !== null).length, avg: avgOf(vals) }; });
+      rows.sort((a, b) => {
+        if (urut === 'tinggi') return (b.avg === null) - (a.avg === null) || (b.avg - a.avg) || a.s.nama.localeCompare(b.s.nama);
+        if (urut === 'rendah') return (a.avg === null) - (b.avg === null) || (a.avg - b.avg) || a.s.nama.localeCompare(b.s.nama);
+        if (urut === 'belum') return (a.n - b.n) || a.s.rombel.localeCompare(b.s.rombel) || a.s.nama.localeCompare(b.s.nama);
+        return a.s.rombel.localeCompare(b.s.rombel) || a.s.nama.localeCompare(b.s.nama);
+      });
+      const fmt = v => v === null ? '-' : (Number.isInteger(v) ? v : Number(v.toFixed(1)));
+      const colAvg = juduls.map((j, i) => avgOf(rows.map(r => r.vals[i])));
+      const all = avgOf(rows.map(r => r.avg));
+      const kosong = rows.filter(r => r.n === 0).length;
+      document.getElementById('rnRingkas').innerHTML =
+        `<span class="badge bg-primary me-1">${rows.length} siswa</span><span class="badge bg-secondary me-1">${juduls.length} penilaian</span>` +
+        `<span class="badge bg-success me-1">Rata-rata ${all === null ? '-' : all.toFixed(1)}</span>` +
+        (kosong ? `<span class="badge bg-warning text-dark">${kosong} siswa belum punya nilai</span>` : '');
+      if (!rows.length) { document.getElementById('rnTable').innerHTML = '<tbody><tr><td class="text-center text-muted py-4">Tidak ada siswa yang cocok.</td></tr></tbody>'; rnView = { head: [], body: [], foot: [] }; return; }
+      if (!juduls.length) { document.getElementById('rnTable').innerHTML = '<tbody><tr><td class="text-center text-muted py-4">Belum ada nilai yang diinput untuk pilihan ini.</td></tr></tbody>'; rnView = { head: [], body: [], foot: [] }; return; }
+      const head = ['No', 'Nama', 'NIS', 'Rombel', ...juduls, 'Rata-rata'];
+      const body = rows.map((r, i) => [i + 1, r.s.nama, r.s.id, r.s.rombel, ...r.vals.map(v => v === null ? '' : v), r.avg === null ? '' : Number(r.avg.toFixed(1))]);
+      const foot = ['', 'Rata-rata', '', '', ...colAvg.map(v => v === null ? '' : Number(v.toFixed(1))), all === null ? '' : Number(all.toFixed(1))];
+      rnView = { head, body, foot };
+      document.getElementById('rnTable').innerHTML =
+        '<thead><tr><th>No</th><th class="rn-nama">Nama</th><th>NIS</th><th>Rombel</th>' + juduls.map(j => `<th title="${escHtml(j)}">${escHtml(j)}</th>`).join('') + '<th>Rata-rata</th></tr></thead><tbody>' +
+        rows.map((r, i) => `<tr><td class="text-center text-muted">${i + 1}</td><td class="rn-nama fw-semibold">${escHtml(r.s.nama)}</td><td class="small text-muted text-center">${escHtml(r.s.id)}</td><td class="text-center small">${escHtml(r.s.rombel)}</td>` +
+          r.vals.map((v, k) => { const c = r.m[juduls[k]]; return v === null ? '<td class="text-center text-muted">-</td>' : `<td class="text-center fw-bold ${nilaiColor(v)}" ${c && c.catatan ? `title="${escHtml(c.catatan)}"` : ''}>${fmt(v)}${c && c.catatan ? '<i class="fa-solid fa-comment-dots ms-1 text-muted" style="font-size:.6rem"></i>' : ''}</td>`; }).join('') +
+          `<td class="text-center fw-bold ${r.avg === null ? 'text-muted' : nilaiColor(r.avg)}">${r.avg === null ? '-' : r.avg.toFixed(1)}</td></tr>`).join('') +
+        '</tbody><tfoot><tr><td></td><td class="rn-nama">Rata-rata</td><td></td><td></td>' + colAvg.map(v => `<td>${v === null ? '-' : v.toFixed(1)}</td>`).join('') + `<td>${all === null ? '-' : all.toFixed(1)}</td></tr></tfoot>`;
+    }
+    function rnRows() { return rnView.body.length ? [rnView.head, ...rnView.body, rnView.foot] : []; }
+    function unduhRekapNilai() {
+      const data = rnRows(); if (!data.length) { Popup.error('Belum ada data untuk diunduh.'); return; }
+      const csv = '\uFEFF' + data.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(';')).join('\r\n');
+      const rb = document.getElementById('rnRombel').value || 'semua-rombel';
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      a.download = 'rekap-nilai-' + rb + '.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    }
+    async function salinRekapNilai() {
+      const data = rnRows(); if (!data.length) { Popup.error('Belum ada data untuk disalin.'); return; }
+      const tsv = data.map(r => r.join('\t')).join('\n');
+      try { await navigator.clipboard.writeText(tsv); }
+      catch (e) { const t = document.createElement('textarea'); t.value = tsv; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+      showSuccessModal('Tersalin', 'Tabel nilai sudah disalin. Tempel (Ctrl+V) di Excel atau Google Sheets.');
+    }
+
+    // ==================== PANEL GURU: SEMBUNYIKAN / TAMPILKAN ====================
+    function applyAdminPanelState() {
+      const p = document.getElementById('adminPanel'); if (!p) return;
+      let hidden = false;
+      try { hidden = localStorage.getItem('lms_admin_panel_hidden') === '1'; } catch (e) {}
+      p.classList.toggle('panel-collapsed', hidden);
+      const b = document.getElementById('btnTogglePanel');
+      if (b) b.innerHTML = hidden ? '<i class="fa-solid fa-eye me-1"></i><span>Tampilkan</span>' : '<i class="fa-solid fa-eye-slash me-1"></i><span>Sembunyikan</span>';
+    }
+    function toggleAdminPanel() {
+      const p = document.getElementById('adminPanel'); if (!p) return;
+      try { localStorage.setItem('lms_admin_panel_hidden', p.classList.contains('panel-collapsed') ? '0' : '1'); } catch (e) {}
+      applyAdminPanelState();
+    }
+    applyAdminPanelState();
+
     function showDashboard() {
       if (!currentUser.token) { logout(); return; } // sesi lama tanpa token -> login ulang
       document.getElementById('loginSection').classList.add('d-none');
@@ -1682,6 +1921,8 @@
       
       document.getElementById('userDisplayName').textContent = currentUser.name;
       refreshPengumumanBadge();
+      startPresence();
+      checkPengumumanPopup();
       document.getElementById('userAvatarHeader').textContent = initial;
 
       if (currentUser.role === 'admin') {
@@ -1695,14 +1936,18 @@
         document.getElementById('item-VII').style.display = 'block';
         document.getElementById('item-VIII').style.display = 'block';
         document.getElementById('item-IX').style.display = 'block';
+        document.querySelectorAll('.menu-ekskul-item').forEach(el => el.style.display = 'block');
 
         document.getElementById('adminPanel').classList.remove('d-none');
+        applyAdminPanelState();
         loadContent('ALL');
         setTimeout(() => { swr('getRekapTugasData', { userRole: 'admin' }, () => {}).catch(() => {}); }, 2000); // siapkan rekap di latar belakang
         setTimeout(() => { swr('getSiswaList', {}, () => {}).catch(() => {}); swr('getSesiAbsenAdmin', {}, () => {}).catch(() => {}); }, 3500);
       } else {
         const userClass = currentUser.userClass.toString().trim().toUpperCase();
         const userRombel = currentUser.userRombel ? currentUser.userRombel.toString().trim() : '';
+        const userEkskul = (currentUser.userEkskul || '').toString().trim().toUpperCase();
+        const ekskulSiswa = userEkskul.split(/[,;]/).map(s => s.trim()).filter(Boolean);
 
         document.getElementById('profileClassBadge').textContent = `Kelas ${userClass}`;
         if (userRombel) {
@@ -1712,7 +1957,7 @@
           document.getElementById('profileRombelBadge').style.display = 'none';
         }
 
-        document.getElementById('userRoleBadge').textContent = `Siswa Kelas ${userClass} ${userRombel ? '(' + userRombel + ')' : ''}`;
+        document.getElementById('userRoleBadge').textContent = `Siswa Kelas ${userClass} ${userRombel ? '(' + userRombel + ')' : ''}${userEkskul ? ' · Ekskul ' + userEkskul : ''}`;
         document.getElementById('adminPanel').classList.add('d-none');
 
         document.querySelector('.menu-admin-item').style.display = 'none';
@@ -1720,6 +1965,8 @@
         document.getElementById('item-VII').style.display = (userClass === 'VII') ? 'block' : 'none';
         document.getElementById('item-VIII').style.display = (userClass === 'VIII') ? 'block' : 'none';
         document.getElementById('item-IX').style.display = (userClass === 'IX') ? 'block' : 'none';
+        document.querySelectorAll('.menu-ekskul-item').forEach(el => el.style.display = 'none');
+        if (ekskulSiswa.includes('KODING')) document.querySelectorAll('.menu-ekskul-item').forEach(el => el.style.display = 'block');
 
         loadContent(userClass);
         // siapkan menu lain di latar belakang agar saat dibuka langsung tampil
@@ -1741,7 +1988,7 @@
 
       document.getElementById('pageTitle').textContent = selectedClass === 'ALL' 
         ? 'Ruang Kelas Digital (Semua Kelas)' 
-        : `Ruang Kelas Digital - Kelas ${selectedClass}`;
+        : (selectedClass === 'KODING' ? 'Ruang Ekskul Koding' : `Ruang Kelas Digital - Kelas ${selectedClass}`);
 
       if (!swrPeek('getLmsData', { selectedClass })) {
         document.getElementById('materiContainer').innerHTML = `<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat materi...</div>`;
@@ -2229,6 +2476,7 @@
     function hideNilaiViews() {
       document.getElementById('nilaiSayaSection').classList.add('d-none');
       document.getElementById('inputNilaiSection').classList.add('d-none');
+      document.getElementById('rekapNilaiSection').classList.add('d-none');
       document.getElementById('pengumumanSection').classList.add('d-none');
       document.getElementById('absenSiswaSection').classList.add('d-none');
       document.getElementById('absenAdminSection').classList.add('d-none');
@@ -2333,8 +2581,8 @@
     function renderPresensiSelect() {
       const sel = document.getElementById('presensiSesi'), tag = document.getElementById('presensiTerbaru');
       if (!presensi.rombel) { sel.innerHTML = '<option value="">Pilih rombel dulu...</option>'; sel.disabled = true; tag.classList.add('d-none'); return; }
-      if (!presensi.loaded) { sel.innerHTML = '<option value="">Memuat sesi absensi...</option>'; sel.disabled = true; tag.classList.add('d-none'); return; }
-      if (!presensi.list.length) { sel.innerHTML = '<option value="">' + (presensi.error ? 'Presensi gagal dimuat' : 'Belum ada sesi absensi untuk rombel ini') + '</option>'; sel.disabled = true; tag.classList.add('d-none'); return; }
+      if (!presensi.loaded) { sel.innerHTML = '<option value="">Memuat sesi presensi...</option>'; sel.disabled = true; tag.classList.add('d-none'); return; }
+      if (!presensi.list.length) { sel.innerHTML = '<option value="">' + (presensi.error ? 'Presensi gagal dimuat' : 'Belum ada sesi presensi untuk rombel ini') + '</option>'; sel.disabled = true; tag.classList.add('d-none'); return; }
       sel.innerHTML = presensi.list.map((x, i) => `<option value="${escHtml(x.id)}">${i === 0 ? '★ Terbaru · ' : ''}${escHtml(x.judul)} · ${escHtml(x.dibuat)} · ${x.buka ? 'Dibuka' : 'Ditutup'}</option>`).join('');
       sel.value = presensi.sesi.id; sel.disabled = false;
       tag.classList.toggle('d-none', presensi.sesi.id !== presensi.list[0].id);
@@ -2353,7 +2601,7 @@
       if (!presensi.rombel) { box.className = 'small text-muted'; box.textContent = 'Pilih rombel untuk melihat presensi.'; return; }
       if (!presensi.loaded) { box.className = 'small text-muted'; box.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Memuat presensi...'; return; }
       if (presensi.error) { box.className = 'small text-danger'; box.textContent = 'Presensi tidak dapat dimuat: ' + presensi.error + ' Klik "Muat Ulang".'; return; }
-      if (!presensi.sesi) { box.className = 'small text-warning'; box.innerHTML = '<i class="fa-solid fa-circle-info me-1"></i>Belum ada sesi absensi untuk rombel ini. Buat sesi di menu <b>Kelola Absensi PJJ</b>, lalu klik Muat Ulang.'; return; }
+      if (!presensi.sesi) { box.className = 'small text-warning'; box.innerHTML = '<i class="fa-solid fa-circle-info me-1"></i>Belum ada sesi presensi untuk rombel ini. Buat sesi di menu <b>Kelola Presensi</b>, lalu klik Muat Ulang.'; return; }
       const r = presensi.ringkas, b = (cls, n, t) => `<span class="badge ${cls} me-1">${n} ${t}</span>`;
       box.className = 'small';
       box.innerHTML = `<b>${escHtml(presensi.sesi.judul)}</b> ` + b('bg-success', r.Hadir || 0, 'Hadir') + b('bg-info text-dark', r.Izin || 0, 'Izin') + b('bg-warning text-dark', r.Sakit || 0, 'Sakit') + b('bg-danger', r.Alpa || 0, 'Alpa') + b('bg-secondary', r.Belum || 0, 'Belum Absen') +
@@ -2747,7 +2995,7 @@
     }
 
     // ==================== PENGUMUMAN / BROADCAST ====================
-    function kelasLabel(k) { return k === 'SEMUA' ? 'SEMUA KELAS' : 'KELAS ' + k; }
+    function kelasLabel(k) { return k === 'SEMUA' ? 'SEMUA KELAS' : (k === 'KODING' ? 'EKSKUL KODING' : 'KELAS ' + k); }
     function seenKey() { return 'lms_pengumuman_seen_' + (currentUser ? currentUser.username : ''); }
     function idTime(id) { return Number(String(id).replace(/\D/g, '')) || 0; }
 
@@ -2779,7 +3027,7 @@
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-start gap-2">
                 <div>
-                  <span class="badge bg-${p.target === 'SEMUA' ? 'primary' : 'info text-dark'} me-1">${p.target === 'SEMUA' ? 'Semua Siswa' : 'Kelas ' + escHtml(p.target)}</span>
+                  <span class="badge bg-${p.target === 'SEMUA' ? 'primary' : 'info text-dark'} me-1">${p.target === 'SEMUA' ? 'Semua Siswa' : (p.target === 'KODING' ? 'Ekskul Koding' : 'Kelas ' + escHtml(p.target))}</span>
                   ${idTime(p.id) > seenBefore && !isAdmin ? '<span class="badge bg-danger">Baru</span>' : ''}
                   <h6 class="fw-bold text-dark mt-2 mb-1">${escHtml(p.judul)}</h6>
                 </div>
@@ -2825,9 +3073,9 @@
     // --- Siswa ---
     async function openAbsenSiswaView() {
       if (!currentUser || currentUser.role === 'admin') return;
-      showOnlyNilaiView('absenSiswaSection', 'menu-ABSEN', 'Absensi PJJ');
+      showOnlyNilaiView('absenSiswaSection', 'menu-ABSEN', 'Presensi');
       const box = document.getElementById('absenAktifList');
-      if (!swrPeek('getSesiAbsenAktif', {})) box.innerHTML = '<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat sesi absensi...</div>';
+      if (!swrPeek('getSesiAbsenAktif', {})) box.innerHTML = '<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat sesi presensi...</div>';
       const render = res => {
         if (!res || !res.success) { if (res && res.expired) return; throw new Error(res ? res.message : 'Gagal memuat'); }
         // simpan token yang sedang diketik agar tidak hilang saat data diperbarui di latar belakang
@@ -2837,16 +3085,17 @@
           <div class="card card-item mb-3 border-start border-success border-4"><div class="card-body">
             <div class="d-flex justify-content-between align-items-start gap-2">
               <div><h6 class="fw-bold mb-1">${escHtml(s.judul)}</h6>
-                <small class="text-muted"><i class="fa-regular fa-clock me-1"></i>Ditutup ${escHtml(s.tutup)}</small></div>
-              ${s.status ? `<span class="badge bg-success fs-6">${escHtml(s.status)}</span>` : '<span class="badge bg-warning text-dark">Belum absen</span>'}
+                <small class="text-muted"><i class="fa-regular fa-clock me-1"></i>Ditutup ${escHtml(s.tutup)}</small>
+                ${s.materi ? `<div class="small mt-2 p-2 rounded-3 bg-light"><i class="fa-solid fa-book-open text-primary me-1"></i><b>Materi:</b> ${escHtml(s.materi)}</div>` : ''}</div>
+              ${s.status ? `<span class="badge bg-success fs-6">${escHtml(s.status)}</span>` : '<span class="badge bg-warning text-dark">Belum presensi</span>'}
             </div>
             ${s.status ? '' : `<div class="input-group mt-3">
               <input type="text" id="tok_${escHtml(s.id)}" class="form-control text-uppercase" maxlength="10" autocomplete="off" placeholder="Masukkan token dari guru">
               <button class="btn btn-success fw-bold" onclick="submitAbsen('${escHtml(s.id)}', this)"><i class="fa-solid fa-hand me-1"></i> Hadir</button></div>`}
-          </div></div>`).join('') : '<div class="text-muted small py-3">Tidak ada sesi absensi yang sedang dibuka untuk kelas Anda.</div>';
+          </div></div>`).join('') : '<div class="text-muted small py-3">Tidak ada sesi presensi yang sedang dibuka untuk kelas Anda.</div>';
         Object.keys(typed).forEach(id => { const el = document.getElementById(id); if (el && typed[id]) el.value = typed[id]; });
         document.getElementById('absenRiwayatBody').innerHTML = res.riwayat.length ? res.riwayat.map(r => `
-          <tr><td>${escHtml(r.judul)}</td><td class="small">${escHtml(r.tanggal)}</td>
+          <tr><td>${escHtml(r.judul)}${r.materi ? `<div class="text-muted" style="font-size:.74rem">${escHtml(r.materi)}</div>` : ''}</td><td class="small">${escHtml(r.tanggal)}</td>
           <td class="text-center"><span class="badge bg-${r.status === 'Hadir' ? 'success' : (r.status === 'Alpa' ? 'danger' : 'secondary')}">${escHtml(r.status)}</span></td></tr>`).join('')
           : '<tr><td colspan="3" class="text-center text-muted py-3">Belum ada riwayat.</td></tr>';
       };
@@ -2863,12 +3112,12 @@
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Mengirim...';
       try {
         const res = await callApi('submitAbsen', { sesiId, token_absen: tok });
-        if (res && res.success) { await showSuccessModal('Absen Berhasil', res.message); }
+        if (res && res.success) { await showSuccessModal('Presensi Berhasil', res.message); }
         // Kiriman pertama sempat gagal di tengah jalan tetapi ternyata sudah tercatat -> tetap sukses
-        else if (res && res._retried && /^Anda sudah tercatat/.test(res.message || '')) { await showSuccessModal('Absen Berhasil', res.message); }
-        else if (!(res && res.expired)) { await Popup.error(res ? res.message : 'Gagal mengirim absen'); }
+        else if (res && res._retried && /^Anda sudah tercatat/.test(res.message || '')) { await showSuccessModal('Presensi Berhasil', res.message); }
+        else if (!(res && res.expired)) { await Popup.error(res ? res.message : 'Gagal mengirim presensi'); }
       } catch (err) {
-        await Popup.fire({ type: 'warning', title: 'Absen Belum Terkirim', text: err.message + '\n\nToken yang Anda ketik masih tersimpan. Tekan Hadir sekali lagi.', confirmText: 'Coba Lagi Nanti' });
+        await Popup.fire({ type: 'warning', title: 'Presensi Belum Terkirim', text: err.message + '\n\nToken yang Anda ketik masih tersimpan. Tekan Hadir sekali lagi.', confirmText: 'Coba Lagi Nanti' });
         btn.innerHTML = label; btn.disabled = false; delete btn.dataset.busy;
         return; // jangan render ulang: biarkan token tetap terisi
       }
@@ -2879,7 +3128,7 @@
     let absenTargetReady = false;
     async function openAbsenAdminView() {
       if (!currentUser || currentUser.role !== 'admin') return;
-      showOnlyNilaiView('absenAdminSection', 'menu-ABSENADMIN', 'Kelola Absensi PJJ');
+      showOnlyNilaiView('absenAdminSection', 'menu-ABSENADMIN', 'Kelola Presensi');
       document.getElementById('absenDetailBox').innerHTML = '';
       if (!absenTargetReady) {
         // dimuat paralel (tidak ditunggu) supaya daftar sesi tidak tertunda
@@ -2887,7 +3136,7 @@
           if (!res || !res.success) return;
           const sel = document.getElementById('absenTarget'), cur = sel.value;
           sel.innerHTML =
-            '<option value="SEMUA">Semua Siswa</option><option value="VII">Kelas VII</option><option value="VIII">Kelas VIII</option><option value="IX">Kelas IX</option>' +
+            '<option value="SEMUA">Semua Siswa</option><option value="VII">Kelas VII</option><option value="VIII">Kelas VIII</option><option value="IX">Kelas IX</option><option value="KODING">Ekskul Koding</option>' +
             (res.rombelList.length ? '<optgroup label="Per Rombel">' + res.rombelList.map(r => `<option value="${escHtml(r)}">${escHtml(r)}</option>`).join('') + '</optgroup>' : '');
           if (cur) sel.value = cur;
           absenTargetReady = true;
@@ -2903,7 +3152,7 @@
     async function ubahTokenAbsen(id) {
       const s = absenSesiCache[id]; if (!s) return;
       const v = await Popup.form({
-        type: 'question', title: 'Ubah Token Absensi',
+        type: 'question', title: 'Ubah Token Presensi',
         text: 'Pertemuan: ' + s.judul + '\nToken saat ini: ' + s.token,
         confirmText: 'Simpan Token',
         fields: [
@@ -2919,6 +3168,21 @@
         else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal mengubah token');
       } catch (err) { Popup.error('Gagal terhubung ke server: ' + err.message); }
     }
+    async function ubahMateriAbsen(id) {
+      const s = absenSesiCache[id]; if (!s) return;
+      const v = await Popup.form({
+        type: 'question', title: 'Keterangan Materi',
+        text: 'Pertemuan: ' + s.judul,
+        confirmText: 'Simpan',
+        fields: [{ name: 'materi', label: 'Materi / keterangan pertemuan', value: s.materi || '', multiline: true, maxlength: 500, placeholder: 'Isi materi yang dibahas pada pertemuan ini', help: 'Tampil juga di halaman Presensi siswa. Kosongkan untuk menghapus.' }]
+      });
+      if (!v) return;
+      try {
+        const res = await callApi('updateMateriAbsen', { sesiId: id, materi: v.materi });
+        if (res && res.success) { Popup.toast('Keterangan materi disimpan'); swrClear(); loadSesiAbsenAdmin(); }
+        else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal menyimpan keterangan materi');
+      } catch (err) { Popup.error('Gagal terhubung ke server: ' + err.message); }
+    }
     async function loadSesiAbsenAdmin() {
       const tb = document.getElementById('absenSesiBody');
       if (!swrPeek('getSesiAbsenAdmin', {})) tb.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat...</td></tr>';
@@ -2926,7 +3190,9 @@
         if (!res || !res.success) { if (!(res && res.expired)) tb.innerHTML = `<tr><td colspan="6" class="text-danger text-center py-3">${escHtml(res ? res.message : 'Gagal memuat')}</td></tr>`; return; }
       absenSesiCache = {}; res.data.forEach(s => absenSesiCache[s.id] = s);
       tb.innerHTML = res.data.length ? res.data.map(s => `
-        <tr><td class="fw-semibold">${escHtml(s.judul)}<div class="text-muted" style="font-size:.72rem">${escHtml(s.dibuat)}</div></td>
+        <tr><td class="fw-semibold">${escHtml(s.judul)}<div class="text-muted" style="font-size:.72rem">${escHtml(s.dibuat)}</div>
+          <div class="small mt-1" style="max-width:280px;white-space:normal">${s.materi ? `<i class="fa-solid fa-book-open text-primary me-1"></i>${escHtml(s.materi)}` : '<span class="text-muted fst-italic">Belum ada keterangan materi</span>'}
+            <button class="btn btn-sm btn-link p-0 ms-1 align-baseline" title="Ubah keterangan materi" onclick="ubahMateriAbsen('${escHtml(s.id)}')"><i class="fa-solid fa-pen-to-square"></i></button></div></td>
         <td>${escHtml(s.target)}</td>
         <td class="text-nowrap"><span class="fs-5 fw-bold text-primary" style="letter-spacing:2px;font-family:monospace">${escHtml(s.token)}</span>
           <button class="btn btn-sm btn-light border py-0 ms-1" title="Salin token" onclick="salinTokenAbsen('${escHtml(s.id)}')"><i class="fa-regular fa-copy"></i></button>
@@ -2935,7 +3201,7 @@
         <td class="text-center fw-bold">${s.hadir}</td>
         <td><button class="btn btn-sm btn-outline-primary py-0" onclick="showAbsenDetail('${escHtml(s.id)}')">Detail</button>
             ${s.buka ? `<button class="btn btn-sm btn-outline-danger py-0" onclick="tutupAbsen('${escHtml(s.id)}')">Tutup</button>` : ''}</td></tr>`).join('')
-        : '<tr><td colspan="6" class="text-center py-3 text-muted">Belum ada sesi absensi.</td></tr>';
+        : '<tr><td colspan="6" class="text-center py-3 text-muted">Belum ada sesi presensi.</td></tr>';
       };
       try { await swr('getSesiAbsenAdmin', {}, render); }
       catch (err) { tb.innerHTML = `<tr><td colspan="6" class="text-danger text-center py-3">${escHtml(err.message)}</td></tr>`; }
@@ -2947,14 +3213,15 @@
       try {
         const res = await callApi('createSesiAbsen', {
           judul: document.getElementById('absenJudul').value, target: document.getElementById('absenTarget').value,
-          durasi: document.getElementById('absenDurasi').value, tokenCustom: document.getElementById('absenTokenCustom').value });
-        if (res && res.success) { e.target.reset(); document.getElementById('absenDurasi').value = 30; showSuccessModal('Absensi Dibuka', res.message); loadSesiAbsenAdmin(); }
-        else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal membuka absensi');
+          durasi: document.getElementById('absenDurasi').value, tokenCustom: document.getElementById('absenTokenCustom').value,
+          materi: document.getElementById('absenMateri').value.trim() });
+        if (res && res.success) { e.target.reset(); document.getElementById('absenDurasi').value = 30; showSuccessModal('Presensi Dibuka', res.message); loadSesiAbsenAdmin(); }
+        else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal membuka presensi');
       } catch (err) { Popup.error('Gagal terhubung ke server: ' + err.message); }
       btn.disabled = false;
     }
     async function tutupAbsen(id) {
-      if (!(await Popup.confirm({ type: 'warning', title: 'Tutup Sesi Absensi?', text: 'Siswa tidak bisa lagi mengisi absen setelah sesi ditutup.', confirmText: 'Ya, Tutup Sesi' }))) return;
+      if (!(await Popup.confirm({ type: 'warning', title: 'Tutup Sesi Presensi?', text: 'Siswa tidak bisa lagi mengisi presensi setelah sesi ditutup.', confirmText: 'Ya, Tutup Sesi' }))) return;
       const res = await callApi('closeSesiAbsen', { sesiId: id });
       if (res && res.success) loadSesiAbsenAdmin(); else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal');
     }
@@ -2967,6 +3234,7 @@
       const opts = ['Hadir', 'Izin', 'Sakit', 'Alpa', 'Belum'];
       box.innerHTML = `<div class="card card-item"><div class="card-body">
         <h6 class="fw-bold mb-1">Detail: ${escHtml(res.sesi.judul)} <span class="badge bg-primary">${escHtml(res.sesi.target)}</span></h6>
+        ${res.sesi.materi ? `<div class="small mb-2"><i class="fa-solid fa-book-open text-primary me-1"></i><b>Materi:</b> ${escHtml(res.sesi.materi)}</div>` : ''}
         <div class="small text-muted mb-2">${opts.map(o => `${o}: <b>${cnt[o] || 0}</b>`).join(' &bull; ')}</div>
         <div class="rekap-table-scroll"><table class="table table-rekap mb-0">
           <thead><tr><th>No</th><th>Nama</th><th>Rombel</th><th>Status</th><th>Jam</th><th>Metode</th></tr></thead><tbody>
@@ -2996,6 +3264,91 @@
         await Popup.error(err.message, 'Status Tidak Berubah');
       }
       sel.disabled = false;
+    }
+
+    // ==================== ONLINE (PRESENCE) & POPUP PESAN BARU ====================
+    const PING_MS = 90000;           // kirim "saya online" tiap 90 detik (hanya saat tab terlihat)
+    let pingTimer = null, lastPv = null, popupBusy = false;
+
+    function startPresence() {
+      stopPresence();
+      doPing();
+      pingTimer = setInterval(() => { if (!document.hidden) doPing(); }, PING_MS);
+    }
+    function stopPresence() {
+      if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
+      lastPv = null;
+      const chip = document.getElementById('onlineChip'); if (chip) chip.classList.add('d-none');
+    }
+    async function doPing() {
+      if (!currentUser) return;
+      try {
+        const r = await callApi('ping', {});
+        if (!currentUser || !r || !r.success) return;
+        renderOnline(r.online);
+        // versi pengumuman berubah = ada pesan baru dari guru saat siswa sedang membuka LMS
+        if (lastPv !== null && r.pv !== lastPv && currentUser.role !== 'admin') { refreshPengumumanBadge(); checkPengumumanPopup(); }
+        lastPv = r.pv;
+      } catch (e) {}
+    }
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && currentUser) doPing(); });
+
+    function renderOnline(o) {
+      const chip = document.getElementById('onlineChip');
+      if (!o || !chip) return;
+      document.getElementById('onlineCount').textContent = o.total;
+      chip.title = 'Siswa ' + o.siswa + ' • Guru ' + o.guru;
+      chip.classList.toggle('readonly', !currentUser || currentUser.role !== 'admin');   // detail nama hanya untuk guru
+      chip.classList.remove('d-none');
+    }
+
+    async function openOnlineList() {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('onlineModal')).show();
+      loadOnlineList();
+    }
+    async function loadOnlineList() {
+      const box = document.getElementById('onlineBody');
+      box.innerHTML = '<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat...</div>';
+      try {
+        const r = await callApi('getOnlineList', {});
+        if (!r || !r.success) { box.innerHTML = '<div class="text-danger small">' + escHtml(r ? r.message : 'Gagal memuat') + '</div>'; return; }
+        renderOnline(r);
+        const rows = arr => arr.map(x => `<div class="online-row"><span>${escHtml(x.nama)}</span>${x.kelas ? `<span class="badge bg-light text-dark border">${escHtml(x.kelas)}</span>` : ''}</div>`).join('');
+        const guru = r.list.filter(x => x.role === 'admin'), siswa = r.list.filter(x => x.role !== 'admin');
+        box.innerHTML =
+          `<div class="d-flex gap-2 mb-3"><span class="badge bg-success">Total ${r.total}</span><span class="badge bg-primary">Siswa ${r.siswa}</span><span class="badge bg-secondary">Guru ${r.guru}</span></div>` +
+          (guru.length ? `<div class="fw-bold small text-secondary mb-1">Guru</div>${rows(guru)}` : '') +
+          (siswa.length ? `<div class="fw-bold small text-secondary mt-3 mb-1">Siswa</div>${rows(siswa)}` : '') +
+          (!r.list.length ? '<div class="text-muted small">Belum ada yang online.</div>' : '');
+      } catch (err) { box.innerHTML = '<div class="text-danger small">' + escHtml(err.message) + '</div>'; }
+    }
+
+    // Popup otomatis bila ada pengumuman/broadcast baru (saat login, buka ulang, atau saat guru mengirim ketika siswa sedang online)
+    function popupKey() { return 'lms_pengumuman_popup_' + (currentUser ? currentUser.username : ''); }
+    async function checkPengumumanPopup() {
+      if (!currentUser || currentUser.role === 'admin' || popupBusy) return;
+      popupBusy = true;
+      try {
+        const res = await callApi('getPengumuman', {});
+        if (!currentUser || !res || !res.success) return;
+        const seen = Number(localStorage.getItem(seenKey()) || 0);
+        const shown = Number(localStorage.getItem(popupKey()) || 0);
+        const batas = Math.max(seen, shown, Date.now() - 7 * 86400000);   // pesan lama (>7 hari) tidak dimunculkan sebagai popup
+        const baru = res.data.filter(p => idTime(p.id) > batas);
+        if (!baru.length) return;
+        localStorage.setItem(popupKey(), Math.max(...baru.map(p => idTime(p.id))));
+        const satu = baru.length === 1;
+        const text = satu
+          ? baru[0].judul + '\n\n' + (baru[0].isi.length > 220 ? baru[0].isi.slice(0, 220) + '…' : baru[0].isi)
+          : baru.slice(0, 4).map(p => '• ' + p.judul).join('\n') + (baru.length > 4 ? '\n• …dan ' + (baru.length - 4) + ' lainnya' : '');
+        const r = await Popup.fire({
+          type: 'info', showCancel: true,
+          title: satu ? 'Pesan Baru dari ' + (baru[0].pengirim || 'Guru') : baru.length + ' Pesan Baru dari Guru',
+          text, confirmText: 'Baca Sekarang', cancelText: 'Nanti'
+        });
+        if (r && r.confirmed && currentUser) openPengumumanView();
+      } catch (e) {} finally { popupBusy = false; }
     }
 
     // ==================== KUMPULKAN TUGAS (SISWA) — tergabung dari Portal Upload Tugas ====================
@@ -3066,23 +3419,27 @@
 
     function utLoadTugasOptions() {
       const cls = currentUser.userClass.toString().trim().toUpperCase();
+      const ekskul = (currentUser.userEkskul || '').toString().toUpperCase().split(/[,;]/).map(x => x.trim()).filter(Boolean);
+      const groups = [cls].concat(ekskul.includes('KODING') ? ['KODING'] : []);   // kelas + ekskul yang diikuti
       const sel = utEl('utJudulSel');
-      const fill = (res) => {
-        const tugas = (res && res.success && res.data && res.data.tugas) || [];
+      const got = {};
+      const fill = () => {
+        let tugas = [];
+        groups.forEach(g => { tugas = tugas.concat((got[g] && got[g].success && got[g].data && got[g].data.tugas) || []); });
         const portal = tugas.filter(t => t.tipeLink === 'portal');
         const list = portal.length ? portal : tugas;
         const want = utWantJudul || (sel.value && sel.value !== '__lain' ? sel.value : '');
-        const titles = list.map(t => t.judul);
+        const titles = [], deadline = {};
+        list.forEach(t => { if (!titles.includes(t.judul)) titles.push(t.judul); deadline[t.judul] = t.deadline; });
         if (want && !titles.includes(want)) titles.unshift(want);
-        const deadline = {}; list.forEach(t => { deadline[t.judul] = t.deadline; });
         sel.innerHTML = '<option value="">Pilih tugas...</option>' +
           titles.map(t => `<option value="${escHtml(t)}">${escHtml(t)}${deadline[t] ? ' — tenggat ' + escHtml(deadline[t]) : ''}</option>`).join('') +
           '<option value="__lain">✏️ Judul lain (ketik sendiri)</option>';
         if (want) sel.value = want;
         utOnJudulChange();
       };
-      fill(null);   // langsung tampilkan opsi dasar, daftar tugas menyusul dari cache/server
-      swr('getLmsData', { selectedClass: cls }, res => fill(res)).catch(() => {});
+      fill();   // langsung tampilkan opsi dasar, daftar tugas menyusul dari cache/server
+      groups.forEach(g => swr('getLmsData', { selectedClass: g }, res => { got[g] = res; fill(); }).catch(() => {}));
     }
     function utOnJudulChange() {
       utEl('utJudulManual').classList.toggle('d-none', utEl('utJudulSel').value !== '__lain');
@@ -3372,6 +3729,7 @@
 
     function logout() {
       utResetAll();
+      stopPresence();
       swrClear();
       closeSidebar();
       currentUser = null;
