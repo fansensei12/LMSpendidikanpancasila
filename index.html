@@ -489,6 +489,14 @@
     #adminPanel .panel-title { cursor: pointer; user-select: none; }
     #adminPanel .panel-chevron { transition: transform .25s ease; }
     #adminPanel.panel-collapsed .panel-chevron { transform: rotate(-90deg); }
+    /* ===== REKAP NILAI (GURU) ===== */
+    #rnWrap { max-height: 68vh; overflow: auto; border: 1px solid #e5e9f0; border-radius: 10px; }
+    #rnTable { margin: 0; font-size: .86rem; }
+    #rnTable thead th { position: sticky; top: 0; background: #f1f5f9; z-index: 2; white-space: nowrap; text-align: center; vertical-align: middle; }
+    #rnTable .rn-nama { position: sticky; left: 0; background: #fff; z-index: 1; min-width: 160px; text-align: left; }
+    #rnTable thead th.rn-nama { z-index: 3; background: #f1f5f9; }
+    #rnTable tfoot td { position: sticky; bottom: 0; background: #f8fafc; font-weight: 700; text-align: center; border-top: 2px solid #cbd5e1; }
+    #rnTable tfoot td.rn-nama { text-align: left; z-index: 3; background: #f8fafc; }
 </style>
 </head>
 <body>
@@ -605,6 +613,11 @@
         <li class="menu-admin-rekap" style="display:none;">
           <a class="nav-link" id="menu-INPUTNILAI" onclick="openInputNilaiView()">
             <i class="fa-solid fa-star-half-stroke"></i> Input Nilai Siswa
+          </a>
+        </li>
+        <li class="menu-admin-rekap" style="display:none;">
+          <a class="nav-link" id="menu-REKAPNILAI" onclick="openRekapNilaiView()">
+            <i class="fa-solid fa-table-list"></i> Lihat Rekap Nilai
           </a>
         </li>
         <li class="menu-admin-rekap" style="display:none;">
@@ -960,6 +973,44 @@
         </div>
 
         <!-- ==================== TAMPILAN 4: INPUT NILAI (GURU) ==================== -->
+        <!-- ==================== REKAP NILAI SISWA (GURU) ==================== -->
+        <div id="rekapNilaiSection" class="d-none">
+          <div class="card card-item border-top border-primary border-4 p-3 p-md-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+              <div>
+                <h5 class="fw-bold text-dark mb-1"><i class="fa-solid fa-table-list text-primary me-2"></i>Rekap Nilai Siswa</h5>
+                <small class="text-muted">Semua nilai yang sudah diinput, per siswa dan per judul penilaian. Arahkan kursor ke nilai untuk melihat catatan.</small>
+              </div>
+              <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-sm btn-outline-primary fw-semibold" onclick="loadRekapNilai()"><i class="fa-solid fa-rotate me-1"></i> Muat Ulang</button>
+                <button class="btn btn-sm btn-outline-secondary fw-semibold" onclick="salinRekapNilai()"><i class="fa-regular fa-copy me-1"></i> Salin</button>
+                <button class="btn btn-sm btn-success fw-semibold" onclick="unduhRekapNilai()"><i class="fa-solid fa-file-csv me-1"></i> Unduh CSV</button>
+              </div>
+            </div>
+            <div class="row g-2 mb-3 bg-light p-3 rounded-3 border">
+              <div class="col-md-3 col-6">
+                <label class="form-label small fw-bold text-secondary mb-1">Rombel</label>
+                <select id="rnRombel" class="form-select form-select-sm" onchange="loadRekapNilai()"><option value="">Semua Rombel</option></select>
+              </div>
+              <div class="col-md-5 col-12 order-md-2">
+                <label class="form-label small fw-bold text-secondary mb-1">Cari siswa</label>
+                <input type="text" id="rnCari" class="form-control form-control-sm" placeholder="Nama atau NIS..." oninput="renderRekapNilai()">
+              </div>
+              <div class="col-md-4 col-6 order-md-3">
+                <label class="form-label small fw-bold text-secondary mb-1">Urutkan</label>
+                <select id="rnUrut" class="form-select form-select-sm" onchange="renderRekapNilai()">
+                  <option value="nama">Rombel &amp; nama</option>
+                  <option value="tinggi">Rata-rata tertinggi</option>
+                  <option value="rendah">Rata-rata terendah</option>
+                  <option value="belum">Belum ada nilai dulu</option>
+                </select>
+              </div>
+            </div>
+            <div id="rnRingkas" class="small mb-2 text-muted"></div>
+            <div id="rnWrap"><table class="table table-hover table-sm align-middle" id="rnTable"><tbody><tr><td class="text-center text-muted py-4">Memuat...</td></tr></tbody></table></div>
+          </div>
+        </div>
+
         <div id="inputNilaiSection" class="d-none">
           <div class="card card-item border-top border-warning border-4 p-3 p-md-4">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -1501,6 +1552,92 @@
         alertBox.textContent = err.message && err.message.startsWith("Server tidak") ? err.message : "Gagal terhubung ke server Spreadsheet. Periksa koneksi internet dan pastikan Code.gs sudah di-deploy versi terbaru.";
         alertBox.classList.remove('d-none');
       }
+    }
+
+    // ==================== REKAP NILAI SISWA (GURU) ====================
+    let rnNilai = [], rnLoaded = false, rnView = { head: [], body: [], foot: [] };
+    async function openRekapNilaiView() {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      showOnlyNilaiView('rekapNilaiSection', 'menu-REKAPNILAI', 'Rekap Nilai Siswa');
+      try {
+        await swr('getSiswaList', {}, res => {
+          if (!res || !res.success) { if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal memuat siswa'); return; }
+          siswaAll = res.siswa;
+          const sel = document.getElementById('rnRombel'), cur = sel.value;
+          sel.innerHTML = '<option value="">Semua Rombel</option>' + res.rombelList.map(r => `<option value="${escHtml(r)}">${escHtml(r)}</option>`).join('');
+          if (cur) sel.value = cur;
+          if (rnLoaded) renderRekapNilai();
+        });
+      } catch (err) { Popup.error(err.message); return; }
+      loadRekapNilai();
+    }
+    async function loadRekapNilai() {
+      const rombel = document.getElementById('rnRombel').value;
+      document.getElementById('rnTable').innerHTML = '<tbody><tr><td class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Memuat nilai...</td></tr></tbody>';
+      try {
+        const res = await callApi('getNilaiAdmin', { rombel });
+        if (document.getElementById('rnRombel').value !== rombel) return;   // rombel sudah diganti
+        if (!res || !res.success) { if (res && res.expired) return; throw new Error(res ? res.message : 'Gagal memuat nilai'); }
+        rnNilai = res.data || []; rnLoaded = true;
+        renderRekapNilai();
+      } catch (err) {
+        document.getElementById('rnTable').innerHTML = `<tbody><tr><td class="text-center text-danger py-4">${escHtml(err.message)}</td></tr></tbody>`;
+      }
+    }
+    function renderRekapNilai() {
+      if (!rnLoaded) return;
+      const rombel = document.getElementById('rnRombel').value;
+      const q = document.getElementById('rnCari').value.trim().toLowerCase();
+      const urut = document.getElementById('rnUrut').value;
+      const map = {}, juduls = [];
+      rnNilai.forEach(n => { (map[npId(n.nis)] = map[npId(n.nis)] || {})[n.judul] = n; if (!juduls.includes(n.judul)) juduls.push(n.judul); });
+      const avgOf = a => { const f = a.filter(v => v !== null); return f.length ? f.reduce((x, y) => x + y, 0) / f.length : null; };
+      let rows = siswaAll.filter(s => (!rombel || s.rombel === rombel) && (!q || s.nama.toLowerCase().includes(q) || String(s.id).includes(q)))
+        .map(s => { const m = map[npId(s.id)] || {}; const vals = juduls.map(j => m[j] ? m[j].nilai : null); return { s, m, vals, n: vals.filter(v => v !== null).length, avg: avgOf(vals) }; });
+      rows.sort((a, b) => {
+        if (urut === 'tinggi') return (b.avg === null) - (a.avg === null) || (b.avg - a.avg) || a.s.nama.localeCompare(b.s.nama);
+        if (urut === 'rendah') return (a.avg === null) - (b.avg === null) || (a.avg - b.avg) || a.s.nama.localeCompare(b.s.nama);
+        if (urut === 'belum') return (a.n - b.n) || a.s.rombel.localeCompare(b.s.rombel) || a.s.nama.localeCompare(b.s.nama);
+        return a.s.rombel.localeCompare(b.s.rombel) || a.s.nama.localeCompare(b.s.nama);
+      });
+      const fmt = v => v === null ? '-' : (Number.isInteger(v) ? v : Number(v.toFixed(1)));
+      const colAvg = juduls.map((j, i) => avgOf(rows.map(r => r.vals[i])));
+      const all = avgOf(rows.map(r => r.avg));
+      const kosong = rows.filter(r => r.n === 0).length;
+      document.getElementById('rnRingkas').innerHTML =
+        `<span class="badge bg-primary me-1">${rows.length} siswa</span><span class="badge bg-secondary me-1">${juduls.length} penilaian</span>` +
+        `<span class="badge bg-success me-1">Rata-rata ${all === null ? '-' : all.toFixed(1)}</span>` +
+        (kosong ? `<span class="badge bg-warning text-dark">${kosong} siswa belum punya nilai</span>` : '');
+      if (!rows.length) { document.getElementById('rnTable').innerHTML = '<tbody><tr><td class="text-center text-muted py-4">Tidak ada siswa yang cocok.</td></tr></tbody>'; rnView = { head: [], body: [], foot: [] }; return; }
+      if (!juduls.length) { document.getElementById('rnTable').innerHTML = '<tbody><tr><td class="text-center text-muted py-4">Belum ada nilai yang diinput untuk pilihan ini.</td></tr></tbody>'; rnView = { head: [], body: [], foot: [] }; return; }
+      const head = ['No', 'Nama', 'NIS', 'Rombel', ...juduls, 'Rata-rata'];
+      const body = rows.map((r, i) => [i + 1, r.s.nama, r.s.id, r.s.rombel, ...r.vals.map(v => v === null ? '' : v), r.avg === null ? '' : Number(r.avg.toFixed(1))]);
+      const foot = ['', 'Rata-rata', '', '', ...colAvg.map(v => v === null ? '' : Number(v.toFixed(1))), all === null ? '' : Number(all.toFixed(1))];
+      rnView = { head, body, foot };
+      document.getElementById('rnTable').innerHTML =
+        '<thead><tr><th>No</th><th class="rn-nama">Nama</th><th>NIS</th><th>Rombel</th>' + juduls.map(j => `<th title="${escHtml(j)}">${escHtml(j)}</th>`).join('') + '<th>Rata-rata</th></tr></thead><tbody>' +
+        rows.map((r, i) => `<tr><td class="text-center text-muted">${i + 1}</td><td class="rn-nama fw-semibold">${escHtml(r.s.nama)}</td><td class="small text-muted text-center">${escHtml(r.s.id)}</td><td class="text-center small">${escHtml(r.s.rombel)}</td>` +
+          r.vals.map((v, k) => { const c = r.m[juduls[k]]; return v === null ? '<td class="text-center text-muted">-</td>' : `<td class="text-center fw-bold ${nilaiColor(v)}" ${c && c.catatan ? `title="${escHtml(c.catatan)}"` : ''}>${fmt(v)}${c && c.catatan ? '<i class="fa-solid fa-comment-dots ms-1 text-muted" style="font-size:.6rem"></i>' : ''}</td>`; }).join('') +
+          `<td class="text-center fw-bold ${r.avg === null ? 'text-muted' : nilaiColor(r.avg)}">${r.avg === null ? '-' : r.avg.toFixed(1)}</td></tr>`).join('') +
+        '</tbody><tfoot><tr><td></td><td class="rn-nama">Rata-rata</td><td></td><td></td>' + colAvg.map(v => `<td>${v === null ? '-' : v.toFixed(1)}</td>`).join('') + `<td>${all === null ? '-' : all.toFixed(1)}</td></tr></tfoot>`;
+    }
+    function rnRows() { return rnView.body.length ? [rnView.head, ...rnView.body, rnView.foot] : []; }
+    function unduhRekapNilai() {
+      const data = rnRows(); if (!data.length) { Popup.error('Belum ada data untuk diunduh.'); return; }
+      const csv = '\uFEFF' + data.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(';')).join('\r\n');
+      const rb = document.getElementById('rnRombel').value || 'semua-rombel';
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      a.download = 'rekap-nilai-' + rb + '.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    }
+    async function salinRekapNilai() {
+      const data = rnRows(); if (!data.length) { Popup.error('Belum ada data untuk disalin.'); return; }
+      const tsv = data.map(r => r.join('\t')).join('\n');
+      try { await navigator.clipboard.writeText(tsv); }
+      catch (e) { const t = document.createElement('textarea'); t.value = tsv; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+      showSuccessModal('Tersalin', 'Tabel nilai sudah disalin. Tempel (Ctrl+V) di Excel atau Google Sheets.');
     }
 
     // ==================== PANEL GURU: SEMBUNYIKAN / TAMPILKAN ====================
@@ -2093,6 +2230,7 @@
     function hideNilaiViews() {
       document.getElementById('nilaiSayaSection').classList.add('d-none');
       document.getElementById('inputNilaiSection').classList.add('d-none');
+      document.getElementById('rekapNilaiSection').classList.add('d-none');
       document.getElementById('pengumumanSection').classList.add('d-none');
       document.getElementById('absenSiswaSection').classList.add('d-none');
       document.getElementById('absenAdminSection').classList.add('d-none');
