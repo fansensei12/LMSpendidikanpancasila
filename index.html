@@ -437,76 +437,77 @@
     @keyframes ppPop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
     @keyframes ppSlide{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
     @media (prefers-reduced-motion:reduce){.pp-icon,.pp-toast{animation:none}}
-      .online-chip{background:#e6f7ed;color:#15803d;border:1px solid #bbf0cd;font-weight:600;font-size:.78rem;border-radius:999px;padding:.25rem .7rem;white-space:nowrap;line-height:1.3}
-    .online-chip i{color:#22c55e;margin-right:4px}
-    .online-chip.readonly{cursor:default;pointer-events:none}
-    .online-row{display:flex;justify-content:space-between;align-items:center;padding:.35rem 0;border-bottom:1px solid #eef2f7;font-size:.88rem}
-      /* ===== ANIMASI LOGIN (ringan: hanya transform & opacity, tanpa JS/canvas/blur) ===== */
-    .login-wrapper { position: relative; overflow: hidden; isolation: isolate; }
-    .login-fx { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-    .fx-orbs span { position: absolute; border-radius: 50%; will-change: transform;
-      background: radial-gradient(circle, rgba(212,175,55,.22) 0%, rgba(212,175,55,0) 65%); }
-    .fx-orbs .o1 { width: 520px; height: 520px; left: -140px; top: -160px; animation: orbDrift 18s ease-in-out infinite alternate; }
-    .fx-orbs .o2 { width: 460px; height: 460px; right: -120px; bottom: -140px; animation: orbDrift 22s ease-in-out infinite alternate-reverse; }
-    .fx-orbs .o3 { width: 300px; height: 300px; left: 55%; top: 18%; opacity: .7; animation: orbDrift 26s ease-in-out infinite alternate; }
-    @keyframes orbDrift { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(60px,40px,0) scale(1.15); } }
-    .fx-sparks span { position: absolute; bottom: -12px; left: var(--x); width: var(--s); height: var(--s);
-      border-radius: 50%; background: #f3e5ab; opacity: 0; will-change: transform, opacity;
-      animation: sparkUp var(--d) linear var(--dl) infinite; }
-    @keyframes sparkUp {
-      0%   { transform: translate3d(0,0,0); opacity: 0; }
-      12%  { opacity: .75; }
-      88%  { opacity: .45; }
-      100% { transform: translate3d(var(--dx), -105vh, 0); opacity: 0; }
-    }
-    .card-login { position: relative; z-index: 1; animation: cardIn .7s cubic-bezier(.2,.8,.2,1) both; }
-    @keyframes cardIn { from { opacity: 0; transform: translate3d(0,26px,0) scale(.97); } to { opacity: 1; transform: none; } }
-    .login-header .icon-box { position: relative; animation: fadeUp .6s ease .15s both; }
-    .login-header .icon-box i { display: inline-block; animation: capFloat 4s ease-in-out infinite; }
-    .login-header .icon-box::after { content: ''; position: absolute; inset: -2px; border-radius: 50%;
-      border: 2px solid #d4af37; opacity: 0; animation: ringPulse 2.6s ease-out 1s infinite; }
-    .login-header h4 { animation: fadeUp .6s ease .28s both; }
-    .login-header p { animation: fadeUp .6s ease .38s both; }
-    .login-header .login-toggle { animation: fadeUp .6s ease .48s both; }
-    @keyframes fadeUp { from { opacity: 0; transform: translate3d(0,14px,0); } to { opacity: 1; transform: none; } }
-    @keyframes capFloat { 0%,100% { transform: translate3d(0,0,0); } 50% { transform: translate3d(0,-3px,0); } }
-    @keyframes ringPulse { 0% { transform: scale(1); opacity: .55; } 100% { transform: scale(1.7); opacity: 0; } }
-    @media (max-width: 576px), (hover: none) and (pointer: coarse) {
-      .fx-sparks span:nth-child(n+9) { display: none; }
-      .fx-orbs .o3 { display: none; }
-      .fx-orbs .o1 { width: 360px; height: 360px; }
-      .fx-orbs .o2 { width: 320px; height: 320px; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .fx-orbs span, .fx-sparks span, .card-login, .login-header .icon-box, .login-header .icon-box i,
-      .login-header .icon-box::after, .login-header h4, .login-header p, .login-header .login-toggle { animation: none !important; }
-      .fx-sparks { display: none; }
-    }
 
-    /* ===== PANEL GURU: sembunyikan / tampilkan ===== */
-    #adminPanel.panel-collapsed > .card-body { display: none; }
-    #adminPanel.panel-collapsed > .card-header { border-bottom: 0; }
-    #adminPanel .panel-title { cursor: pointer; user-select: none; }
-    #adminPanel .panel-chevron { transition: transform .25s ease; }
-    #adminPanel.panel-collapsed .panel-chevron { transform: rotate(-90deg); }
-    /* ===== REKAP NILAI (GURU) ===== */
-    #rnWrap { max-height: 68vh; overflow: auto; border: 1px solid #e5e9f0; border-radius: 10px; }
-    #rnTable { margin: 0; font-size: .86rem; }
-    #rnTable thead th { position: sticky; top: 0; background: #f1f5f9; z-index: 2; white-space: nowrap; text-align: center; vertical-align: middle; }
-    #rnTable .rn-nama { position: sticky; left: 0; background: #fff; z-index: 1; min-width: 160px; text-align: left; }
-    #rnTable thead th.rn-nama { z-index: 3; background: #f1f5f9; }
-    #rnTable tfoot td { position: sticky; bottom: 0; background: #f8fafc; font-weight: 700; text-align: center; border-top: 2px solid #cbd5e1; }
-    #rnTable tfoot td.rn-nama { text-align: left; z-index: 3; background: #f8fafc; }
-</style>
+    /* ==================== UPLOAD TUGAS (tergabung di LMS) ==================== */
+    .ut-id-card { background: linear-gradient(135deg, #1a365d, #2b6cb0); color: #fff; border-radius: 14px; padding: 14px 16px; }
+    .ut-id-card .ut-id-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; opacity: .6; }
+    .ut-id-card .ut-id-val { font-weight: 600; font-size: .95rem; }
+    .ut-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #edf2f7; padding: 5px; border-radius: 12px; }
+    .ut-tab { border: 0; background: transparent; border-radius: 9px; padding: 10px 6px; font-size: .82rem; font-weight: 600; color: #718096; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all .15s; }
+    .ut-tab:hover { color: #2d3748; }
+    .ut-tab.active { background: #fff; color: #2b6cb0; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .ut-tab.active.photo { color: #dd6b20; }
+    .ut-tab.active.link { color: #38a169; }
+    .ut-drop { border: 2px dashed #cbd5e0; border-radius: 14px; padding: 28px 16px; text-align: center; cursor: pointer; transition: all .2s; background: #f7fafc; }
+    .ut-drop:hover, .ut-drop.dragover { border-color: #3182ce; background: rgba(49,130,206,.05); }
+    .ut-drop-icon { width: 52px; height: 52px; border-radius: 14px; background: #ebf8ff; color: #2b6cb0; display: inline-flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 8px; }
+    .ut-file-pill { display: none; align-items: center; gap: 12px; background: linear-gradient(135deg, #1a365d, #2b6cb0); border-radius: 12px; padding: 12px 14px; color: #fff; }
+    .ut-file-pill.show { display: flex; }
+    .ut-file-pill .ut-fp-icon { width: 36px; height: 36px; background: rgba(255,255,255,.14); border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ut-file-pill .ut-fp-info { flex: 1; min-width: 0; }
+    .ut-file-pill .ut-fp-info strong { display: block; font-size: .85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ut-file-pill .ut-fp-info span { font-size: .72rem; opacity: .65; }
+    .ut-file-pill button { background: rgba(255,255,255,.14); border: 0; color: #fff; border-radius: 8px; width: 30px; height: 30px; }
+    .ut-src-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ut-src-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 10px; border: 2px solid #e2e8f0; border-radius: 14px; background: #f7fafc; transition: all .2s; }
+    .ut-src-btn:hover { border-color: #dd6b20; background: rgba(221,107,32,.05); transform: translateY(-2px); }
+    .ut-src-btn .ut-src-ico { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+    .ut-src-btn .gal { background: #ebf8ff; color: #2b6cb0; }
+    .ut-src-btn .cam { background: #fffaf0; color: #dd6b20; }
+    .ut-src-btn b { font-size: .85rem; color: #2d3748; }
+    .ut-src-btn small { font-size: .7rem; color: #a0aec0; }
+    .ut-photo-drop { border: 2px dashed #e2e8f0; border-radius: 10px; padding: 10px; text-align: center; font-size: .78rem; color: #a0aec0; margin-top: 10px; transition: all .2s; }
+    .ut-photo-drop.dragover { border-color: #dd6b20; color: #dd6b20; background: rgba(221,107,32,.04); }
+    .ut-photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; margin: 10px 0; }
+    .ut-thumb { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: #edf2f7; cursor: grab; border: 2px solid transparent; user-select: none; }
+    .ut-thumb:hover { border-color: #dd6b20; }
+    .ut-thumb.dragging { opacity: .4; }
+    .ut-thumb.drag-over { border-color: #dd6b20; box-shadow: 0 0 0 3px rgba(221,107,32,.25); }
+    .ut-thumb img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+    .ut-thumb .ut-num { position: absolute; top: 5px; left: 5px; background: rgba(26,32,44,.75); color: #fff; font-size: .65rem; font-weight: 700; border-radius: 5px; padding: 1px 6px; }
+    .ut-thumb .ut-del { position: absolute; top: 5px; right: 5px; background: rgba(229,62,62,.9); color: #fff; border: 0; border-radius: 6px; width: 22px; height: 22px; font-size: .7rem; display: flex; align-items: center; justify-content: center; }
+    .ut-add { aspect-ratio: 1; border-radius: 10px; border: 2px dashed #cbd5e0; background: #f7fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #a0aec0; font-size: .72rem; font-weight: 600; cursor: pointer; }
+    .ut-add:hover { border-color: #dd6b20; color: #dd6b20; }
+    .ut-compress { border: 1.5px solid #fbd38d; background: #fffaf0; border-radius: 12px; padding: 12px 14px; }
+    .ut-chip { border: 1.5px solid #e2e8f0; background: #fff; border-radius: 999px; padding: 4px 13px; font-size: .78rem; font-weight: 700; color: #4a5568; }
+    .ut-chip:hover { border-color: #dd6b20; color: #dd6b20; }
+    .ut-chip.active { background: #dd6b20; border-color: #dd6b20; color: #fff; }
+    .ut-state { text-align: center; padding: 36px 16px; }
+    .ut-state .ut-state-ico { width: 68px; height: 68px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 1.9rem; margin-bottom: 12px; }
+    .ut-state .ok { background: #dcfce7; color: #16a34a; }
+    .ut-state .bad { background: #fee2e2; color: #dc2626; }
+    .ut-sum { text-align: left; max-width: 420px; margin: 16px auto 0; }
+    .ut-cam { position: fixed; inset: 0; background: #000; z-index: 2000; display: none; flex-direction: column; }
+    .ut-cam.show { display: flex; }
+    .ut-cam video { width: 100%; height: 100%; object-fit: cover; }
+    .ut-cam-top { position: absolute; top: 0; left: 0; right: 0; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to bottom, rgba(0,0,0,.7), transparent); color: #fff; z-index: 5; }
+    .ut-cam-top button { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,.18); border: 0; color: #fff; }
+    .ut-cam-bottom { position: absolute; bottom: 0; left: 0; right: 0; padding: 18px 20px 34px; display: flex; align-items: center; justify-content: center; gap: 22px; background: linear-gradient(to top, rgba(0,0,0,.75), transparent); z-index: 5; }
+    .ut-cam-flip { width: 46px; height: 46px; border-radius: 50%; background: rgba(255,255,255,.18); border: 0; color: #fff; }
+    .ut-shutter { width: 70px; height: 70px; border-radius: 50%; background: transparent; border: 4px solid rgba(255,255,255,.55); padding: 0; display: flex; align-items: center; justify-content: center; }
+    .ut-shutter i { width: 54px; height: 54px; border-radius: 50%; background: #fff; display: block; }
+    .ut-shutter:active i { background: #cbd5e0; transform: scale(.92); }
+    .ut-cam-done { background: #dd6b20; color: #fff; border: 0; border-radius: 999px; padding: 11px 22px; font-weight: 700; font-size: .9rem; }
+    .ut-cam-strip { position: absolute; bottom: 120px; left: 0; right: 0; display: flex; gap: 8px; padding: 0 14px; overflow-x: auto; z-index: 5; scrollbar-width: none; }
+    .ut-cam-strip img { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; border: 2px solid rgba(255,255,255,.6); flex-shrink: 0; }
+    .ut-cam-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 8; transition: opacity .05s; }
+    .ut-cam-flash.on { opacity: .85; }
+  </style>
 </head>
 <body>
 
   <!-- ==================== LOGIN SECTION ==================== -->
   <div id="loginSection" class="login-wrapper">
-    <div class="login-fx" aria-hidden="true">
-      <div class="fx-orbs"><span class="o1"></span><span class="o2"></span><span class="o3"></span></div>
-      <div class="fx-sparks"><span style="--x:6%;--s:4px;--d:11s;--dl:-1s;--dx:30px"></span><span style="--x:14%;--s:3px;--d:15s;--dl:-6s;--dx:-20px"></span><span style="--x:22%;--s:5px;--d:13s;--dl:-3s;--dx:25px"></span><span style="--x:31%;--s:3px;--d:17s;--dl:-9s;--dx:-35px"></span><span style="--x:39%;--s:4px;--d:12s;--dl:-4s;--dx:20px"></span><span style="--x:47%;--s:6px;--d:16s;--dl:-11s;--dx:-25px"></span><span style="--x:55%;--s:3px;--d:14s;--dl:-2s;--dx:30px"></span><span style="--x:63%;--s:4px;--d:18s;--dl:-8s;--dx:-30px"></span><span style="--x:71%;--s:5px;--d:12s;--dl:-5s;--dx:22px"></span><span style="--x:78%;--s:3px;--d:15s;--dl:-12s;--dx:-18px"></span><span style="--x:86%;--s:4px;--d:13s;--dl:-7s;--dx:28px"></span><span style="--x:93%;--s:5px;--d:17s;--dl:-10s;--dx:-22px"></span><span style="--x:18%;--s:3px;--d:19s;--dl:-14s;--dx:15px"></span><span style="--x:67%;--s:3px;--d:20s;--dl:-16s;--dx:-15px"></span></div>
-    </div>
     <div class="card card-login">
       <div class="login-header">
         <div class="icon-box"><i class="fa-solid fa-graduation-cap fa-2x"></i></div>
@@ -597,10 +598,6 @@
         <li class="menu-class-item" id="item-IX">
           <a class="nav-link" id="menu-IX" onclick="loadContent('IX')"><i class="fa-solid fa-layer-group"></i> Kelas IX</a>
         </li>
-        <li class="menu-header menu-ekskul-item" style="display:none;">Ekstrakurikuler</li>
-        <li class="menu-class-item menu-ekskul-item" id="item-KODING" style="display:none;">
-          <a class="nav-link" id="menu-KODING" onclick="loadContent('KODING')"><i class="fa-solid fa-code"></i> Ekskul Koding</a>
-        </li>
 
         <!-- MENU KHUSUS ADMIN/GURU -->
         <li class="menu-header menu-admin-rekap" style="display:none;">Menu Khusus Guru</li>
@@ -616,17 +613,17 @@
           </a>
         </li>
         <li class="menu-admin-rekap" style="display:none;">
-          <a class="nav-link" id="menu-REKAPNILAI" onclick="openRekapNilaiView()">
-            <i class="fa-solid fa-table-list"></i> Lihat Rekap Nilai
-          </a>
-        </li>
-        <li class="menu-admin-rekap" style="display:none;">
           <a class="nav-link" id="menu-ABSENADMIN" onclick="openAbsenAdminView()">
             <i class="fa-solid fa-user-clock"></i> Kelola Absensi PJJ
           </a>
         </li>
 
-        <li class="menu-header menu-siswa-nilai" style="display:none;">Absensi & Nilai</li>
+        <li class="menu-header menu-siswa-nilai" style="display:none;">Tugas, Absensi & Nilai</li>
+        <li class="menu-siswa-nilai" style="display:none;">
+          <a class="nav-link nav-link-tugas" id="menu-UPLOAD" onclick="openUploadView()">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Kumpulkan Tugas
+          </a>
+        </li>
         <li class="menu-siswa-nilai" style="display:none;">
           <a class="nav-link" id="menu-ABSEN" onclick="openAbsenSiswaView()">
             <i class="fa-solid fa-user-check"></i> Absensi PJJ
@@ -651,11 +648,6 @@
             <i class="fa-solid fa-globe text-warning"></i> Portal Pendidikan Pancasila
           </a>
         </li>
-        <li>
-          <a href="https://fansensei12.github.io/Portal-Sumatif-PKn/" target="_blank" class="nav-link nav-link-tugas" onclick="closeSidebar()">
-            <i class="fa-solid fa-upload text-success"></i> Portal Pengumpulan Tugas
-          </a>
-        </li>
       </ul>
 
       <div class="sidebar-footer">
@@ -675,7 +667,6 @@
           </div>
         </div>
         <div class="d-flex align-items-center gap-2">
-          <button type="button" id="onlineChip" class="btn online-chip d-none" onclick="openOnlineList()" title="Sedang online"><i class="fa-solid fa-circle fa-2xs"></i><span id="onlineCount">0</span> online</button>
           <div class="text-end d-none d-sm-block">
             <div class="fw-bold text-dark" id="userDisplayName"></div>
             <small class="text-success fw-semibold"><i class="fa-solid fa-circle fa-2xs me-1"></i>Online</small>
@@ -690,15 +681,10 @@
         <div id="kelasViewSection">
           <div id="adminPanel" class="card card-item mb-4 border-start border-warning border-4 d-none">
             <div class="card-header bg-white fw-bold py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-              <span class="panel-title" onclick="toggleAdminPanel()" role="button" title="Klik untuk sembunyikan / tampilkan"><i class="fa-solid fa-sliders text-warning me-2"></i>Panel Pengelolaan Guru <i class="fa-solid fa-chevron-down panel-chevron ms-2 small text-muted"></i></span>
-              <div class="d-flex gap-2 flex-wrap">
-                <button class="btn btn-sm btn-primary fw-bold" onclick="openRekapTugasView()">
-                  <i class="fa-solid fa-clipboard-check me-1"></i> Buka Pengecekan Pengumpulan Tugas
-                </button>
-                <button type="button" id="btnTogglePanel" class="btn btn-sm btn-outline-secondary fw-bold" onclick="toggleAdminPanel()">
-                  <i class="fa-solid fa-eye-slash me-1"></i><span>Sembunyikan</span>
-                </button>
-              </div>
+              <span><i class="fa-solid fa-sliders text-warning me-2"></i>Panel Pengelolaan Guru</span>
+              <button class="btn btn-sm btn-primary fw-bold" onclick="openRekapTugasView()">
+                <i class="fa-solid fa-clipboard-check me-1"></i> Buka Pengecekan Pengumpulan Tugas
+              </button>
             </div>
             <div class="card-body">
               <div class="row g-3">
@@ -713,7 +699,7 @@
                           <option value="SEMUA">Semua Kelas (VII, VIII, IX)</option>
                           <option value="VII">Kelas VII</option>
                           <option value="VIII">Kelas VIII</option>
-                          <option value="IX">Kelas IX</option><option value="KODING">Ekskul Koding</option>
+                          <option value="IX">Kelas IX</option>
                         </select>
                       </div>
                       <div class="col-md-8">
@@ -751,7 +737,7 @@
                           <option value="SEMUA">Semua Kelas (VII, VIII, IX)</option>
                           <option value="VII">Kelas VII</option>
                           <option value="VIII">Kelas VIII</option>
-                          <option value="IX">Kelas IX</option><option value="KODING">Ekskul Koding</option>
+                          <option value="IX">Kelas IX</option>
                         </select>
                       </div>
                       <div class="col-md-8">
@@ -763,7 +749,7 @@
                     <div class="row g-2 mb-2">
                       <div class="col-md-5">
                         <select id="tugasTipeLink" class="form-select form-select-sm" onchange="toggleCustomLabel('tugas')">
-                          <option value="portal">Portal Pengumpulan Tugas PKn</option>
+                          <option value="portal">Kumpulkan di LMS (upload langsung)</option>
                           <option value="tugas">Google Form / Pengumpulan Lain</option>
                           <option value="meet">Link Rapat Diskusi (Meet/Zoom)</option>
                           <option value="custom">Isi Label Sendiri...</option>
@@ -882,9 +868,6 @@
                     <option value="9A">9A</option><option value="9B">9B</option><option value="9C">9C</option><option value="9D">9D</option>
                     <option value="9E">9E</option><option value="9F">9F</option><option value="9G">9G</option>
                   </optgroup>
-                  <optgroup label="Ekskul">
-                    <option value="KODING">KODING</option>
-                  </optgroup>
                 </select>
               </div>
 
@@ -973,44 +956,6 @@
         </div>
 
         <!-- ==================== TAMPILAN 4: INPUT NILAI (GURU) ==================== -->
-        <!-- ==================== REKAP NILAI SISWA (GURU) ==================== -->
-        <div id="rekapNilaiSection" class="d-none">
-          <div class="card card-item border-top border-primary border-4 p-3 p-md-4">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-              <div>
-                <h5 class="fw-bold text-dark mb-1"><i class="fa-solid fa-table-list text-primary me-2"></i>Rekap Nilai Siswa</h5>
-                <small class="text-muted">Semua nilai yang sudah diinput, per siswa dan per judul penilaian. Arahkan kursor ke nilai untuk melihat catatan.</small>
-              </div>
-              <div class="d-flex gap-2 flex-wrap">
-                <button class="btn btn-sm btn-outline-primary fw-semibold" onclick="loadRekapNilai()"><i class="fa-solid fa-rotate me-1"></i> Muat Ulang</button>
-                <button class="btn btn-sm btn-outline-secondary fw-semibold" onclick="salinRekapNilai()"><i class="fa-regular fa-copy me-1"></i> Salin</button>
-                <button class="btn btn-sm btn-success fw-semibold" onclick="unduhRekapNilai()"><i class="fa-solid fa-file-csv me-1"></i> Unduh CSV</button>
-              </div>
-            </div>
-            <div class="row g-2 mb-3 bg-light p-3 rounded-3 border">
-              <div class="col-md-3 col-6">
-                <label class="form-label small fw-bold text-secondary mb-1">Rombel</label>
-                <select id="rnRombel" class="form-select form-select-sm" onchange="loadRekapNilai()"><option value="">Semua Rombel</option></select>
-              </div>
-              <div class="col-md-5 col-12 order-md-2">
-                <label class="form-label small fw-bold text-secondary mb-1">Cari siswa</label>
-                <input type="text" id="rnCari" class="form-control form-control-sm" placeholder="Nama atau NIS..." oninput="renderRekapNilai()">
-              </div>
-              <div class="col-md-4 col-6 order-md-3">
-                <label class="form-label small fw-bold text-secondary mb-1">Urutkan</label>
-                <select id="rnUrut" class="form-select form-select-sm" onchange="renderRekapNilai()">
-                  <option value="nama">Rombel &amp; nama</option>
-                  <option value="tinggi">Rata-rata tertinggi</option>
-                  <option value="rendah">Rata-rata terendah</option>
-                  <option value="belum">Belum ada nilai dulu</option>
-                </select>
-              </div>
-            </div>
-            <div id="rnRingkas" class="small mb-2 text-muted"></div>
-            <div id="rnWrap"><table class="table table-hover table-sm align-middle" id="rnTable"><tbody><tr><td class="text-center text-muted py-4">Memuat...</td></tr></tbody></table></div>
-          </div>
-        </div>
-
         <div id="inputNilaiSection" class="d-none">
           <div class="card card-item border-top border-warning border-4 p-3 p-md-4">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -1079,7 +1024,7 @@
                       <option value="SEMUA">Semua Siswa</option>
                       <option value="VII">Siswa Kelas VII</option>
                       <option value="VIII">Siswa Kelas VIII</option>
-                      <option value="IX">Siswa Kelas IX</option><option value="KODING">Anggota Ekskul Koding</option>
+                      <option value="IX">Siswa Kelas IX</option>
                     </select>
                   </div>
                   <div class="col-md-8"><input type="text" id="pengumumanJudul" class="form-control form-control-sm" placeholder="Judul pesan" required></div>
@@ -1135,10 +1080,188 @@
           <div id="absenDetailBox"></div>
         </div>
 
+        <!-- ==================== TAMPILAN 8: KUMPULKAN TUGAS (SISWA) ==================== -->
+        <div id="uploadTugasSection" class="d-none">
+          <div class="card card-item border-top border-success border-4 p-3 p-md-4" style="max-width:720px;margin:0 auto;">
+
+            <!-- Loading -->
+            <div id="utLoading" class="ut-state d-none">
+              <div class="spinner-border text-primary mb-3" style="width:2.6rem;height:2.6rem"></div>
+              <h6 class="fw-bold mb-1" id="utStatusText">Menyiapkan...</h6>
+              <p class="text-muted small mb-3">Jangan tutup atau refresh halaman ini</p>
+              <div class="progress" style="height:6px;max-width:320px;margin:0 auto"><div class="progress-bar" id="utProgress" style="width:0%"></div></div>
+            </div>
+
+            <!-- Sukses -->
+            <div id="utSuccess" class="ut-state d-none">
+              <div class="ut-state-ico ok"><i class="fa-solid fa-check"></i></div>
+              <h5 class="fw-bold mb-1">Tugas Terkirim!</h5>
+              <p class="text-muted small mb-0">Data tersimpan di database. Ringkasan pengiriman:</p>
+              <div class="ut-id-card ut-sum">
+                <div id="utSumBadge" class="mb-2"></div>
+                <div class="row g-2">
+                  <div class="col-12"><div class="ut-id-label">Nama</div><div class="ut-id-val text-warning" id="utSumNama">-</div></div>
+                  <div class="col-6"><div class="ut-id-label">No. Absen</div><div class="ut-id-val" id="utSumAbsen">-</div></div>
+                  <div class="col-6"><div class="ut-id-label">Kelas</div><div class="ut-id-val" id="utSumKelas">-</div></div>
+                  <div class="col-12"><div class="ut-id-label">Judul Tugas</div><div class="ut-id-val" id="utSumJudul">-</div></div>
+                  <div class="col-12 d-none" id="utSumLinkRow"><div class="ut-id-label">Link</div><div class="ut-id-val small text-break" id="utSumLink" style="opacity:.85">-</div></div>
+                  <div class="col-12 d-none" id="utSumNotesRow"><div class="ut-id-label">Catatan</div><div class="small fst-italic" id="utSumNotes" style="opacity:.8">-</div></div>
+                </div>
+              </div>
+              <div class="d-flex gap-2 justify-content-center mt-4">
+                <button class="btn btn-outline-secondary fw-bold rounded-pill px-4" onclick="utReset()"><i class="fa-solid fa-rotate me-1"></i> Kirim Lagi</button>
+                <button class="btn btn-success fw-bold rounded-pill px-4" onclick="utReset(); loadContent(currentUser.userClass.toString().trim().toUpperCase());"><i class="fa-solid fa-check me-1"></i> Selesai</button>
+              </div>
+            </div>
+
+            <!-- Gagal -->
+            <div id="utError" class="ut-state d-none">
+              <div class="ut-state-ico bad"><i class="fa-solid fa-triangle-exclamation"></i></div>
+              <h5 class="fw-bold mb-1">Pengiriman Gagal</h5>
+              <p class="text-muted small" id="utErrorMsg">Terjadi kesalahan.</p>
+              <button class="btn btn-outline-secondary fw-bold rounded-pill px-4 mt-2" onclick="utBackToForm()"><i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Form</button>
+            </div>
+
+            <!-- Form -->
+            <div id="utForm">
+              <h5 class="fw-bold text-dark mb-1"><i class="fa-solid fa-cloud-arrow-up text-success me-2"></i>Kumpulkan Tugas</h5>
+              <p class="text-muted small mb-3">Pastikan data sudah benar sebelum mengirim. Nama dan kelas diambil otomatis dari akun Anda.</p>
+
+              <div class="ut-id-card mb-3">
+                <div class="row g-2 align-items-end">
+                  <div class="col-12 col-sm-6"><div class="ut-id-label">Nama</div><div class="ut-id-val" id="utIdNama">-</div></div>
+                  <div class="col-6 col-sm-3">
+                    <div class="ut-id-label">Kelas</div>
+                    <div class="ut-id-val" id="utIdKelas">-</div>
+                    <select id="utKelasSel" class="form-select form-select-sm d-none"></select>
+                  </div>
+                  <div class="col-6 col-sm-3">
+                    <label class="ut-id-label" for="utAbsen">No. Absen *</label>
+                    <input type="number" id="utAbsen" class="form-control form-control-sm" min="1" max="60" placeholder="00">
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-secondary mb-1" for="utJudulSel">Judul Tugas *</label>
+                <select id="utJudulSel" class="form-select" onchange="utOnJudulChange()"><option value="">Memuat daftar tugas...</option></select>
+                <input type="text" id="utJudulManual" class="form-control mt-2 d-none" placeholder="Ketik judul tugas (contoh: Tugas Mandiri Bab 3)">
+              </div>
+
+              <div class="ut-tabs mb-3">
+                <button type="button" class="ut-tab active" id="utTabFile" onclick="utSwitch('file')"><i class="fa-solid fa-file-arrow-up"></i> Upload File</button>
+                <button type="button" class="ut-tab photo" id="utTabPhoto" onclick="utSwitch('photo')"><i class="fa-solid fa-camera"></i> Foto → PDF</button>
+                <button type="button" class="ut-tab link" id="utTabLink" onclick="utSwitch('link')"><i class="fa-solid fa-link"></i> Kirim Link</button>
+              </div>
+
+              <!-- Mode: FILE -->
+              <div id="utPanelFile">
+                <label class="form-label small fw-bold text-secondary mb-1">File Tugas *</label>
+                <div class="ut-drop" id="utDrop">
+                  <input type="file" id="utFileInput" class="d-none">
+                  <div id="utDropIdle">
+                    <div class="ut-drop-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                    <div class="fw-semibold small"><span class="text-primary">Klik pilih file</span> atau seret ke sini</div>
+                    <div class="text-muted" style="font-size:.74rem">PDF, Word, Gambar · Maks. 10 MB</div>
+                  </div>
+                  <div class="ut-file-pill" id="utFilePill">
+                    <div class="ut-fp-icon"><i class="fa-solid fa-file-lines"></i></div>
+                    <div class="ut-fp-info"><strong id="utFileName">-</strong><span id="utFileSize">-</span></div>
+                    <button type="button" id="utFileRemove" title="Hapus file"><i class="fa-solid fa-xmark"></i></button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mode: FOTO -->
+              <div id="utPanelPhoto" class="d-none">
+                <label class="form-label small fw-bold text-secondary mb-1">Foto Tugas *</label>
+                <input type="file" id="utPhotoInput" class="d-none" accept="image/*" multiple>
+                <input type="file" id="utCameraInput" class="d-none" accept="image/*" capture="environment">
+                <div class="ut-src-btns">
+                  <button type="button" class="ut-src-btn" onclick="document.getElementById('utPhotoInput').click()">
+                    <span class="ut-src-ico gal"><i class="fa-solid fa-images"></i></span><b>Pilih dari Galeri</b><small>Bisa pilih banyak sekaligus</small>
+                  </button>
+                  <button type="button" class="ut-src-btn" onclick="utOpenCamera()">
+                    <span class="ut-src-ico cam"><i class="fa-solid fa-camera"></i></span><b>Ambil Foto Langsung</b><small>Bisa foto berkali-kali</small>
+                  </button>
+                </div>
+                <div class="ut-photo-drop" id="utPhotoDrop"><i class="fa-solid fa-cloud-arrow-up me-1"></i>Atau seret &amp; lepas foto ke sini</div>
+
+                <div id="utPhotoWrap" class="d-none mt-3">
+                  <div class="d-flex justify-content-between align-items-center small bg-light rounded-3 px-3 py-2">
+                    <span><b class="text-warning" id="utPhotoCount">0</b> foto → 1 PDF</span>
+                    <button type="button" class="btn btn-link btn-sm text-danger fw-bold p-0 text-decoration-none" onclick="utClearPhotos()">Hapus Semua</button>
+                  </div>
+                  <div class="ut-photo-grid" id="utPhotoGrid"></div>
+                  <p class="text-center text-muted mb-3" style="font-size:.74rem">💡 Seret thumbnail untuk mengubah urutan halaman</p>
+
+                  <div class="ut-compress">
+                    <div class="d-flex align-items-center justify-content-between">
+                      <div><div class="fw-bold small">Kompresi Foto</div><div class="text-muted" style="font-size:.72rem">Target ukuran per foto</div></div>
+                      <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" role="switch" id="utCompressToggle" checked onchange="utOnCompressToggle()"></div>
+                    </div>
+                    <div id="utCompressCtrl" class="mt-2">
+                      <div class="d-flex flex-wrap gap-2 mb-2">
+                        <button type="button" class="ut-chip" onclick="utSelectChip(this,300)">300 KB</button>
+                        <button type="button" class="ut-chip active" onclick="utSelectChip(this,700)">700 KB</button>
+                        <button type="button" class="ut-chip" onclick="utSelectChip(this,1024)">1 MB</button>
+                        <button type="button" class="ut-chip" onclick="utSelectChip(this,2048)">2 MB</button>
+                        <button type="button" class="ut-chip" style="border-style:dashed" onclick="utFocusCustom(this)">Kustom</button>
+                      </div>
+                      <div id="utCustomRow" class="d-none align-items-center gap-2 mb-2">
+                        <input type="number" id="utCustomKb" class="form-control form-control-sm" style="width:110px" min="50" max="9999" placeholder="mis. 500" oninput="utOnCustomKb()">
+                        <span class="small text-muted">KB per foto</span>
+                      </div>
+                      <div class="small text-success" id="utCompressLabel"><i class="fa-solid fa-circle-check me-1"></i>Target: ≤ 700 KB per foto</div>
+                    </div>
+                  </div>
+                  <div class="small fw-semibold mt-2 px-3 py-2 rounded-3" style="background:#fffaf0;color:#dd6b20;border:1.5px solid #fbd38d">
+                    <i class="fa-solid fa-file-pdf me-1"></i>Foto dikonversi otomatis ke PDF sebelum dikirim
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mode: LINK -->
+              <div id="utPanelLink" class="d-none">
+                <label class="form-label small fw-bold text-secondary mb-1" for="utLink">Link Tugas *</label>
+                <input type="url" id="utLink" class="form-control" placeholder="https://drive.google.com/...">
+                <div class="text-muted mt-1" style="font-size:.76rem"><i class="fa-solid fa-circle-info me-1"></i>Pastikan link bisa diakses siapa pun yang memiliki tautan</div>
+              </div>
+
+              <div class="mt-3">
+                <label class="form-label small fw-bold text-secondary mb-1" for="utNotes">Catatan</label>
+                <textarea id="utNotes" class="form-control" rows="2" placeholder="Keterangan tambahan jika ada..."></textarea>
+              </div>
+
+              <button type="button" id="utSubmitBtn" class="btn btn-primary w-100 fw-bold py-2 mt-3" onclick="utSubmit()">
+                <i class="fa-solid fa-paper-plane me-1"></i> <span id="utSubmitLabel">Kirim Tugas</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </main>
   </div>
 
+
+
+  <!-- ==================== KAMERA (UPLOAD TUGAS) ==================== -->
+  <div class="ut-cam" id="utCam">
+    <div class="ut-cam-flash" id="utCamFlash"></div>
+    <div class="ut-cam-top">
+      <div class="fw-bold"><i class="fa-solid fa-camera me-2"></i>Ambil Foto <span class="badge bg-warning text-dark ms-1 d-none" id="utCamBadge">0</span></div>
+      <button type="button" onclick="utCloseCamera()" title="Tutup"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <video id="utCamVideo" autoplay playsinline muted></video>
+    <canvas id="utCamCanvas" class="d-none"></canvas>
+    <div class="ut-cam-strip" id="utCamStrip"></div>
+    <div class="ut-cam-bottom">
+      <button type="button" class="ut-cam-flip" onclick="utFlipCamera()" title="Balik kamera"><i class="fa-solid fa-rotate"></i></button>
+      <button type="button" class="ut-shutter" onclick="utCapture()" title="Potret"><i></i></button>
+      <button type="button" class="ut-cam-done" id="utCamDone" style="display:none" onclick="utDoneCamera()"><i class="fa-solid fa-check me-1"></i>Selesai</button>
+    </div>
+  </div>
 
   <!-- ==================== MODAL EDIT ITEM ==================== -->
   <!-- ==================== MODAL TEMPEL NILAI ==================== -->
@@ -1195,7 +1318,7 @@
                 <option value="SEMUA">Semua Kelas (VII, VIII, IX)</option>
                           <option value="VII">Kelas VII</option>
                 <option value="VIII">Kelas VIII</option>
-                <option value="IX">Kelas IX</option><option value="KODING">Ekskul Koding</option>
+                <option value="IX">Kelas IX</option>
               </select>
             </div>
 
@@ -1217,7 +1340,7 @@
             <div class="mb-2">
               <label class="form-label small fw-bold">Tipe Tautan / Link</label>
               <select id="editTipeLink" class="form-select form-select-sm" onchange="toggleCustomLabelEdit(true)">
-                <option value="portal">Portal Pengumpulan Tugas PKn</option>
+                <option value="portal">Kumpulkan di LMS (upload langsung)</option>
                 <option value="modul">Pelajari Modul / Pengumpulan Lain</option>
                 <option value="meet">Link Rapat Virtual (Meet/Zoom)</option>
                 <option value="custom">Isi Label Sendiri...</option>
@@ -1243,22 +1366,6 @@
   </div>
 
 
-
-  <div class="modal fade" id="onlineModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h6 class="modal-title fw-bold"><i class="fa-solid fa-circle text-success fa-2xs me-1"></i> Sedang Online</h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body" id="onlineBody"></div>
-        <div class="modal-footer">
-          <small class="text-muted me-auto">Online = aktif dalam &plusmn;3 menit terakhir</small>
-          <button class="btn btn-sm btn-outline-primary" onclick="loadOnlineList()"><i class="fa-solid fa-rotate me-1"></i>Segarkan</button>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <script>
     // ==================== SISTEM POPUP PROFESIONAL ====================
@@ -1554,108 +1661,6 @@
       }
     }
 
-    // ==================== REKAP NILAI SISWA (GURU) ====================
-    let rnNilai = [], rnLoaded = false, rnView = { head: [], body: [], foot: [] };
-    async function openRekapNilaiView() {
-      if (!currentUser || currentUser.role !== 'admin') return;
-      showOnlyNilaiView('rekapNilaiSection', 'menu-REKAPNILAI', 'Rekap Nilai Siswa');
-      try {
-        await swr('getSiswaList', {}, res => {
-          if (!res || !res.success) { if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal memuat siswa'); return; }
-          siswaAll = res.siswa;
-          const sel = document.getElementById('rnRombel'), cur = sel.value;
-          sel.innerHTML = '<option value="">Semua Rombel</option>' + res.rombelList.map(r => `<option value="${escHtml(r)}">${escHtml(r)}</option>`).join('');
-          if (cur) sel.value = cur;
-          if (rnLoaded) renderRekapNilai();
-        });
-      } catch (err) { Popup.error(err.message); return; }
-      loadRekapNilai();
-    }
-    async function loadRekapNilai() {
-      const rombel = document.getElementById('rnRombel').value;
-      document.getElementById('rnTable').innerHTML = '<tbody><tr><td class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Memuat nilai...</td></tr></tbody>';
-      try {
-        const res = await callApi('getNilaiAdmin', { rombel });
-        if (document.getElementById('rnRombel').value !== rombel) return;   // rombel sudah diganti
-        if (!res || !res.success) { if (res && res.expired) return; throw new Error(res ? res.message : 'Gagal memuat nilai'); }
-        rnNilai = res.data || []; rnLoaded = true;
-        renderRekapNilai();
-      } catch (err) {
-        document.getElementById('rnTable').innerHTML = `<tbody><tr><td class="text-center text-danger py-4">${escHtml(err.message)}</td></tr></tbody>`;
-      }
-    }
-    function renderRekapNilai() {
-      if (!rnLoaded) return;
-      const rombel = document.getElementById('rnRombel').value;
-      const q = document.getElementById('rnCari').value.trim().toLowerCase();
-      const urut = document.getElementById('rnUrut').value;
-      const map = {}, juduls = [];
-      rnNilai.forEach(n => { (map[npId(n.nis)] = map[npId(n.nis)] || {})[n.judul] = n; if (!juduls.includes(n.judul)) juduls.push(n.judul); });
-      const avgOf = a => { const f = a.filter(v => v !== null); return f.length ? f.reduce((x, y) => x + y, 0) / f.length : null; };
-      let rows = siswaAll.filter(s => (!rombel || s.rombel === rombel) && (!q || s.nama.toLowerCase().includes(q) || String(s.id).includes(q)))
-        .map(s => { const m = map[npId(s.id)] || {}; const vals = juduls.map(j => m[j] ? m[j].nilai : null); return { s, m, vals, n: vals.filter(v => v !== null).length, avg: avgOf(vals) }; });
-      rows.sort((a, b) => {
-        if (urut === 'tinggi') return (b.avg === null) - (a.avg === null) || (b.avg - a.avg) || a.s.nama.localeCompare(b.s.nama);
-        if (urut === 'rendah') return (a.avg === null) - (b.avg === null) || (a.avg - b.avg) || a.s.nama.localeCompare(b.s.nama);
-        if (urut === 'belum') return (a.n - b.n) || a.s.rombel.localeCompare(b.s.rombel) || a.s.nama.localeCompare(b.s.nama);
-        return a.s.rombel.localeCompare(b.s.rombel) || a.s.nama.localeCompare(b.s.nama);
-      });
-      const fmt = v => v === null ? '-' : (Number.isInteger(v) ? v : Number(v.toFixed(1)));
-      const colAvg = juduls.map((j, i) => avgOf(rows.map(r => r.vals[i])));
-      const all = avgOf(rows.map(r => r.avg));
-      const kosong = rows.filter(r => r.n === 0).length;
-      document.getElementById('rnRingkas').innerHTML =
-        `<span class="badge bg-primary me-1">${rows.length} siswa</span><span class="badge bg-secondary me-1">${juduls.length} penilaian</span>` +
-        `<span class="badge bg-success me-1">Rata-rata ${all === null ? '-' : all.toFixed(1)}</span>` +
-        (kosong ? `<span class="badge bg-warning text-dark">${kosong} siswa belum punya nilai</span>` : '');
-      if (!rows.length) { document.getElementById('rnTable').innerHTML = '<tbody><tr><td class="text-center text-muted py-4">Tidak ada siswa yang cocok.</td></tr></tbody>'; rnView = { head: [], body: [], foot: [] }; return; }
-      if (!juduls.length) { document.getElementById('rnTable').innerHTML = '<tbody><tr><td class="text-center text-muted py-4">Belum ada nilai yang diinput untuk pilihan ini.</td></tr></tbody>'; rnView = { head: [], body: [], foot: [] }; return; }
-      const head = ['No', 'Nama', 'NIS', 'Rombel', ...juduls, 'Rata-rata'];
-      const body = rows.map((r, i) => [i + 1, r.s.nama, r.s.id, r.s.rombel, ...r.vals.map(v => v === null ? '' : v), r.avg === null ? '' : Number(r.avg.toFixed(1))]);
-      const foot = ['', 'Rata-rata', '', '', ...colAvg.map(v => v === null ? '' : Number(v.toFixed(1))), all === null ? '' : Number(all.toFixed(1))];
-      rnView = { head, body, foot };
-      document.getElementById('rnTable').innerHTML =
-        '<thead><tr><th>No</th><th class="rn-nama">Nama</th><th>NIS</th><th>Rombel</th>' + juduls.map(j => `<th title="${escHtml(j)}">${escHtml(j)}</th>`).join('') + '<th>Rata-rata</th></tr></thead><tbody>' +
-        rows.map((r, i) => `<tr><td class="text-center text-muted">${i + 1}</td><td class="rn-nama fw-semibold">${escHtml(r.s.nama)}</td><td class="small text-muted text-center">${escHtml(r.s.id)}</td><td class="text-center small">${escHtml(r.s.rombel)}</td>` +
-          r.vals.map((v, k) => { const c = r.m[juduls[k]]; return v === null ? '<td class="text-center text-muted">-</td>' : `<td class="text-center fw-bold ${nilaiColor(v)}" ${c && c.catatan ? `title="${escHtml(c.catatan)}"` : ''}>${fmt(v)}${c && c.catatan ? '<i class="fa-solid fa-comment-dots ms-1 text-muted" style="font-size:.6rem"></i>' : ''}</td>`; }).join('') +
-          `<td class="text-center fw-bold ${r.avg === null ? 'text-muted' : nilaiColor(r.avg)}">${r.avg === null ? '-' : r.avg.toFixed(1)}</td></tr>`).join('') +
-        '</tbody><tfoot><tr><td></td><td class="rn-nama">Rata-rata</td><td></td><td></td>' + colAvg.map(v => `<td>${v === null ? '-' : v.toFixed(1)}</td>`).join('') + `<td>${all === null ? '-' : all.toFixed(1)}</td></tr></tfoot>`;
-    }
-    function rnRows() { return rnView.body.length ? [rnView.head, ...rnView.body, rnView.foot] : []; }
-    function unduhRekapNilai() {
-      const data = rnRows(); if (!data.length) { Popup.error('Belum ada data untuk diunduh.'); return; }
-      const csv = '\uFEFF' + data.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(';')).join('\r\n');
-      const rb = document.getElementById('rnRombel').value || 'semua-rombel';
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-      a.download = 'rekap-nilai-' + rb + '.csv';
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    }
-    async function salinRekapNilai() {
-      const data = rnRows(); if (!data.length) { Popup.error('Belum ada data untuk disalin.'); return; }
-      const tsv = data.map(r => r.join('\t')).join('\n');
-      try { await navigator.clipboard.writeText(tsv); }
-      catch (e) { const t = document.createElement('textarea'); t.value = tsv; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
-      showSuccessModal('Tersalin', 'Tabel nilai sudah disalin. Tempel (Ctrl+V) di Excel atau Google Sheets.');
-    }
-
-    // ==================== PANEL GURU: SEMBUNYIKAN / TAMPILKAN ====================
-    function applyAdminPanelState() {
-      const p = document.getElementById('adminPanel'); if (!p) return;
-      let hidden = false;
-      try { hidden = localStorage.getItem('lms_admin_panel_hidden') === '1'; } catch (e) {}
-      p.classList.toggle('panel-collapsed', hidden);
-      const b = document.getElementById('btnTogglePanel');
-      if (b) b.innerHTML = hidden ? '<i class="fa-solid fa-eye me-1"></i><span>Tampilkan</span>' : '<i class="fa-solid fa-eye-slash me-1"></i><span>Sembunyikan</span>';
-    }
-    function toggleAdminPanel() {
-      const p = document.getElementById('adminPanel'); if (!p) return;
-      try { localStorage.setItem('lms_admin_panel_hidden', p.classList.contains('panel-collapsed') ? '0' : '1'); } catch (e) {}
-      applyAdminPanelState();
-    }
-    applyAdminPanelState();
-
     function showDashboard() {
       if (!currentUser.token) { logout(); return; } // sesi lama tanpa token -> login ulang
       document.getElementById('loginSection').classList.add('d-none');
@@ -1677,8 +1682,6 @@
       
       document.getElementById('userDisplayName').textContent = currentUser.name;
       refreshPengumumanBadge();
-      startPresence();
-      checkPengumumanPopup();
       document.getElementById('userAvatarHeader').textContent = initial;
 
       if (currentUser.role === 'admin') {
@@ -1692,18 +1695,14 @@
         document.getElementById('item-VII').style.display = 'block';
         document.getElementById('item-VIII').style.display = 'block';
         document.getElementById('item-IX').style.display = 'block';
-        document.querySelectorAll('.menu-ekskul-item').forEach(el => el.style.display = 'block');
 
         document.getElementById('adminPanel').classList.remove('d-none');
-        applyAdminPanelState();
         loadContent('ALL');
         setTimeout(() => { swr('getRekapTugasData', { userRole: 'admin' }, () => {}).catch(() => {}); }, 2000); // siapkan rekap di latar belakang
         setTimeout(() => { swr('getSiswaList', {}, () => {}).catch(() => {}); swr('getSesiAbsenAdmin', {}, () => {}).catch(() => {}); }, 3500);
       } else {
         const userClass = currentUser.userClass.toString().trim().toUpperCase();
         const userRombel = currentUser.userRombel ? currentUser.userRombel.toString().trim() : '';
-        const userEkskul = (currentUser.userEkskul || '').toString().trim().toUpperCase();
-        const ekskulSiswa = userEkskul.split(/[,;]/).map(s => s.trim()).filter(Boolean);
 
         document.getElementById('profileClassBadge').textContent = `Kelas ${userClass}`;
         if (userRombel) {
@@ -1713,7 +1712,7 @@
           document.getElementById('profileRombelBadge').style.display = 'none';
         }
 
-        document.getElementById('userRoleBadge').textContent = `Siswa Kelas ${userClass} ${userRombel ? '(' + userRombel + ')' : ''}${userEkskul ? ' · Ekskul ' + userEkskul : ''}`;
+        document.getElementById('userRoleBadge').textContent = `Siswa Kelas ${userClass} ${userRombel ? '(' + userRombel + ')' : ''}`;
         document.getElementById('adminPanel').classList.add('d-none');
 
         document.querySelector('.menu-admin-item').style.display = 'none';
@@ -1721,8 +1720,6 @@
         document.getElementById('item-VII').style.display = (userClass === 'VII') ? 'block' : 'none';
         document.getElementById('item-VIII').style.display = (userClass === 'VIII') ? 'block' : 'none';
         document.getElementById('item-IX').style.display = (userClass === 'IX') ? 'block' : 'none';
-        document.querySelectorAll('.menu-ekskul-item').forEach(el => el.style.display = 'none');
-        if (ekskulSiswa.includes('KODING')) document.querySelectorAll('.menu-ekskul-item').forEach(el => el.style.display = 'block');
 
         loadContent(userClass);
         // siapkan menu lain di latar belakang agar saat dibuka langsung tampil
@@ -1744,7 +1741,7 @@
 
       document.getElementById('pageTitle').textContent = selectedClass === 'ALL' 
         ? 'Ruang Kelas Digital (Semua Kelas)' 
-        : (selectedClass === 'KODING' ? 'Ruang Ekskul Koding' : `Ruang Kelas Digital - Kelas ${selectedClass}`);
+        : `Ruang Kelas Digital - Kelas ${selectedClass}`;
 
       if (!swrPeek('getLmsData', { selectedClass })) {
         document.getElementById('materiContainer').innerHTML = `<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat materi...</div>`;
@@ -2052,7 +2049,7 @@
         tContainer.innerHTML = data.tugas.map(item => {
           itemRegistry[item.id] = item;
           let btnClass = "btn-outline-success", btnIcon = "fa-paper-plane", btnText = "Buka Pengumpulan";
-          if (item.tipeLink === "portal") { btnClass = "btn-success text-white fw-bold"; btnIcon = "fa-upload"; btnText = "Kirim Tugas Ke Portal"; }
+          if (item.tipeLink === "portal") { btnClass = "btn-success text-white fw-bold"; btnIcon = "fa-upload"; btnText = "Kumpulkan Tugas"; }
           else if (item.tipeLink === "meet") { btnClass = "btn-outline-danger"; btnIcon = "fa-video"; btnText = "Gabung Diskusi Rapat Virtual"; }
           else if (item.tipeLink === "custom" && item.labelCustom) { btnClass = "btn-outline-dark"; btnIcon = "fa-arrow-up-right-from-square"; btnText = item.labelCustom; }
           return `
@@ -2066,9 +2063,11 @@
                 <i class="fa-regular fa-clock me-1"></i> Tenggat: ${escHtml(item.deadline)}
               </p>
               <div>
-                <a href="${escHtml(safeUrl(item.link))}" target="_blank" rel="noopener" class="btn btn-sm ${btnClass}">
+                ${(item.tipeLink === "portal" && !isAdmin)
+                  ? `<button type="button" class="btn btn-sm ${btnClass}" data-judul="${escHtml(item.judul)}" onclick="openUploadView(this.dataset.judul)"><i class="fa-solid ${btnIcon} me-1"></i> ${escHtml(btnText)}</button>`
+                  : `<a href="${escHtml(safeUrl(item.link))}" target="_blank" rel="noopener" class="btn btn-sm ${btnClass}">
                   <i class="fa-solid ${btnIcon} me-1"></i> ${escHtml(btnText)}
-                </a>
+                </a>`}
               </div>
             </div>`;
         }).join('');
@@ -2230,10 +2229,10 @@
     function hideNilaiViews() {
       document.getElementById('nilaiSayaSection').classList.add('d-none');
       document.getElementById('inputNilaiSection').classList.add('d-none');
-      document.getElementById('rekapNilaiSection').classList.add('d-none');
       document.getElementById('pengumumanSection').classList.add('d-none');
       document.getElementById('absenSiswaSection').classList.add('d-none');
       document.getElementById('absenAdminSection').classList.add('d-none');
+      document.getElementById('uploadTugasSection').classList.add('d-none');
     }
     function showOnlyNilaiView(sectionId, menuId, title) {
       closeSidebar();
@@ -2748,7 +2747,7 @@
     }
 
     // ==================== PENGUMUMAN / BROADCAST ====================
-    function kelasLabel(k) { return k === 'SEMUA' ? 'SEMUA KELAS' : (k === 'KODING' ? 'EKSKUL KODING' : 'KELAS ' + k); }
+    function kelasLabel(k) { return k === 'SEMUA' ? 'SEMUA KELAS' : 'KELAS ' + k; }
     function seenKey() { return 'lms_pengumuman_seen_' + (currentUser ? currentUser.username : ''); }
     function idTime(id) { return Number(String(id).replace(/\D/g, '')) || 0; }
 
@@ -2780,7 +2779,7 @@
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-start gap-2">
                 <div>
-                  <span class="badge bg-${p.target === 'SEMUA' ? 'primary' : 'info text-dark'} me-1">${p.target === 'SEMUA' ? 'Semua Siswa' : (p.target === 'KODING' ? 'Ekskul Koding' : 'Kelas ' + escHtml(p.target))}</span>
+                  <span class="badge bg-${p.target === 'SEMUA' ? 'primary' : 'info text-dark'} me-1">${p.target === 'SEMUA' ? 'Semua Siswa' : 'Kelas ' + escHtml(p.target)}</span>
                   ${idTime(p.id) > seenBefore && !isAdmin ? '<span class="badge bg-danger">Baru</span>' : ''}
                   <h6 class="fw-bold text-dark mt-2 mb-1">${escHtml(p.judul)}</h6>
                 </div>
@@ -2888,7 +2887,7 @@
           if (!res || !res.success) return;
           const sel = document.getElementById('absenTarget'), cur = sel.value;
           sel.innerHTML =
-            '<option value="SEMUA">Semua Siswa</option><option value="VII">Kelas VII</option><option value="VIII">Kelas VIII</option><option value="IX">Kelas IX</option><option value="KODING">Ekskul Koding</option>' +
+            '<option value="SEMUA">Semua Siswa</option><option value="VII">Kelas VII</option><option value="VIII">Kelas VIII</option><option value="IX">Kelas IX</option>' +
             (res.rombelList.length ? '<optgroup label="Per Rombel">' + res.rombelList.map(r => `<option value="${escHtml(r)}">${escHtml(r)}</option>`).join('') + '</optgroup>' : '');
           if (cur) sel.value = cur;
           absenTargetReady = true;
@@ -2999,93 +2998,380 @@
       sel.disabled = false;
     }
 
-    // ==================== ONLINE (PRESENCE) & POPUP PESAN BARU ====================
-    const PING_MS = 90000;           // kirim "saya online" tiap 90 detik (hanya saat tab terlihat)
-    let pingTimer = null, lastPv = null, popupBusy = false;
+    // ==================== KUMPULKAN TUGAS (SISWA) — tergabung dari Portal Upload Tugas ====================
+    // Backend penerima upload (Apps Script terpisah: menyimpan file ke Drive & mencatat ke tab "Pengumpulan Tugas")
+    const UPLOAD_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwhezv8JbyAyZbMvABKjmgwSstIDEVlv5JXv54gMqjOWcTWSCTs099OK7ShFNADrI2y/exec';
 
-    function startPresence() {
-      stopPresence();
-      doPing();
-      pingTimer = setInterval(() => { if (!document.hidden) doPing(); }, PING_MS);
+    let utMode = 'file', utPhotos = [], utBusy = false, utWantJudul = '';
+    let utCamStream = null, utCamFacing = 'environment', utCamShots = [], utDragSrc = null;
+    let utCompressOn = true, utTargetKb = 700, utJsPdfPromise = null;
+    const utEl = id => document.getElementById(id);
+    const utVal = id => (utEl(id) && utEl(id).value || '').trim();
+
+    function utLoadJsPdf() {
+      if (window.jspdf) return Promise.resolve();
+      if (!utJsPdfPromise) utJsPdfPromise = new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        s.onload = res;
+        s.onerror = () => { utJsPdfPromise = null; rej(new Error('Gagal memuat pustaka PDF. Periksa koneksi internet lalu coba lagi.')); };
+        document.head.appendChild(s);
+      });
+      return utJsPdfPromise;
     }
-    function stopPresence() {
-      if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
-      lastPv = null;
-      const chip = document.getElementById('onlineChip'); if (chip) chip.classList.add('d-none');
+
+    // ----- Tampilan -----
+    function utShow(which) {   // 'form' | 'loading' | 'success' | 'error'
+      [['utForm', 'form'], ['utLoading', 'loading'], ['utSuccess', 'success'], ['utError', 'error']]
+        .forEach(([id, k]) => utEl(id).classList.toggle('d-none', k !== which));
     }
-    async function doPing() {
-      if (!currentUser) return;
+    function utBackToForm() { utShow('form'); }
+
+    function openUploadView(prefillJudul) {
+      if (!currentUser || currentUser.role === 'admin') return;
+      showOnlyNilaiView('uploadTugasSection', 'menu-UPLOAD', 'Kumpulkan Tugas');
+      if (!utBusy) utShow('form');
+      utWantJudul = (typeof prefillJudul === 'string' && prefillJudul) ? prefillJudul : '';
+      utInitIdentity();
+      utLoadTugasOptions();
+    }
+
+    function utKelasOptions() {
+      const g = { VII: '7', VIII: '8', IX: '9' }[(currentUser.userClass || '').toString().trim().toUpperCase()];
+      const grades = g ? [g] : ['7', '8', '9'];
+      const out = [];
+      grades.forEach(x => [...(x === '7' ? 'ABCDEFGH' : 'ABCDEFG')].forEach(l => out.push(x + l)));
+      return out;
+    }
+    function utKelasValue() {
+      const rom = (currentUser.userRombel || '').toString().trim();
+      return rom || utVal('utKelasSel');
+    }
+    function utInitIdentity() {
+      utEl('utIdNama').textContent = currentUser.name;
+      const rom = (currentUser.userRombel || '').toString().trim();
+      const kEl = utEl('utIdKelas'), sel = utEl('utKelasSel');
+      if (rom) { kEl.textContent = rom; kEl.classList.remove('d-none'); sel.classList.add('d-none'); }
+      else {
+        kEl.classList.add('d-none'); sel.classList.remove('d-none');
+        sel.innerHTML = '<option value="">Pilih kelas</option>' + utKelasOptions().map(k => `<option>${k}</option>`).join('');
+      }
+      const absen = utEl('utAbsen');
+      if (absen.dataset.user !== currentUser.username) {   // akun berbeda di perangkat yang sama -> jangan pakai isian lama
+        absen.dataset.user = currentUser.username;
+        let saved = ''; try { saved = localStorage.getItem('lms_absen_' + currentUser.username) || ''; } catch (e) {}
+        absen.value = saved;
+      }
+    }
+
+    function utLoadTugasOptions() {
+      const cls = currentUser.userClass.toString().trim().toUpperCase();
+      const sel = utEl('utJudulSel');
+      const fill = (res) => {
+        const tugas = (res && res.success && res.data && res.data.tugas) || [];
+        const portal = tugas.filter(t => t.tipeLink === 'portal');
+        const list = portal.length ? portal : tugas;
+        const want = utWantJudul || (sel.value && sel.value !== '__lain' ? sel.value : '');
+        const titles = list.map(t => t.judul);
+        if (want && !titles.includes(want)) titles.unshift(want);
+        const deadline = {}; list.forEach(t => { deadline[t.judul] = t.deadline; });
+        sel.innerHTML = '<option value="">Pilih tugas...</option>' +
+          titles.map(t => `<option value="${escHtml(t)}">${escHtml(t)}${deadline[t] ? ' — tenggat ' + escHtml(deadline[t]) : ''}</option>`).join('') +
+          '<option value="__lain">✏️ Judul lain (ketik sendiri)</option>';
+        if (want) sel.value = want;
+        utOnJudulChange();
+      };
+      fill(null);   // langsung tampilkan opsi dasar, daftar tugas menyusul dari cache/server
+      swr('getLmsData', { selectedClass: cls }, res => fill(res)).catch(() => {});
+    }
+    function utOnJudulChange() {
+      utEl('utJudulManual').classList.toggle('d-none', utEl('utJudulSel').value !== '__lain');
+    }
+    function utGetJudul() {
+      return utEl('utJudulSel').value === '__lain' ? utVal('utJudulManual') : utEl('utJudulSel').value;
+    }
+
+    function utSwitch(mode) {
+      utMode = mode;
+      ['file', 'photo', 'link'].forEach(m => {
+        const cap = m[0].toUpperCase() + m.slice(1);
+        utEl('utTab' + cap).classList.toggle('active', m === mode);
+        utEl('utPanel' + cap).classList.toggle('d-none', m !== mode);
+      });
+      utEl('utSubmitLabel').textContent = { file: 'Kirim Tugas', photo: 'Konversi & Kirim PDF', link: 'Kirim Link' }[mode];
+      utEl('utSubmitBtn').className = 'btn w-100 fw-bold py-2 mt-3 ' + { file: 'btn-primary', photo: 'btn-warning text-white', link: 'btn-success' }[mode];
+    }
+
+    // ----- Mode: upload file -----
+    (function utInitFile() {
+      const drop = utEl('utDrop'), input = utEl('utFileInput'), pill = utEl('utFilePill'), idle = utEl('utDropIdle');
+      drop.addEventListener('click', e => { if (!e.target.closest('#utFilePill')) input.click(); });
+      input.addEventListener('change', handle);
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }));
+      ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, () => drop.classList.add('dragover')));
+      ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, () => drop.classList.remove('dragover')));
+      drop.addEventListener('drop', e => { input.files = e.dataTransfer.files; handle(); });
+      function handle() {
+        const f = input.files[0]; if (!f) return;
+        if (f.size > 10 * 1024 * 1024) { Popup.warning('File terlalu besar. Ukuran maksimal 10 MB.', 'File Terlalu Besar'); input.value = ''; return; }
+        utEl('utFileName').textContent = f.name;
+        utEl('utFileSize').textContent = (f.size / 1048576).toFixed(2) + ' MB';
+        idle.classList.add('d-none'); pill.classList.add('show');
+      }
+      utEl('utFileRemove').addEventListener('click', e => { e.stopPropagation(); input.value = ''; idle.classList.remove('d-none'); pill.classList.remove('show'); });
+    })();
+
+    // ----- Mode: foto -> PDF -----
+    (function utInitPhoto() {
+      const pIn = utEl('utPhotoInput'), cIn = utEl('utCameraInput'), drop = utEl('utPhotoDrop');
+      pIn.addEventListener('change', () => { utAddPhotos(Array.from(pIn.files)); pIn.value = ''; });
+      cIn.addEventListener('change', () => { utAddPhotos(Array.from(cIn.files)); cIn.value = ''; });
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }));
+      ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, () => drop.classList.add('dragover')));
+      ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, () => drop.classList.remove('dragover')));
+      drop.addEventListener('drop', e => utAddPhotos(Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'))));
+    })();
+
+    function utReadFile(f) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); }); }
+    function utLoadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Foto tidak dapat dibaca. Coba foto lain.')); i.src = src; }); }
+
+    async function utAddPhotos(files) {
+      for (const f of files) {
+        try { utPhotos.push({ dataURL: await utReadFile(f) }); }
+        catch (e) { Popup.error('Salah satu foto gagal dibaca: ' + f.name); }
+      }
+      utRenderGrid();
+    }
+    function utRenderGrid() {
+      const grid = utEl('utPhotoGrid');
+      utEl('utPhotoCount').textContent = utPhotos.length;
+      utEl('utPhotoWrap').classList.toggle('d-none', !utPhotos.length);
+      grid.innerHTML = '';
+      utPhotos.forEach((item, i) => {
+        const d = document.createElement('div');
+        d.className = 'ut-thumb'; d.draggable = true;
+        d.innerHTML = `<img alt=""><span class="ut-num">${i + 1}</span><button type="button" class="ut-del" title="Hapus foto"><i class="fa-solid fa-xmark"></i></button>`;
+        d.querySelector('img').src = item.dataURL;
+        d.querySelector('.ut-del').addEventListener('click', e => { e.stopPropagation(); utPhotos.splice(i, 1); utRenderGrid(); });
+        d.addEventListener('dragstart', e => { utDragSrc = i; d.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+        d.addEventListener('dragover', e => { e.preventDefault(); grid.querySelectorAll('.ut-thumb').forEach(x => x.classList.remove('drag-over')); d.classList.add('drag-over'); });
+        d.addEventListener('drop', e => { e.preventDefault(); if (utDragSrc === null || utDragSrc === i) return; const m = utPhotos.splice(utDragSrc, 1)[0]; utPhotos.splice(i, 0, m); utDragSrc = null; utRenderGrid(); });
+        d.addEventListener('dragend', () => grid.querySelectorAll('.ut-thumb').forEach(x => x.classList.remove('dragging', 'drag-over')));
+        grid.appendChild(d);
+      });
+      const add = document.createElement('div');
+      add.className = 'ut-add';
+      add.innerHTML = '<i class="fa-solid fa-plus"></i><span>Tambah</span>';
+      add.onclick = () => utEl('utPhotoInput').click();
+      grid.appendChild(add);
+    }
+    function utClearPhotos() { utPhotos = []; utRenderGrid(); }
+
+    // ----- Kamera -----
+    async function utOpenCamera() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { utEl('utCameraInput').click(); return; }
+      utCamShots = []; utUpdateCamUI();
+      utEl('utCam').classList.add('show');
+      await utStartStream();
+    }
+    async function utStartStream() {
       try {
-        const r = await callApi('ping', {});
-        if (!currentUser || !r || !r.success) return;
-        renderOnline(r.online);
-        // versi pengumuman berubah = ada pesan baru dari guru saat siswa sedang membuka LMS
-        if (lastPv !== null && r.pv !== lastPv && currentUser.role !== 'admin') { refreshPengumumanBadge(); checkPengumumanPopup(); }
-        lastPv = r.pv;
-      } catch (e) {}
+        if (utCamStream) utCamStream.getTracks().forEach(t => t.stop());
+        utCamStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: utCamFacing, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+        utEl('utCamVideo').srcObject = utCamStream;
+      } catch (err) {
+        utCloseCamera();
+        utEl('utCameraInput').click();   // cadangan: kamera bawaan perangkat
+      }
     }
-    document.addEventListener('visibilitychange', () => { if (!document.hidden && currentUser) doPing(); });
+    async function utFlipCamera() { utCamFacing = utCamFacing === 'environment' ? 'user' : 'environment'; await utStartStream(); }
+    function utCapture() {
+      const v = utEl('utCamVideo'), c = utEl('utCamCanvas'), fl = utEl('utCamFlash');
+      fl.classList.add('on'); setTimeout(() => fl.classList.remove('on'), 150);
+      c.width = v.videoWidth || 1280; c.height = v.videoHeight || 720;
+      c.getContext('2d').drawImage(v, 0, 0);
+      utCamShots.push(c.toDataURL('image/jpeg', 0.92));
+      utUpdateCamUI();
+    }
+    function utUpdateCamUI() {
+      const n = utCamShots.length, strip = utEl('utCamStrip');
+      utEl('utCamBadge').textContent = n + ' foto';
+      utEl('utCamBadge').classList.toggle('d-none', n === 0);
+      utEl('utCamDone').style.display = n ? '' : 'none';
+      strip.innerHTML = '';
+      utCamShots.forEach(u => { const im = document.createElement('img'); im.src = u; im.alt = ''; strip.appendChild(im); });
+      if (n) strip.scrollLeft = strip.scrollWidth;
+    }
+    function utDoneCamera() { const shots = utCamShots; utCamShots = []; utCloseCamera(); shots.forEach(u => utPhotos.push({ dataURL: u })); utRenderGrid(); }
+    function utCloseCamera() {
+      if (utCamStream) { utCamStream.getTracks().forEach(t => t.stop()); utCamStream = null; }
+      utEl('utCamVideo').srcObject = null;
+      utEl('utCam').classList.remove('show');
+      utEl('utCamStrip').innerHTML = '';
+    }
 
-    function renderOnline(o) {
-      const chip = document.getElementById('onlineChip');
-      if (!o || !chip) return;
-      document.getElementById('onlineCount').textContent = o.total;
-      chip.title = 'Siswa ' + o.siswa + ' • Guru ' + o.guru;
-      chip.classList.toggle('readonly', !currentUser || currentUser.role !== 'admin');   // detail nama hanya untuk guru
-      chip.classList.remove('d-none');
+    // ----- Kompresi -----
+    function utKbLabel(kb) { return kb >= 1024 ? (kb / 1024).toFixed(0) + ' MB' : kb + ' KB'; }
+    function utSetCompressLabel() {
+      utEl('utCompressLabel').innerHTML = utCompressOn
+        ? `<i class="fa-solid fa-circle-check me-1"></i>Target: ≤ ${utKbLabel(utTargetKb)} per foto`
+        : '<i class="fa-solid fa-ban me-1"></i>Kompresi dimatikan';
+      utEl('utCompressLabel').className = 'small ' + (utCompressOn ? 'text-success' : 'text-muted');
+    }
+    function utOnCompressToggle() {
+      utCompressOn = utEl('utCompressToggle').checked;
+      const c = utEl('utCompressCtrl');
+      c.style.opacity = utCompressOn ? '1' : '.4'; c.style.pointerEvents = utCompressOn ? '' : 'none';
+      utSetCompressLabel();
+    }
+    function utSelectChip(btn, kb) {
+      document.querySelectorAll('#utCompressCtrl .ut-chip').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active'); utTargetKb = kb;
+      utEl('utCustomRow').classList.add('d-none'); utEl('utCustomRow').classList.remove('d-flex');
+      utSetCompressLabel();
+    }
+    function utFocusCustom(btn) {
+      document.querySelectorAll('#utCompressCtrl .ut-chip').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      utEl('utCustomRow').classList.remove('d-none'); utEl('utCustomRow').classList.add('d-flex');
+      utEl('utCustomKb').focus();
+    }
+    function utOnCustomKb() {
+      const v = parseInt(utEl('utCustomKb').value);
+      if (v >= 50) { utTargetKb = v; utSetCompressLabel(); }
+    }
+    async function utCompressImage(dataURL, targetKb) {
+      const img = await utLoadImg(dataURL);
+      const cv = document.createElement('canvas'), MAX = 2480;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) { if (w > h) { h = Math.round(h * MAX / w); w = MAX; } else { w = Math.round(w * MAX / h); h = MAX; } }
+      cv.width = w; cv.height = h;
+      const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(img, 0, 0, w, h);
+      const tb = targetKb * 1024;
+      let lo = 0.1, hi = 0.95, best = null;
+      for (let i = 0; i < 8; i++) {
+        const mid = (lo + hi) / 2, d = cv.toDataURL('image/jpeg', mid);
+        if (Math.round((d.length - 22) * 3 / 4) <= tb) { best = d; lo = mid; } else { hi = mid; }
+        if (hi - lo < 0.01) break;
+      }
+      if (!best) {   // kualitas minimum pun masih terlalu besar -> perkecil dimensi
+        const sc = Math.sqrt(tb / (w * h * 3));
+        const sw = Math.max(200, Math.round(w * sc)), sh = Math.max(200, Math.round(h * sc));
+        cv.width = sw; cv.height = sh;
+        const c2 = cv.getContext('2d'); c2.fillStyle = '#fff'; c2.fillRect(0, 0, sw, sh); c2.drawImage(img, 0, 0, sw, sh);
+        best = cv.toDataURL('image/jpeg', 0.7);
+      }
+      return best;
+    }
+    async function utToJpeg(dataURL) {   // tanpa kompresi: cukup seragamkan format ke JPEG kualitas tinggi
+      const img = await utLoadImg(dataURL);
+      const cv = document.createElement('canvas'), MAX = 2480;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) { if (w > h) { h = Math.round(h * MAX / w); w = MAX; } else { w = Math.round(w * MAX / h); h = MAX; } }
+      cv.width = w; cv.height = h;
+      const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(img, 0, 0, w, h);
+      return cv.toDataURL('image/jpeg', 0.95);
     }
 
-    async function openOnlineList() {
-      if (!currentUser || currentUser.role !== 'admin') return;
-      bootstrap.Modal.getOrCreateInstance(document.getElementById('onlineModal')).show();
-      loadOnlineList();
+    async function utBuildPdf(onProgress) {
+      await utLoadJsPdf();
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
+      const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 20;
+      for (let i = 0; i < utPhotos.length; i++) {
+        onProgress(i, utPhotos.length);
+        await new Promise(r => setTimeout(r, 0));   // beri kesempatan layar memperbarui progres
+        if (i > 0) doc.addPage();
+        const jpeg = utCompressOn ? await utCompressImage(utPhotos[i].dataURL, utTargetKb) : await utToJpeg(utPhotos[i].dataURL);
+        const img = await utLoadImg(jpeg);
+        let dw = W - M * 2, dh = (img.height / img.width) * dw;
+        const maxH = H - M * 2;
+        if (dh > maxH) { dh = maxH; dw = (img.width / img.height) * dh; }
+        doc.addImage(jpeg, 'JPEG', (W - dw) / 2, (H - dh) / 2, dw, dh);
+      }
+      return doc.output('datauristring');
     }
-    async function loadOnlineList() {
-      const box = document.getElementById('onlineBody');
-      box.innerHTML = '<div class="text-muted small py-3"><span class="spinner-border spinner-border-sm me-2"></span>Memuat...</div>';
+
+    // ----- Kirim -----
+    function utWarn(label, focusId) {
+      Popup.warning(label + ' wajib diisi dengan benar.', 'Data Belum Lengkap').then(() => { const el = utEl(focusId); if (el) el.focus(); });
+    }
+    function utProgress(p, txt) {
+      utEl('utProgress').style.width = p + '%';
+      if (txt) utEl('utStatusText').textContent = txt;
+    }
+    const utToB64 = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
+
+    async function utSubmit() {
+      if (utBusy || !currentUser || currentUser.role === 'admin') return;
+      const absen = utVal('utAbsen'), kelas = utKelasValue(), judul = utGetJudul(), notes = utVal('utNotes');
+      if (!absen || !(parseInt(absen) >= 1)) return utWarn('No. Absen', 'utAbsen');
+      if (!kelas) return utWarn('Kelas', 'utKelasSel');
+      if (!judul) return utWarn('Judul Tugas', utEl('utJudulSel').value === '__lain' ? 'utJudulManual' : 'utJudulSel');
+
+      const payload = { mode: utMode === 'photo' ? 'photo_pdf' : utMode, fullName: currentUser.name, nis: currentUser.username, absentNumber: absen, kelas: kelas, taskTitle: judul, notes: notes };
+      let linkShown = '';
+
+      if (utMode === 'file') {
+        const f = utEl('utFileInput').files[0];
+        if (!f) return Popup.warning('Pilih file tugas terlebih dahulu.', 'File Belum Dipilih');
+      } else if (utMode === 'photo') {
+        if (!utPhotos.length) return Popup.warning('Pilih atau foto minimal 1 lembar tugas.', 'Foto Belum Dipilih');
+      } else {
+        const link = utVal('utLink');
+        if (!/^https?:\/\/\S+$/i.test(link)) return utWarn('Link Tugas (harus diawali https://)', 'utLink');
+        payload.taskLink = link; linkShown = link;
+      }
+
+      try { localStorage.setItem('lms_absen_' + currentUser.username, absen); } catch (e) {}
+      utBusy = true; utShow('loading'); utProgress(10, 'Menyiapkan...');
       try {
-        const r = await callApi('getOnlineList', {});
-        if (!r || !r.success) { box.innerHTML = '<div class="text-danger small">' + escHtml(r ? r.message : 'Gagal memuat') + '</div>'; return; }
-        renderOnline(r);
-        const rows = arr => arr.map(x => `<div class="online-row"><span>${escHtml(x.nama)}</span>${x.kelas ? `<span class="badge bg-light text-dark border">${escHtml(x.kelas)}</span>` : ''}</div>`).join('');
-        const guru = r.list.filter(x => x.role === 'admin'), siswa = r.list.filter(x => x.role !== 'admin');
-        box.innerHTML =
-          `<div class="d-flex gap-2 mb-3"><span class="badge bg-success">Total ${r.total}</span><span class="badge bg-primary">Siswa ${r.siswa}</span><span class="badge bg-secondary">Guru ${r.guru}</span></div>` +
-          (guru.length ? `<div class="fw-bold small text-secondary mb-1">Guru</div>${rows(guru)}` : '') +
-          (siswa.length ? `<div class="fw-bold small text-secondary mt-3 mb-1">Siswa</div>${rows(siswa)}` : '') +
-          (!r.list.length ? '<div class="text-muted small">Belum ada yang online.</div>' : '');
-      } catch (err) { box.innerHTML = '<div class="text-danger small">' + escHtml(err.message) + '</div>'; }
+        if (utMode === 'file') {
+          const f = utEl('utFileInput').files[0];
+          utProgress(25, 'Mengolah dokumen...');
+          payload.fileData = await utToB64(f); payload.fileName = f.name;
+        } else if (utMode === 'photo') {
+          payload.fileData = await utBuildPdf((i, n) => utProgress(15 + Math.round((i / n) * 50), (utCompressOn ? 'Mengompresi' : 'Memproses') + ' foto ' + (i + 1) + ' dari ' + n + '...'));
+          payload.fileName = judul.replace(/\s+/g, '_') + '_' + currentUser.name.replace(/\s+/g, '_') + '.pdf';
+        } else {
+          utProgress(40, 'Menyimpan data...');
+        }
+        utProgress(75, utMode === 'link' ? 'Menyimpan data...' : 'Mengunggah...');
+        await fetch(UPLOAD_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+        utProgress(100, 'Selesai!');
+        await sleep(500);
+        utShowSuccess({ mode: payload.mode, nama: currentUser.name, absen, kelas, judul, link: linkShown, notes });
+      } catch (err) {
+        utEl('utErrorMsg').textContent = (err instanceof TypeError) ? 'Koneksi internet terputus atau tidak stabil. Periksa jaringan Anda, lalu coba lagi.' : (err.message || 'Terjadi kesalahan.');
+        utShow('error');
+      } finally { utBusy = false; }
     }
 
-    // Popup otomatis bila ada pengumuman/broadcast baru (saat login, buka ulang, atau saat guru mengirim ketika siswa sedang online)
-    function popupKey() { return 'lms_pengumuman_popup_' + (currentUser ? currentUser.username : ''); }
-    async function checkPengumumanPopup() {
-      if (!currentUser || currentUser.role === 'admin' || popupBusy) return;
-      popupBusy = true;
-      try {
-        const res = await callApi('getPengumuman', {});
-        if (!currentUser || !res || !res.success) return;
-        const seen = Number(localStorage.getItem(seenKey()) || 0);
-        const shown = Number(localStorage.getItem(popupKey()) || 0);
-        const batas = Math.max(seen, shown, Date.now() - 7 * 86400000);   // pesan lama (>7 hari) tidak dimunculkan sebagai popup
-        const baru = res.data.filter(p => idTime(p.id) > batas);
-        if (!baru.length) return;
-        localStorage.setItem(popupKey(), Math.max(...baru.map(p => idTime(p.id))));
-        const satu = baru.length === 1;
-        const text = satu
-          ? baru[0].judul + '\n\n' + (baru[0].isi.length > 220 ? baru[0].isi.slice(0, 220) + '…' : baru[0].isi)
-          : baru.slice(0, 4).map(p => '• ' + p.judul).join('\n') + (baru.length > 4 ? '\n• …dan ' + (baru.length - 4) + ' lainnya' : '');
-        const r = await Popup.fire({
-          type: 'info', showCancel: true,
-          title: satu ? 'Pesan Baru dari ' + (baru[0].pengirim || 'Guru') : baru.length + ' Pesan Baru dari Guru',
-          text, confirmText: 'Baca Sekarang', cancelText: 'Nanti'
-        });
-        if (r && r.confirmed && currentUser) openPengumumanView();
-      } catch (e) {} finally { popupBusy = false; }
+    function utShowSuccess(i) {
+      const badge = { file: ['primary', 'fa-file-arrow-up', 'Upload File'], photo_pdf: ['warning text-dark', 'fa-camera', 'Foto → PDF'], link: ['success', 'fa-link', 'Kirim Link'] }[i.mode];
+      utEl('utSumBadge').innerHTML = `<span class="badge bg-${badge[0]}"><i class="fa-solid ${badge[1]} me-1"></i>${badge[2]}</span>`;
+      utEl('utSumNama').textContent = i.nama; utEl('utSumAbsen').textContent = i.absen;
+      utEl('utSumKelas').textContent = i.kelas; utEl('utSumJudul').textContent = i.judul;
+      utEl('utSumLink').textContent = i.link; utEl('utSumLinkRow').classList.toggle('d-none', !i.link);
+      utEl('utSumNotes').textContent = i.notes; utEl('utSumNotesRow').classList.toggle('d-none', !i.notes);
+      utShow('success');
+    }
+
+    function utReset() {   // kosongkan isian tugas (No. Absen tetap) lalu tampilkan form
+      utEl('utFileInput').value = ''; utEl('utDropIdle').classList.remove('d-none'); utEl('utFilePill').classList.remove('show');
+      utPhotos = []; utRenderGrid();
+      utEl('utLink').value = ''; utEl('utNotes').value = ''; utEl('utJudulManual').value = '';
+      utEl('utJudulSel').value = ''; utWantJudul = ''; utOnJudulChange();
+      utShow('form');
+    }
+    function utResetAll() {   // dipanggil saat logout: bersihkan semua data siswa sebelumnya
+      utCloseCamera(); utBusy = false; utReset();
+      utEl('utAbsen').value = ''; utEl('utAbsen').dataset.user = '';
+      utSwitch('file');
     }
 
     function logout() {
-      stopPresence();
+      utResetAll();
       swrClear();
       closeSidebar();
       currentUser = null;
