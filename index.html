@@ -562,6 +562,18 @@
     .ut-cam-strip img { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; border: 2px solid rgba(255,255,255,.6); flex-shrink: 0; }
     .ut-cam-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 8; transition: opacity .05s; }
     .ut-cam-flash.on { opacity: .85; }
+
+    /* ==================== SEMBUNYIKAN ITEM + PRESENSI CEPAT ==================== */
+    .item-hidden { opacity: .62; border: 1.5px dashed #a0aec0 !important; background: #f7fafc !important; }
+    .badge-hidden { background: #718096; color: #fff; font-size: .68rem; font-weight: 600; }
+    .btn-admin-action.is-hidden { color: #e53e3e; }
+    .pc-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 4px; border-bottom: 1px solid #edf2f7; flex-wrap: wrap; }
+    .pc-row:last-child { border-bottom: 0; }
+    .pc-name { font-size: .85rem; font-weight: 600; color: #2d3748; min-width: 0; flex: 1 1 150px; }
+    .pc-name small { display: block; font-weight: 400; color: #a0aec0; font-size: .7rem; }
+    .pc-btns { display: flex; gap: 4px; }
+    .pc-btns .btn { min-width: 38px; font-weight: 700; font-size: .74rem; padding: 3px 8px; }
+    .pc-list { max-height: 60vh; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; padding: 2px 10px; }
 </style>
 </head>
 <body>
@@ -1189,6 +1201,21 @@
               <small class="text-muted">Durasi dalam menit. Setelah dibuka, bagikan token ke siswa lewat Zoom / WhatsApp / Meet.</small>
             </form>
           </div></div>
+          <div class="card card-item mb-3 border-start border-warning border-4"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center" style="cursor:pointer" onclick="pcToggle()">
+              <h6 class="fw-bold mb-0" style="color:#dd6b20"><i class="fa-solid fa-bolt me-1"></i> Presensi Cepat <small class="text-muted fw-normal d-block d-sm-inline ms-sm-1">Guru menandai siswa langsung, tanpa token</small></h6>
+              <i class="fa-solid fa-chevron-down text-muted" id="pcChevron"></i>
+            </div>
+            <div id="pcBody" class="d-none mt-3">
+              <div class="row g-2">
+                <div class="col-md-5"><input type="text" id="pcJudul" class="form-control form-control-sm" placeholder="Judul / Pertemuan"></div>
+                <div class="col-md-4 col-8"><select id="pcTarget" class="form-select form-select-sm"></select></div>
+                <div class="col-md-3 col-4"><button type="button" class="btn btn-sm btn-warning text-white fw-bold w-100" onclick="pcMuat()"><i class="fa-solid fa-users me-1"></i> Muat</button></div>
+              </div>
+              <textarea id="pcMateri" class="form-control form-control-sm mt-2" rows="2" maxlength="500" placeholder="Materi / keterangan pertemuan (opsional)"></textarea>
+              <div id="pcList" class="mt-3"></div>
+            </div>
+          </div></div>
           <div class="card card-item mb-3"><div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <h6 class="fw-bold mb-0">Daftar Sesi Presensi</h6>
@@ -1601,7 +1628,7 @@
     let sessionExpiredShown = false;
 
     // URL DEPLOYMENT GOOGLE APPS SCRIPT LMS ANDA
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx4z7wLOtAWUxoqP18-crnLFEVOkuId0P1pqliZsW8MQ1c_s8sPPBLITDpCF0JnT7M/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbytun5kZ_dzk82bC_ssRqB-vHGQzuTpJ2fcxetl5x6oSKpqbmbqaCW6SdEtqP52nulG/exec";
 
     let currentUser = null;
     let currentClassView = 'ALL';
@@ -1650,7 +1677,7 @@
 
     // ===== "Tampilkan data tersimpan dulu, perbarui di latar belakang" =====
     // Data terakhir disimpan di perangkat. Menu langsung tampil seketika, lalu diperbarui bila ada yang berubah.
-    const MUTATING_ACTIONS = ['addMateri','updateMateri','deleteMateri','addTugas','updateTugas','deleteTugas','moveRowPosition','toggleStatusCekTugas','saveNilaiBatch','deleteNilai','addPengumuman','deletePengumuman','submitAbsen','createSesiAbsen','closeSesiAbsen','updateTokenAbsen','setAbsenManual'];
+    const MUTATING_ACTIONS = ['addMateri','updateMateri','deleteMateri','addTugas','updateTugas','deleteTugas','moveRowPosition','toggleStatusCekTugas','saveNilaiBatch','deleteNilai','addPengumuman','deletePengumuman','submitAbsen','createSesiAbsen','closeSesiAbsen','updateTokenAbsen','setAbsenManual','presensiCepat','toggleSembunyi','updateMateriAbsen'];
     const swrMem = {};
     function swrKey(action, payload) {
       const p = Object.assign({}, payload); delete p.fresh;
@@ -2257,6 +2284,7 @@
         <div class="admin-card-actions">
           <button onclick="moveItem('${sheet}', '${id}', 'up')" class="btn-admin-action" title="Pindah Ke Atas"><i class="fa-solid fa-arrow-up"></i></button>
           <button onclick="moveItem('${sheet}', '${id}', 'down')" class="btn-admin-action" title="Pindah Ke Bawah"><i class="fa-solid fa-arrow-down"></i></button>
+          <button onclick="toggleSembunyi('${sheet}', '${id}', ${item.sembunyi ? 'false' : 'true'})" class="btn-admin-action ${item.sembunyi ? 'is-hidden' : ''}" title="${item.sembunyi ? 'Disembunyikan dari siswa — klik untuk menampilkan' : 'Sembunyikan dari siswa'}"><i class="fa-solid ${item.sembunyi ? 'fa-eye-slash' : 'fa-eye'}"></i></button>
           <button onclick="openEditModal('${type}', '${id}')" class="btn-admin-action" title="Edit ${nm}"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
           <button onclick="${del}('${id}')" class="btn-admin-action btn-admin-delete" title="Hapus ${nm}"><i class="fa-solid fa-trash"></i></button>
         </div>`;
@@ -2273,9 +2301,9 @@
           if (item.tipeLink === "meet") { btnClass = "btn-outline-danger"; btnIcon = "fa-video"; btnText = "Gabung Rapat Virtual"; }
           else if (item.tipeLink === "custom" && item.labelCustom) { btnClass = "btn-outline-dark"; btnIcon = "fa-arrow-up-right-from-square"; btnText = item.labelCustom; }
           return `
-            <div class="card card-item card-materi p-3 mb-3">
+            <div class="card card-item card-materi p-3 mb-3 ${item.sembunyi ? 'item-hidden' : ''}">
               <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="badge badge-kelas-materi"><i class="fa-solid fa-tag me-1"></i>${escHtml(kelasLabel(item.kelas))}</span>
+                <span><span class="badge badge-kelas-materi"><i class="fa-solid fa-tag me-1"></i>${escHtml(kelasLabel(item.kelas))}</span>${item.sembunyi ? ' <span class="badge badge-hidden"><i class="fa-solid fa-eye-slash me-1"></i>Disembunyikan dari siswa</span>' : ''}</span>
                 ${isAdmin ? adminActionsHtml('Materi', 'materi', item) : ''}
               </div>
               <h6 class="fw-bold text-dark mb-1">${escHtml(item.judul)}</h6>
@@ -2300,9 +2328,9 @@
           else if (item.tipeLink === "meet") { btnClass = "btn-outline-danger"; btnIcon = "fa-video"; btnText = "Gabung Diskusi Rapat Virtual"; }
           else if (item.tipeLink === "custom" && item.labelCustom) { btnClass = "btn-outline-dark"; btnIcon = "fa-arrow-up-right-from-square"; btnText = item.labelCustom; }
           return `
-            <div class="card card-item card-tugas p-3 mb-3">
+            <div class="card card-item card-tugas p-3 mb-3 ${item.sembunyi ? 'item-hidden' : ''}">
               <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="badge badge-kelas-tugas"><i class="fa-solid fa-tag me-1"></i>${escHtml(kelasLabel(item.kelas))}</span>
+                <span><span class="badge badge-kelas-tugas"><i class="fa-solid fa-tag me-1"></i>${escHtml(kelasLabel(item.kelas))}</span>${item.sembunyi ? ' <span class="badge badge-hidden"><i class="fa-solid fa-eye-slash me-1"></i>Disembunyikan dari siswa</span>' : ''}</span>
                 ${isAdmin ? adminActionsHtml('Tugas', 'tugas', item) : ''}
               </div>
               <h6 class="fw-bold text-dark mb-1">${escHtml(item.judul)}</h6>
@@ -2443,6 +2471,18 @@
     }
 
     let moveBusy = false;
+    let hideBusy = false;
+    async function toggleSembunyi(sheetName, id, hide) {
+      if (hideBusy) return;
+      hideBusy = true;
+      try {
+        const r = await runWrite(null, '', 'toggleSembunyi', { sheetName: sheetName, id: id, sembunyi: hide });
+        if (!r.ok) { if (!r.silent) Popup.error(r.message); return; }
+        Popup.toast(hide ? 'Disembunyikan dari siswa' : 'Ditampilkan ke siswa');
+        await loadContent(currentClassView);
+      } finally { hideBusy = false; }
+    }
+
     async function moveItem(sheetName, id, direction) {
       if (moveBusy) return;           // cegah klik beruntun yang menggeser baris dua kali
       moveBusy = true;
@@ -3140,8 +3180,94 @@
             (res.rombelList.length ? '<optgroup label="Per Rombel">' + res.rombelList.map(r => `<option value="${escHtml(r)}">${escHtml(r)}</option>`).join('') + '</optgroup>' : '');
           if (cur) sel.value = cur;
           absenTargetReady = true;
+          pcSyncTarget();
         }).catch(() => {});
       }
+      loadSesiAbsenAdmin();
+    }
+    // ----- Presensi Cepat (guru) -----
+    let pcSiswa = [], pcStatus = [];
+    const PC_OPTS = [['Hadir', 'H', 'success'], ['Izin', 'I', 'info'], ['Sakit', 'S', 'warning'], ['Alpa', 'A', 'danger']];
+    function pcSyncTarget() {
+      const src = document.getElementById('absenTarget'), dst = document.getElementById('pcTarget');
+      if (!src || !dst || !src.innerHTML || dst.dataset.synced === src.innerHTML.length + '') return;
+      const cur = dst.value; dst.innerHTML = src.innerHTML; dst.dataset.synced = src.innerHTML.length + '';
+      if (cur) dst.value = cur;
+    }
+    function pcToggle() {
+      const body = document.getElementById('pcBody');
+      const open = body.classList.contains('d-none');
+      body.classList.toggle('d-none', !open);
+      document.getElementById('pcChevron').className = 'fa-solid text-muted ' + (open ? 'fa-chevron-up' : 'fa-chevron-down');
+      if (open) {
+        pcSyncTarget();
+        const j = document.getElementById('pcJudul');
+        if (!j.value) j.value = 'Presensi ' + new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      }
+    }
+    function pcCocok(target, s) {
+      return target === 'SEMUA' || target === s.kelas || target === s.rombel || (s.ekskul || '').split(',').map(x => x.trim()).includes(target);
+    }
+    async function pcMuat() {
+      pcSyncTarget();
+      const target = document.getElementById('pcTarget').value;
+      const box = document.getElementById('pcList');
+      if (!target) { Popup.warning('Pilih target kelas / rombel terlebih dahulu.', 'Target Belum Dipilih'); return; }
+      box.innerHTML = '<div class="text-muted small py-3 text-center"><span class="spinner-border spinner-border-sm me-2"></span>Memuat daftar siswa...</div>';
+      let got = null;
+      try { await swr('getSiswaList', {}, res => { if (res && res.success) got = res; }); } catch (e) {}
+      if (!got) { box.innerHTML = '<div class="text-danger small text-center py-3">Gagal memuat daftar siswa. Coba lagi.</div>'; return; }
+      pcSiswa = got.siswa.filter(s => pcCocok(target, s));
+      pcStatus = pcSiswa.map(() => 'Hadir');
+      pcRender();
+    }
+    function pcBtnHtml(i) {
+      return PC_OPTS.map(([st, ch, c]) => {
+        const on = pcStatus[i] === st;
+        return `<button type="button" class="btn btn-sm ${on ? 'btn-' + c + (c === 'warning' || c === 'info' ? ' text-dark' : '') : 'btn-outline-' + c}" title="${st}" onclick="pcSet(${i},'${st}')">${ch}</button>`;
+      }).join('');
+    }
+    function pcCounts() {
+      const c = { Hadir: 0, Izin: 0, Sakit: 0, Alpa: 0 }; pcStatus.forEach(x => c[x]++);
+      document.getElementById('pcCount').innerHTML = PC_OPTS.map(([st, , col]) => `<span class="badge bg-${col}${col === 'warning' || col === 'info' ? ' text-dark' : ''}">${st} ${c[st]}</span>`).join(' ');
+    }
+    function pcRender() {
+      const box = document.getElementById('pcList');
+      if (!pcSiswa.length) { box.innerHTML = '<div class="text-muted small text-center py-3">Tidak ada siswa untuk target ini.</div>'; return; }
+      box.innerHTML = `
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+          <div id="pcCount" class="d-flex flex-wrap gap-1"></div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-success fw-bold" onclick="pcSemua('Hadir')"><i class="fa-solid fa-check-double me-1"></i> Semua Hadir</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pcSemua('Alpa')">Semua Alpa</button>
+          </div>
+        </div>
+        <div class="pc-list">${pcSiswa.map((s, i) => `
+          <div class="pc-row"><div class="pc-name">${escHtml(s.nama)}<small>${escHtml(s.rombel || s.kelas)} · ${escHtml(s.id)}</small></div>
+          <div class="pc-btns" id="pcb${i}">${pcBtnHtml(i)}</div></div>`).join('')}</div>
+        <div class="small text-muted mt-2">H = Hadir · I = Izin · S = Sakit · A = Alpa. Hasil tersimpan sebagai sesi presensi biasa di daftar di bawah. Judul + target + tanggal yang sama akan memperbarui sesi yang ada, bukan membuat sesi baru.</div>
+        <button type="button" id="pcSave" class="btn btn-success fw-bold w-100 mt-2" onclick="pcSimpan()"><i class="fa-solid fa-floppy-disk me-1"></i> Simpan Presensi (${pcSiswa.length} siswa)</button>`;
+      pcCounts();
+    }
+    function pcSet(i, st) { pcStatus[i] = st; document.getElementById('pcb' + i).innerHTML = pcBtnHtml(i); pcCounts(); }
+    function pcSemua(st) { pcStatus = pcSiswa.map(() => st); pcSiswa.forEach((_, i) => { document.getElementById('pcb' + i).innerHTML = pcBtnHtml(i); }); pcCounts(); }
+    async function pcSimpan() {
+      const judul = document.getElementById('pcJudul').value.trim(), target = document.getElementById('pcTarget').value;
+      if (!judul) { Popup.warning('Judul / pertemuan wajib diisi.', 'Data Belum Lengkap'); document.getElementById('pcJudul').focus(); return; }
+      if (!pcSiswa.length) return;
+      const c = { Hadir: 0, Izin: 0, Sakit: 0, Alpa: 0 }; pcStatus.forEach(x => c[x]++);
+      const tglIni = new Date().toLocaleDateString('en-GB');   // dd/MM/yyyy
+      const sudahAda = Object.values(absenSesiCache).some(s => !s.buka && String(s.judul).trim().toLowerCase() === judul.toLowerCase() && String(s.target).toUpperCase() === target.toUpperCase() && String(s.dibuat).indexOf(tglIni) === 0);
+      const catatan = sudahAda ? '\n\n⚠ Presensi dengan judul & target yang sama sudah ada hari ini. Menyimpan akan MEMPERBARUI data tersebut (tidak membuat sesi baru).' : '';
+      if (!await Popup.confirm({ title: sudahAda ? 'Perbarui Presensi?' : 'Simpan Presensi?', text: `${judul} (${target})\nHadir ${c.Hadir} · Izin ${c.Izin} · Sakit ${c.Sakit} · Alpa ${c.Alpa}${catatan}`, confirmText: sudahAda ? 'Ya, Perbarui' : 'Ya, Simpan' })) return;
+      const r = await runWrite(document.getElementById('pcSave'), 'Menyimpan...', 'presensiCepat', {
+        judul: judul, target: target, materi: document.getElementById('pcMateri').value.trim(),
+        entries: pcSiswa.map((s, i) => ({ nis: s.id, status: pcStatus[i] }))
+      });
+      if (!r.ok) { if (!r.silent) Popup.error(r.message); return; }
+      await Popup.success('Presensi Tersimpan', r.message);
+      pcSiswa = []; pcStatus = [];
+      document.getElementById('pcList').innerHTML = ''; document.getElementById('pcJudul').value = ''; document.getElementById('pcMateri').value = '';
       loadSesiAbsenAdmin();
     }
     let absenSesiCache = {};
