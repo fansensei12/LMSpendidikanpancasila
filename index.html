@@ -574,6 +574,43 @@
     .pc-btns { display: flex; gap: 4px; }
     .pc-btns .btn { min-width: 38px; font-weight: 700; font-size: .74rem; padding: 3px 8px; }
     .pc-list { max-height: 60vh; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; padding: 2px 10px; }
+
+    .login-desc { color: rgba(255,255,255,.72); font-size: .78rem; line-height: 1.55; margin: 10px auto 0; max-width: 330px; }
+    .login-note { font-size: .72rem; color: rgba(255,255,255,.62); margin-top: 5px; line-height: 1.45; }
+    .login-note b { color: #f3e5ab; }
+    .btn-tracking { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 12px; padding: 9px 12px; border-radius: 10px; font-weight: 600; font-size: .86rem; text-decoration: none; color: #f3e5ab; border: 1.5px solid rgba(212,175,55,.55); background: rgba(212,175,55,.08); transition: all .2s; }
+    .btn-tracking:hover { background: rgba(212,175,55,.2); color: #fff; border-color: #d4af37; }
+    .sidebar-menu .nav-link-tracking { color: #f6ad55 !important; font-weight: 600; }
+    .sidebar-menu .nav-link-tracking:hover { background: rgba(246,173,85,.14) !important; color: #fbd38d !important; }
+    .tracking-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; text-decoration: none; color: #fff; background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%); border-left: 5px solid #f6ad55; box-shadow: 0 4px 14px rgba(26,54,93,.18); transition: transform .15s, box-shadow .15s; }
+    .tracking-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(26,54,93,.28); color: #fff; }
+    .tracking-card-icon { width: 44px; height: 44px; border-radius: 12px; background: rgba(246,173,85,.2); color: #fbd38d; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+    .tracking-card-text { flex: 1; min-width: 0; line-height: 1.3; }
+    .tracking-card-text b { display: block; font-size: .98rem; }
+    .tracking-card-text small { display: block; opacity: .75; font-size: .76rem; }
+    .tracking-card-go { background: #f6ad55; color: #1a202c; font-weight: 700; font-size: .8rem; border-radius: 999px; padding: 6px 14px; white-space: nowrap; flex-shrink: 0; }
+    @media (max-width: 420px) { .tracking-card-go { padding: 6px 10px; } .tracking-card-text small { font-size: .7rem; } }
+
+    /* ==================== REKAP PRESENSI MENYELURUH ==================== */
+    .rp-stat { background: #fff; border-radius: 12px; padding: 12px 14px; border: 1px solid #e2e8f0; text-align: center; }
+    .rp-stat b { display: block; font-size: 1.35rem; line-height: 1.2; color: #2d3748; }
+    .rp-stat small { color: #718096; font-size: .72rem; }
+    .rp-scroll { overflow: auto; max-height: 68vh; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; }
+    .rp-table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: .8rem; }
+    .rp-table th, .rp-table td { padding: 6px 9px; border-bottom: 1px solid #edf2f7; white-space: nowrap; text-align: center; }
+    .rp-table thead th { background: #f7fafc; position: sticky; top: 0; z-index: 2; font-size: .7rem; text-transform: uppercase; color: #718096; }
+    .rp-table .rp-left { text-align: left; }
+    .rp-table .rp-sticky { position: sticky; left: 0; background: #fff; z-index: 1; box-shadow: 1px 0 0 #e2e8f0; min-width: 170px; }
+    .rp-table thead .rp-sticky { z-index: 3; background: #f7fafc; }
+    .rp-chip { display: inline-block; min-width: 24px; text-align: center; border-radius: 6px; font-weight: 700; font-size: .72rem; padding: 2px 0; }
+    .rp-H { background: #c6f6d5; color: #22543d; } .rp-I { background: #bee3f8; color: #2a4365; }
+    .rp-S { background: #fefcbf; color: #744210; } .rp-A { background: #fed7d7; color: #742a2a; }
+    .rp-B { background: #e2e8f0; color: #4a5568; } .rp-dash { color: #cbd5e0; }
+    .rp-bar { height: 6px; border-radius: 4px; background: #edf2f7; min-width: 60px; overflow: hidden; }
+    .rp-bar > i { display: block; height: 100%; }
+    .rp-seg { display: inline-flex; border: 1.5px solid #cbd5e0; border-radius: 9px; overflow: hidden; }
+    .rp-seg button { border: 0; background: #fff; padding: 5px 12px; font-size: .78rem; font-weight: 600; color: #718096; }
+    .rp-seg button.active { background: #2b6cb0; color: #fff; }
 </style>
 </head>
 <body>
@@ -589,6 +626,7 @@
         <div class="icon-box"><i class="fa-solid fa-graduation-cap fa-2x"></i></div>
         <h4 class="fw-bold mb-1" style="color: #d4af37;">SMPN 7 Banjarmasin</h4>
         <p class="text-white-50 small mb-0">LMS Pendidikan Pancasila</p>
+        <p class="login-desc">Ruang belajar daring untuk mengakses materi, mengumpulkan tugas, mengisi presensi, serta melihat nilai dan pengumuman dari guru.</p>
         
         <ul class="nav nav-pills nav-justified login-toggle my-3" id="loginTab">
           <li class="nav-item">
@@ -613,6 +651,7 @@
               <span class="input-group-text input-group-text-custom"><i class="fa-solid fa-user"></i></span>
               <input type="text" id="username" name="username" autocomplete="username" class="form-control form-control-custom" placeholder="Masukkan NIS atau NISN" required>
             </div>
+            <div class="login-note" id="loginNoteUser"><i class="fa-solid fa-circle-info me-1"></i>Pilih salah satu: <b>NIS</b> atau <b>NISN</b>.</div>
           </div>
           
           <div class="mb-3">
@@ -624,12 +663,16 @@
                 <i class="fa-solid fa-eye" id="toggleIcon"></i>
               </button>
             </div>
+            <div class="login-note" id="loginNotePass"><i class="fa-solid fa-circle-info me-1"></i>Silakan tanyakan ke guru bagi yang belum tahu password. Ini khusus <b>SISWA</b> ya.</div>
           </div>
 
           <button type="submit" id="btnLogin" class="btn w-100 py-2.5 fw-bold mt-2" style="background: linear-gradient(135deg, #d4af37 0%, #f3e5ab 100%); color: #000; border: none; border-radius: 10px;">
             <span id="btnSpinner" class="spinner-border spinner-border-sm d-none me-1" role="status"></span> Masuk Kelas
           </button>
         </form>
+        <a href="https://fansensei12.github.io/Ruang-Karakter/tracking.html" target="_self" class="btn-tracking">
+          <i class="fa-solid fa-chart-line"></i> Tracking Tugas
+        </a>
       </div>
     </div>
   </div>
@@ -702,6 +745,11 @@
             <i class="fa-solid fa-user-clock"></i> Kelola Presensi
           </a>
         </li>
+        <li class="menu-admin-rekap" style="display:none;">
+          <a class="nav-link" id="menu-REKAPPRESENSI" onclick="openRekapPresensiView()">
+            <i class="fa-solid fa-table-list"></i> Rekap Presensi
+          </a>
+        </li>
 
         <li class="menu-header menu-siswa-nilai" style="display:none;">Tugas, Presensi & Nilai</li>
         <li class="menu-siswa-nilai" style="display:none;">
@@ -731,6 +779,11 @@
         <li>
           <a href="https://fansensei12.github.io/Ruang-Karakter-PKn/" target="_blank" class="nav-link nav-link-portal" onclick="closeSidebar()">
             <i class="fa-solid fa-globe text-warning"></i> Portal Pendidikan Pancasila
+          </a>
+        </li>
+        <li>
+          <a href="https://fansensei12.github.io/Ruang-Karakter/tracking.html" target="_self" class="nav-link nav-link-tracking">
+            <i class="fa-solid fa-chart-line"></i> Tracking Tugas
           </a>
         </li>
       </ul>
@@ -765,6 +818,14 @@
         
         <!-- ==================== TAMPILAN 1: RUANG KELAS (MATERI & TUGAS) ==================== -->
         <div id="kelasViewSection">
+          <a href="https://fansensei12.github.io/Ruang-Karakter/tracking.html" target="_self" id="trackingCard" class="tracking-card mb-4 d-none">
+            <span class="tracking-card-icon"><i class="fa-solid fa-chart-line"></i></span>
+            <span class="tracking-card-text">
+              <b>Tracking Tugas</b>
+              <small>Lihat dan pantau perkembangan pengumpulan tugas.</small>
+            </span>
+            <span class="tracking-card-go">Buka <i class="fa-solid fa-arrow-right ms-1"></i></span>
+          </a>
           <div id="adminPanel" class="card card-item mb-4 border-start border-warning border-4 d-none">
             <div class="card-header bg-white fw-bold py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
               <span class="panel-title" onclick="toggleAdminPanel()" role="button" title="Klik untuk sembunyikan / tampilkan"><i class="fa-solid fa-sliders text-warning me-2"></i>Panel Pengelolaan Guru <i class="fa-solid fa-chevron-down panel-chevron ms-2 small text-muted"></i></span>
@@ -1228,6 +1289,27 @@
           <div id="absenDetailBox"></div>
         </div>
 
+        <!-- ==================== TAMPILAN 9: REKAP PRESENSI MENYELURUH (GURU) ==================== -->
+        <div id="rekapPresensiSection" class="d-none">
+          <div class="card card-item mb-3 border-top border-primary border-4"><div class="card-body">
+            <h5 class="fw-bold mb-1"><i class="fa-solid fa-table-list text-primary me-2"></i>Rekap Presensi Menyeluruh</h5>
+            <p class="text-muted small mb-3">Rekap kehadiran dihitung <b>terpisah</b> antara presensi reguler dan ekskul, supaya siswa ekskul tidak tampak lebih sering hadir. Pilih jenis presensi, kelas / rombel, dan rentang tanggal bila perlu.</p>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-3 col-6"><label class="form-label small fw-bold text-secondary mb-1" for="rpTarget">Kelas / Rombel / Ekskul</label><select id="rpTarget" class="form-select form-select-sm"></select></div>
+              <div class="col-md-3 col-6"><label class="form-label small fw-bold text-secondary mb-1" for="rpJenis">Jenis Presensi</label>
+                <select id="rpJenis" class="form-select form-select-sm">
+                  <option value="REGULER">Reguler (pembelajaran kelas)</option>
+                  <option value="KODING">Ekskul Koding</option>
+                  <option value="SEMUA">Gabungan (reguler + ekskul)</option>
+                </select></div>
+              <div class="col-md-2 col-6"><label class="form-label small fw-bold text-secondary mb-1" for="rpDari">Dari tanggal</label><input type="date" id="rpDari" class="form-control form-control-sm"></div>
+              <div class="col-md-2 col-6"><label class="form-label small fw-bold text-secondary mb-1" for="rpSampai">Sampai tanggal</label><input type="date" id="rpSampai" class="form-control form-control-sm"></div>
+              <div class="col-md-2 col-12"><button type="button" id="rpBtn" class="btn btn-primary btn-sm w-100 fw-bold" onclick="rpMuat()"><i class="fa-solid fa-magnifying-glass me-1"></i> Tampilkan</button></div>
+            </div>
+          </div></div>
+          <div id="rpResult"></div>
+        </div>
+
         <!-- ==================== TAMPILAN 8: KUMPULKAN TUGAS (SISWA) ==================== -->
         <div id="uploadTugasSection" class="d-none">
           <div class="card card-item border-top border-success border-4 p-3 p-md-4" style="max-width:720px;margin:0 auto;">
@@ -1632,7 +1714,7 @@
     let sessionExpiredShown = false;
 
     // URL DEPLOYMENT GOOGLE APPS SCRIPT LMS ANDA
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx4z7wLOtAWUxoqP18-crnLFEVOkuId0P1pqliZsW8MQ1c_s8sPPBLITDpCF0JnT7M/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxZNmbMiqjRhfnpPs1tXzxVL-cBpKZzE4nfp9FrqGxCRRY1AxHzkzaoXDWu6x4g8x2X/exec";
 
     let currentUser = null;
     let currentClassView = 'ALL';
@@ -1642,7 +1724,7 @@
 
     // Fungsi Helper Pemanggil API Google Apps Script (Bebas Blokir CORS di GitHub Pages)
     // Aksi yang aman diulang otomatis saat server sibuk (submitAbsen aman: server menolak absen ganda)
-    const RETRY_ACTIONS = ['getPresensiNilai','getLmsData','getPengumuman','getNilaiSaya','getSesiAbsenAktif','submitAbsen','getSesiAbsenAdmin','getAbsenDetail','getSiswaList','getNilaiAdmin','getRekapTugasData'];
+    const RETRY_ACTIONS = ['getPresensiNilai','getLmsData','getPengumuman','getNilaiSaya','getSesiAbsenAktif','submitAbsen','getSesiAbsenAdmin','getAbsenDetail','getSiswaList','getNilaiAdmin','getRekapTugasData','getRekapPresensi'];
     const SERVER_BUSY_MSG = 'Server tidak dapat merespons saat ini. Kemungkinan banyak siswa mengakses bersamaan. Tunggu beberapa detik, lalu coba lagi.';
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -1777,7 +1859,11 @@
       if (role === 'peserta') {
         document.getElementById('usernameLabel').textContent = 'NIS / NISN SISWA';
         document.getElementById('username').placeholder = 'Masukkan NIS atau NISN';
+        document.getElementById('loginNoteUser').classList.remove('d-none');
+        document.getElementById('loginNotePass').classList.remove('d-none');
       } else {
+        document.getElementById('loginNoteUser').classList.add('d-none');
+        document.getElementById('loginNotePass').classList.add('d-none');
         document.getElementById('usernameLabel').textContent = 'USERNAME GURU / ADMIN';
         document.getElementById('username').placeholder = 'Masukkan Username Admin';
       }
@@ -1970,6 +2056,7 @@
         document.querySelectorAll('.menu-ekskul-item').forEach(el => el.style.display = 'block');
 
         document.getElementById('adminPanel').classList.remove('d-none');
+        document.getElementById('trackingCard').classList.add('d-none');   // kartu Tracking Tugas khusus tampilan siswa
         applyAdminPanelState();
         loadContent('ALL');
         setTimeout(() => { swr('getRekapTugasData', { userRole: 'admin' }, () => {}).catch(() => {}); }, 2000); // siapkan rekap di latar belakang
@@ -1990,6 +2077,7 @@
 
         document.getElementById('userRoleBadge').textContent = `Siswa Kelas ${userClass} ${userRombel ? '(' + userRombel + ')' : ''}${userEkskul ? ' · Ekskul ' + userEkskul : ''}`;
         document.getElementById('adminPanel').classList.add('d-none');
+        document.getElementById('trackingCard').classList.remove('d-none');
 
         document.querySelector('.menu-admin-item').style.display = 'none';
         document.querySelectorAll('.menu-admin-rekap').forEach(el => el.style.display = 'none');
@@ -2296,6 +2384,13 @@
 
     function renderData(data) {
       const isAdmin = currentUser && currentUser.role === 'admin';
+      // Siswa tidak boleh melihat modul / tugas yang disembunyikan guru (penyaring berlapis, selain penyaringan di server)
+      if (data && !isAdmin) {
+        data = Object.assign({}, data, {
+          materi: (data.materi || []).filter(i => !i.sembunyi),
+          tugas: (data.tugas || []).filter(i => !i.sembunyi)
+        });
+      }
 
       const mContainer = document.getElementById('materiContainer');
       if (data && data.materi && data.materi.length > 0) {
@@ -2525,6 +2620,7 @@
       document.getElementById('absenSiswaSection').classList.add('d-none');
       document.getElementById('absenAdminSection').classList.add('d-none');
       document.getElementById('uploadTugasSection').classList.add('d-none');
+      document.getElementById('rekapPresensiSection').classList.add('d-none');
     }
     function showOnlyNilaiView(sectionId, menuId, title) {
       closeSidebar();
@@ -3189,6 +3285,142 @@
       }
       loadSesiAbsenAdmin();
     }
+    // ==================== REKAP PRESENSI MENYELURUH (GURU) ====================
+    let rpData = null, rpView = 'siswa', rpSort = 'nama', rpQuery = '';
+    const rpCls = { H: 'rp-H', I: 'rp-I', S: 'rp-S', A: 'rp-A', B: 'rp-B', '-': 'rp-dash' };
+    const rpTglPendek = t => { const p = String(t).split('-'); return p.length === 3 ? p[2] + '/' + p[1] : t; };
+    const rpTglPanjang = t => { const p = String(t).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : t; };
+    const rpChip = c => `<span class="rp-chip ${rpCls[c] || ''}">${c === '-' ? '·' : c}</span>`;
+
+    function rpBuildTargets(res) {
+      const sel = document.getElementById('rpTarget'), cur = sel.value;
+      sel.innerHTML = '<option value="SEMUA">Semua Siswa</option><option value="VII">Kelas VII</option><option value="VIII">Kelas VIII</option><option value="IX">Kelas IX</option><option value="KODING">Ekskul Koding</option>' +
+        ((res.rombelList || []).length ? '<optgroup label="Per Rombel">' + res.rombelList.map(r => `<option value="${escHtml(r)}">${escHtml(r)}</option>`).join('') + '</optgroup>' : '');
+      if (cur) sel.value = cur;
+    }
+    function openRekapPresensiView() {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      showOnlyNilaiView('rekapPresensiSection', 'menu-REKAPPRESENSI', 'Rekap Presensi');
+      if (!document.getElementById('rpTarget').options.length) {
+        rpBuildTargets({ rombelList: [] });
+        swr('getSiswaList', {}, res => { if (res && res.success) rpBuildTargets(res); }).catch(() => {});
+      }
+    }
+    function rpStat(st) {
+      const c = { H: 0, I: 0, S: 0, A: 0, B: 0 }; let n = 0;
+      st.forEach(x => { if (x !== '-') { n++; c[x]++; } });
+      return Object.assign(c, { n: n, pct: n ? Math.round(c.H / n * 100) : null });
+    }
+    function rpPctColor(p) { return p == null ? '#a0aec0' : (p >= 85 ? '#38a169' : (p >= 70 ? '#d69e2e' : '#e53e3e')); }
+
+    async function rpMuat() {
+      const btn = document.getElementById('rpBtn'), box = document.getElementById('rpResult');
+      const dari = document.getElementById('rpDari').value, sampai = document.getElementById('rpSampai').value;
+      if (dari && sampai && dari > sampai) { Popup.warning('Tanggal "Dari" tidak boleh setelah tanggal "Sampai".', 'Rentang Tanggal Salah'); return; }
+      btn.disabled = true;
+      box.innerHTML = '<div class="text-center text-muted py-5"><span class="spinner-border spinner-border-sm me-2"></span>Menghimpun data presensi...</div>';
+      try {
+        const res = await callApi('getRekapPresensi', { target: document.getElementById('rpTarget').value || 'SEMUA', jenis: document.getElementById('rpJenis').value, dari: dari, sampai: sampai });
+        if (res && res.success) { rpData = res; rpView = 'siswa'; rpQuery = ''; rpRender(); }
+        else { box.innerHTML = ''; if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal memuat rekap presensi'); }
+      } catch (err) { box.innerHTML = ''; Popup.error('Gagal terhubung ke server: ' + err.message); }
+      finally { btn.disabled = false; }
+    }
+
+    function rpRows() {
+      const q = rpQuery.toLowerCase();
+      let rows = rpData.siswa.map(s => ({ s: s, t: rpStat(s.st) }))
+        .filter(r => !q || r.s.nama.toLowerCase().includes(q) || String(r.s.nis).includes(q) || String(r.s.rombel).toLowerCase().includes(q));
+      if (rpSort === 'rendah') rows.sort((a, b) => (a.t.pct == null ? 999 : a.t.pct) - (b.t.pct == null ? 999 : b.t.pct) || a.s.nama.localeCompare(b.s.nama));
+      return rows;
+    }
+    const rpJenisLabel = j => j === 'REGULER' ? 'Presensi Reguler' : (j === 'SEMUA' ? 'Gabungan Reguler + Ekskul' : 'Ekskul ' + (j === 'KODING' ? 'Koding' : j));
+    function rpRender() {
+      const d = rpData, box = document.getElementById('rpResult');
+      const all = d.siswa.map(s => rpStat(s.st)), withN = all.filter(t => t.n > 0);
+      const avg = withN.length ? Math.round(withN.reduce((a, t) => a + t.pct, 0) / withN.length) : null;
+      const tot = { H: 0, I: 0, S: 0, A: 0, B: 0 }; all.forEach(t => Object.keys(tot).forEach(k => tot[k] += t[k]));
+      const rendah = withN.filter(t => t.pct < 70).length;
+      box.innerHTML = `
+        <div class="mb-2"><span class="badge ${d.jenis === 'REGULER' ? 'bg-primary' : (d.jenis === 'SEMUA' ? 'bg-secondary' : 'bg-warning text-dark')}" style="font-size:.8rem">${escHtml(rpJenisLabel(d.jenis))}</span> <span class="text-muted small">· Target: ${escHtml(d.target)}</span></div>
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-3"><div class="rp-stat"><b>${d.siswa.length}</b><small>Siswa</small></div></div>
+          <div class="col-6 col-md-3"><div class="rp-stat"><b>${d.sesi.length}</b><small>Pertemuan${d.terpotong ? ' (dari ' + d.totalSesi + ')' : ''}</small></div></div>
+          <div class="col-6 col-md-3"><div class="rp-stat"><b style="color:${rpPctColor(avg)}">${avg == null ? '-' : avg + '%'}</b><small>Rata-rata kehadiran</small></div></div>
+          <div class="col-6 col-md-3"><div class="rp-stat"><b style="color:${rendah ? '#e53e3e' : '#38a169'}">${rendah}</b><small>Siswa kehadiran &lt; 70%</small></div></div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mb-2 small align-items-center">
+          ${['H', 'I', 'S', 'A', 'B'].map(k => `<span>${rpChip(k)} ${{ H: 'Hadir', I: 'Izin', S: 'Sakit', A: 'Alpa', B: 'Belum mengisi' }[k]} <b>${tot[k]}</b></span>`).join('<span class="text-muted">·</span>')}
+        </div>
+        ${d.terpotong ? `<div class="alert alert-warning py-2 small">Hanya <b>${d.sesi.length} pertemuan terbaru</b> yang ditampilkan dari total ${d.totalSesi}. Persempit rentang tanggal untuk melihat pertemuan lainnya.</div>` : ''}
+        ${!d.sesi.length ? '<div class="alert alert-info py-2 small">Belum ada sesi presensi pada target / rentang tanggal ini.</div>' : `
+        <div class="card card-item"><div class="card-body">
+          <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+            <div class="rp-seg">
+              <button type="button" id="rpTabSiswa" class="${rpView === 'siswa' ? 'active' : ''}" onclick="rpSetView('siswa')">Per Siswa</button>
+              <button type="button" id="rpTabMatriks" class="${rpView === 'matriks' ? 'active' : ''}" onclick="rpSetView('matriks')">Per Pertemuan</button>
+            </div>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+              <input type="search" class="form-control form-control-sm" style="width:170px" placeholder="Cari nama / NIS..." value="${escHtml(rpQuery)}" oninput="rpSetQuery(this.value)">
+              <select class="form-select form-select-sm" style="width:auto" onchange="rpSort=this.value;rpRenderTable()">
+                <option value="nama" ${rpSort === 'nama' ? 'selected' : ''}>Urut: Rombel & nama</option>
+                <option value="rendah" ${rpSort === 'rendah' ? 'selected' : ''}>Urut: Kehadiran terendah</option>
+              </select>
+              <button type="button" class="btn btn-sm btn-success fw-bold" onclick="rpUnduh()"><i class="fa-solid fa-file-arrow-down me-1"></i> Unduh CSV</button>
+            </div>
+          </div>
+          <div id="rpTableBox"></div>
+        </div></div>`}`;
+      if (d.sesi.length) rpRenderTable();
+    }
+    function rpSetView(v) {
+      rpView = v;
+      document.getElementById('rpTabSiswa').classList.toggle('active', v === 'siswa');
+      document.getElementById('rpTabMatriks').classList.toggle('active', v === 'matriks');
+      rpRenderTable();
+    }
+    function rpSetQuery(v) { rpQuery = v; rpRenderTable(); }
+
+    function rpRenderTable() {
+      const d = rpData, rows = rpRows(), box = document.getElementById('rpTableBox');
+      if (!rows.length) { box.innerHTML = '<div class="text-muted text-center py-4 small">Tidak ada siswa yang cocok dengan pencarian.</div>'; return; }
+      const pctCell = t => t.pct == null ? '<span class="text-muted">-</span>' :
+        `<div class="d-flex align-items-center gap-2 justify-content-center"><b style="color:${rpPctColor(t.pct)};min-width:38px">${t.pct}%</b><div class="rp-bar"><i style="width:${t.pct}%;background:${rpPctColor(t.pct)}"></i></div></div>`;
+      let html;
+      if (rpView === 'siswa') {
+        html = `<div class="rp-scroll"><table class="rp-table"><thead><tr>
+          <th>No</th><th class="rp-left rp-sticky">Nama</th><th>Rombel</th><th>H</th><th>I</th><th>S</th><th>A</th><th>Belum</th><th>Pertemuan</th><th>Kehadiran</th></tr></thead><tbody>` +
+          rows.map((r, i) => `<tr><td>${i + 1}</td><td class="rp-left rp-sticky"><b>${escHtml(r.s.nama)}</b><div class="text-muted" style="font-size:.68rem">${escHtml(r.s.nis)}</div></td>
+            <td>${escHtml(r.s.rombel)}</td><td>${r.t.H}</td><td>${r.t.I}</td><td>${r.t.S}</td><td>${r.t.A ? '<b class="text-danger">' + r.t.A + '</b>' : 0}</td><td>${r.t.B}</td><td>${r.t.n}</td><td>${pctCell(r.t)}</td></tr>`).join('') +
+          '</tbody></table></div>';
+      } else {
+        html = `<details class="mb-2 small"><summary class="fw-semibold text-primary" style="cursor:pointer">Daftar ${d.sesi.length} pertemuan (klik untuk lihat)</summary>
+          <ol class="mt-2 mb-0 ps-3">${d.sesi.map(x => `<li><b>${escHtml(x.judul)}</b> — ${rpTglPanjang(x.tanggal)} · ${escHtml(x.target)}${x.materi ? '<div class="text-muted">' + escHtml(x.materi) + '</div>' : ''}</li>`).join('')}</ol></details>
+          <div class="rp-scroll"><table class="rp-table"><thead><tr><th class="rp-left rp-sticky">Nama</th><th>Rombel</th>` +
+          d.sesi.map((x, n) => `<th title="${escHtml(x.judul)} (${escHtml(x.target)})">P${n + 1}<div style="font-weight:400;text-transform:none">${rpTglPendek(x.tanggal)}</div></th>`).join('') +
+          `<th>H</th><th>I</th><th>S</th><th>A</th><th>%</th></tr></thead><tbody>` +
+          rows.map(r => `<tr><td class="rp-left rp-sticky"><b>${escHtml(r.s.nama)}</b></td><td>${escHtml(r.s.rombel)}</td>` +
+            r.s.st.map(c => `<td>${rpChip(c)}</td>`).join('') +
+            `<td>${r.t.H}</td><td>${r.t.I}</td><td>${r.t.S}</td><td>${r.t.A}</td><td><b style="color:${rpPctColor(r.t.pct)}">${r.t.pct == null ? '-' : r.t.pct + '%'}</b></td></tr>`).join('') +
+          '</tbody></table></div><div class="small text-muted mt-2">H = Hadir · I = Izin · S = Sakit · A = Alpa · B = Belum mengisi · · = bukan sesi untuk siswa ini</div>';
+      }
+      box.innerHTML = html;
+    }
+
+    function rpUnduh() {
+      const d = rpData; if (!d) return;
+      const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+      const head = ['NIS', 'Nama', 'Rombel'].concat(d.sesi.map(x => rpTglPanjang(x.tanggal) + ' - ' + x.judul), ['Hadir', 'Izin', 'Sakit', 'Alpa', 'Belum', 'Total Pertemuan', 'Persen Hadir']);
+      const lines = [head.map(q).join(';')];
+      rpRows().forEach(r => lines.push([r.s.nis, r.s.nama, r.s.rombel].concat(r.s.st.map(c => c === '-' ? '' : c), [r.t.H, r.t.I, r.t.S, r.t.A, r.t.B, r.t.n, r.t.pct == null ? '' : r.t.pct + '%']).map(q).join(';')));
+      const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'Rekap_Presensi_' + d.jenis + '_' + d.target + '_' + new Date().toISOString().slice(0, 10) + '.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+    }
+
     // ----- Presensi Cepat (guru) -----
     let pcSiswa = [], pcStatus = [];
     const PC_OPTS = [['Hadir', 'H', 'success'], ['Izin', 'I', 'info'], ['Sakit', 'S', 'warning'], ['Alpa', 'A', 'danger']];
@@ -3557,7 +3789,7 @@
       const got = {};
       const fill = () => {
         let tugas = [];
-        groups.forEach(g => { tugas = tugas.concat((got[g] && got[g].success && got[g].data && got[g].data.tugas) || []); });
+        groups.forEach(g => { tugas = tugas.concat(((got[g] && got[g].success && got[g].data && got[g].data.tugas) || []).filter(t => !t.sembunyi)); });
         const portal = tugas.filter(t => t.tipeLink === 'portal');
         const list = portal.length ? portal : tugas;
         const want = utWantJudul || (sel.value && sel.value !== '__lain' ? sel.value : '');
