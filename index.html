@@ -462,8 +462,6 @@
     .card-login { position: relative; z-index: 1; animation: cardIn .7s cubic-bezier(.2,.8,.2,1) both; }
     @keyframes cardIn { from { opacity: 0; transform: translate3d(0,26px,0) scale(.97); } to { opacity: 1; transform: none; } }
     .login-header .icon-box { position: relative; animation: fadeUp .6s ease .15s both; }
-    .login-header .login-tagline { margin: 10px auto 0; max-width: 300px; font-size: .78rem; line-height: 1.5; color: rgba(255,255,255,.72); animation: fadeUp .6s ease .3s both; }
-    .login-header .login-tagline strong { color: #f3e3a0; font-weight: 600; }
     .login-header .icon-box i { display: inline-block; animation: capFloat 4s ease-in-out infinite; }
     .login-header .icon-box::after { content: ''; position: absolute; inset: -2px; border-radius: 50%;
       border: 2px solid #d4af37; opacity: 0; animation: ringPulse 2.6s ease-out 1s infinite; }
@@ -591,7 +589,6 @@
         <div class="icon-box"><i class="fa-solid fa-graduation-cap fa-2x"></i></div>
         <h4 class="fw-bold mb-1" style="color: #d4af37;">SMPN 7 Banjarmasin</h4>
         <p class="text-white-50 small mb-0">LMS Pendidikan Pancasila</p>
-        <p class="login-tagline mb-0"><strong>Kelas digital Pendidikan Pancasila SMPN 7 Banjarmasin</strong> — tempat modul, materi, dan tugas Kelas Bapa Irfan berkumpul dalam satu ruang.</p>
         
         <ul class="nav nav-pills nav-justified login-toggle my-3" id="loginTab">
           <li class="nav-item">
@@ -1252,6 +1249,8 @@
                 <div id="utSumBadge" class="mb-2"></div>
                 <div class="row g-2">
                   <div class="col-12"><div class="ut-id-label">Nama</div><div class="ut-id-val text-warning" id="utSumNama">-</div></div>
+                  <div class="col-6"><div class="ut-id-label">NIS</div><div class="ut-id-val" id="utSumNis">-</div></div>
+                  <div class="col-6"><div class="ut-id-label">NISN</div><div class="ut-id-val" id="utSumNisn">-</div></div>
                   <div class="col-6"><div class="ut-id-label">No. Absen</div><div class="ut-id-val" id="utSumAbsen">-</div></div>
                   <div class="col-6"><div class="ut-id-label">Kelas</div><div class="ut-id-val" id="utSumKelas">-</div></div>
                   <div class="col-12"><div class="ut-id-label">Judul Tugas</div><div class="ut-id-val" id="utSumJudul">-</div></div>
@@ -1280,7 +1279,9 @@
 
               <div class="ut-id-card mb-3">
                 <div class="row g-2 align-items-end">
-                  <div class="col-12 col-sm-6"><div class="ut-id-label">Nama</div><div class="ut-id-val" id="utIdNama">-</div></div>
+                  <div class="col-12"><div class="ut-id-label">Nama</div><div class="ut-id-val" id="utIdNama">-</div></div>
+                  <div class="col-6 col-sm-3"><div class="ut-id-label">NIS</div><div class="ut-id-val" id="utIdNis">-</div></div>
+                  <div class="col-6 col-sm-3"><div class="ut-id-label">NISN</div><div class="ut-id-val" id="utIdNisn">-</div></div>
                   <div class="col-6 col-sm-3">
                     <div class="ut-id-label">Kelas</div>
                     <div class="ut-id-val" id="utIdKelas">-</div>
@@ -1631,7 +1632,7 @@
     let sessionExpiredShown = false;
 
     // URL DEPLOYMENT GOOGLE APPS SCRIPT LMS ANDA
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbytun5kZ_dzk82bC_ssRqB-vHGQzuTpJ2fcxetl5x6oSKpqbmbqaCW6SdEtqP52nulG/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx4z7wLOtAWUxoqP18-crnLFEVOkuId0P1pqliZsW8MQ1c_s8sPPBLITDpCF0JnT7M/exec";
 
     let currentUser = null;
     let currentClassView = 'ALL';
@@ -3248,7 +3249,7 @@
         <div class="pc-list">${pcSiswa.map((s, i) => `
           <div class="pc-row"><div class="pc-name">${escHtml(s.nama)}<small>${escHtml(s.rombel || s.kelas)} · ${escHtml(s.id)}</small></div>
           <div class="pc-btns" id="pcb${i}">${pcBtnHtml(i)}</div></div>`).join('')}</div>
-        <div class="small text-muted mt-2">H = Hadir · I = Izin · S = Sakit · A = Alpa. Hasil tersimpan sebagai sesi presensi biasa di daftar di bawah. Judul + target + tanggal yang sama akan memperbarui sesi yang ada, bukan membuat sesi baru.</div>
+        <div class="small text-muted mt-2">H = Hadir · I = Izin · S = Sakit · A = Alpa. Hasil tersimpan sebagai sesi presensi biasa di daftar di bawah.</div>
         <button type="button" id="pcSave" class="btn btn-success fw-bold w-100 mt-2" onclick="pcSimpan()"><i class="fa-solid fa-floppy-disk me-1"></i> Simpan Presensi (${pcSiswa.length} siswa)</button>`;
       pcCounts();
     }
@@ -3259,15 +3260,12 @@
       if (!judul) { Popup.warning('Judul / pertemuan wajib diisi.', 'Data Belum Lengkap'); document.getElementById('pcJudul').focus(); return; }
       if (!pcSiswa.length) return;
       const c = { Hadir: 0, Izin: 0, Sakit: 0, Alpa: 0 }; pcStatus.forEach(x => c[x]++);
-      const tglIni = new Date().toLocaleDateString('en-GB');   // dd/MM/yyyy
-      const sudahAda = Object.values(absenSesiCache).some(s => !s.buka && String(s.judul).trim().toLowerCase() === judul.toLowerCase() && String(s.target).toUpperCase() === target.toUpperCase() && String(s.dibuat).indexOf(tglIni) === 0);
-      const catatan = sudahAda ? '\n\n⚠ Presensi dengan judul & target yang sama sudah ada hari ini. Menyimpan akan MEMPERBARUI data tersebut (tidak membuat sesi baru).' : '';
-      if (!await Popup.confirm({ title: sudahAda ? 'Perbarui Presensi?' : 'Simpan Presensi?', text: `${judul} (${target})\nHadir ${c.Hadir} · Izin ${c.Izin} · Sakit ${c.Sakit} · Alpa ${c.Alpa}${catatan}`, confirmText: sudahAda ? 'Ya, Perbarui' : 'Ya, Simpan' })) return;
+      if (!await Popup.confirm({ title: 'Simpan Presensi?', text: `${judul} (${target})\nHadir ${c.Hadir} · Izin ${c.Izin} · Sakit ${c.Sakit} · Alpa ${c.Alpa}`, confirmText: 'Ya, Simpan' })) return;
       const r = await runWrite(document.getElementById('pcSave'), 'Menyimpan...', 'presensiCepat', {
         judul: judul, target: target, materi: document.getElementById('pcMateri').value.trim(),
         entries: pcSiswa.map((s, i) => ({ nis: s.id, status: pcStatus[i] }))
       });
-      if (!r.ok) { if (!r.silent) Popup.error(r.message); return; }
+      if (!r.ok) { if (!r.silent) Popup.error(r.message + '\n\nCek dulu Daftar Sesi Presensi sebelum menyimpan lagi agar tidak dobel.'); return; }
       await Popup.success('Presensi Tersimpan', r.message);
       pcSiswa = []; pcStatus = [];
       document.getElementById('pcList').innerHTML = ''; document.getElementById('pcJudul').value = ''; document.getElementById('pcMateri').value = '';
@@ -3482,7 +3480,7 @@
 
     // ==================== KUMPULKAN TUGAS (SISWA) — tergabung dari Portal Upload Tugas ====================
     // Backend penerima upload (Apps Script terpisah: menyimpan file ke Drive & mencatat ke tab "Pengumpulan Tugas")
-    const UPLOAD_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwhezv8JbyAyZbMvABKjmgwSstIDEVlv5JXv54gMqjOWcTWSCTs099OK7ShFNADrI2y/exec';
+    const UPLOAD_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyXtNTHT3Rcc8CrsbwSyybcGfd72HXeP9KsETqyg8LwxnD8R_7JHnQR_CKTMa4PnCm6/exec';
 
     let utMode = 'file', utPhotos = [], utBusy = false, utWantJudul = '';
     let utCamStream = null, utCamFacing = 'environment', utCamShots = [], utDragSrc = null;
@@ -3518,6 +3516,9 @@
       utLoadTugasOptions();
     }
 
+    // NIS & NISN diambil dari akun yang sedang login (bukan diketik siswa)
+    function utNis()  { return String((currentUser && (currentUser.nis || currentUser.username)) || '').trim(); }
+    function utNisn() { return String((currentUser && currentUser.nisn) || '').trim(); }
     function utKelasOptions() {
       const g = { VII: '7', VIII: '8', IX: '9' }[(currentUser.userClass || '').toString().trim().toUpperCase()];
       const grades = g ? [g] : ['7', '8', '9'];
@@ -3531,6 +3532,8 @@
     }
     function utInitIdentity() {
       utEl('utIdNama').textContent = currentUser.name;
+      utEl('utIdNis').textContent = utNis() || '-';
+      utEl('utIdNisn').textContent = utNisn() || '-';
       const rom = (currentUser.userRombel || '').toString().trim();
       const kEl = utEl('utIdKelas'), sel = utEl('utKelasSel');
       if (rom) { kEl.textContent = rom; kEl.classList.remove('d-none'); sel.classList.add('d-none'); }
@@ -3795,7 +3798,7 @@
       if (!kelas) return utWarn('Kelas', 'utKelasSel');
       if (!judul) return utWarn('Judul Tugas', utEl('utJudulSel').value === '__lain' ? 'utJudulManual' : 'utJudulSel');
 
-      const payload = { mode: utMode === 'photo' ? 'photo_pdf' : utMode, fullName: currentUser.name, nis: currentUser.username, absentNumber: absen, kelas: kelas, taskTitle: judul, notes: notes };
+      const payload = { mode: utMode === 'photo' ? 'photo_pdf' : utMode, fullName: currentUser.name, nis: utNis(), nisn: utNisn(), absentNumber: absen, kelas: kelas, taskTitle: judul, notes: notes };
       let linkShown = '';
 
       if (utMode === 'file') {
@@ -3826,7 +3829,7 @@
         await fetch(UPLOAD_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
         utProgress(100, 'Selesai!');
         await sleep(500);
-        utShowSuccess({ mode: payload.mode, nama: currentUser.name, absen, kelas, judul, link: linkShown, notes });
+        utShowSuccess({ mode: payload.mode, nama: currentUser.name, nis: utNis(), nisn: utNisn(), absen, kelas, judul, link: linkShown, notes });
       } catch (err) {
         utEl('utErrorMsg').textContent = (err instanceof TypeError) ? 'Koneksi internet terputus atau tidak stabil. Periksa jaringan Anda, lalu coba lagi.' : (err.message || 'Terjadi kesalahan.');
         utShow('error');
@@ -3836,7 +3839,7 @@
     function utShowSuccess(i) {
       const badge = { file: ['primary', 'fa-file-arrow-up', 'Upload File'], photo_pdf: ['warning text-dark', 'fa-camera', 'Foto → PDF'], link: ['success', 'fa-link', 'Kirim Link'] }[i.mode];
       utEl('utSumBadge').innerHTML = `<span class="badge bg-${badge[0]}"><i class="fa-solid ${badge[1]} me-1"></i>${badge[2]}</span>`;
-      utEl('utSumNama').textContent = i.nama; utEl('utSumAbsen').textContent = i.absen;
+      utEl('utSumNama').textContent = i.nama; utEl('utSumNis').textContent = i.nis || '-'; utEl('utSumNisn').textContent = i.nisn || '-'; utEl('utSumAbsen').textContent = i.absen;
       utEl('utSumKelas').textContent = i.kelas; utEl('utSumJudul').textContent = i.judul;
       utEl('utSumLink').textContent = i.link; utEl('utSumLinkRow').classList.toggle('d-none', !i.link);
       utEl('utSumNotes').textContent = i.notes; utEl('utSumNotesRow').classList.toggle('d-none', !i.notes);
