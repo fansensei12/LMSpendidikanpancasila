@@ -777,12 +777,12 @@
 
         <li class="menu-header">Aplikasi Tambahan</li>
         <li>
-          <a href="https://fansensei12.github.io/Ruang-Karakter/" target="_blank" class="nav-link nav-link-portal" onclick="closeSidebar()">
+          <a href="https://fansensei12.github.io/Ruang-Karakter-PKn/" target="_blank" class="nav-link nav-link-portal" onclick="closeSidebar()">
             <i class="fa-solid fa-globe text-warning"></i> Portal Pendidikan Pancasila
           </a>
         </li>
         <li>
-          <a href="https://fansensei12.github.io/Ruang-Karakter/tracking" target="_self" class="nav-link nav-link-tracking">
+          <a href="https://fansensei12.github.io/Ruang-Karakter/tracking.html" target="_self" class="nav-link nav-link-tracking">
             <i class="fa-solid fa-chart-line"></i> Tracking Tugas
           </a>
         </li>
@@ -818,7 +818,7 @@
         
         <!-- ==================== TAMPILAN 1: RUANG KELAS (MATERI & TUGAS) ==================== -->
         <div id="kelasViewSection">
-          <a href="https://fansensei12.github.io/Ruang-Karakter/tracking" target="_self" id="trackingCard" class="tracking-card mb-4 d-none">
+          <a href="https://fansensei12.github.io/Ruang-Karakter/tracking.html" target="_self" id="trackingCard" class="tracking-card mb-4 d-none">
             <span class="tracking-card-icon"><i class="fa-solid fa-chart-line"></i></span>
             <span class="tracking-card-text">
               <b>Tracking Tugas</b>
@@ -1763,7 +1763,7 @@
 
     // ===== "Tampilkan data tersimpan dulu, perbarui di latar belakang" =====
     // Data terakhir disimpan di perangkat. Menu langsung tampil seketika, lalu diperbarui bila ada yang berubah.
-    const MUTATING_ACTIONS = ['addMateri','updateMateri','deleteMateri','addTugas','updateTugas','deleteTugas','moveRowPosition','toggleStatusCekTugas','saveNilaiBatch','deleteNilai','addPengumuman','deletePengumuman','submitAbsen','createSesiAbsen','closeSesiAbsen','updateTokenAbsen','setAbsenManual','presensiCepat','toggleSembunyi','updateMateriAbsen'];
+    const MUTATING_ACTIONS = ['addMateri','updateMateri','deleteMateri','addTugas','updateTugas','deleteTugas','moveRowPosition','toggleStatusCekTugas','saveNilaiBatch','deleteNilai','addPengumuman','deletePengumuman','submitAbsen','createSesiAbsen','closeSesiAbsen','updateTokenAbsen','setAbsenManual','setAbsenBatch','presensiCepat','toggleSembunyi','updateMateriAbsen'];
     const swrMem = {};
     function swrKey(action, payload) {
       const p = Object.assign({}, payload); delete p.fresh;
@@ -3584,25 +3584,55 @@
       const res = await callApi('closeSesiAbsen', { sesiId: id });
       if (res && res.success) loadSesiAbsenAdmin(); else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal');
     }
+    let absenDetail = { id: null, res: null, filter: 'semua' };
     async function showAbsenDetail(id, keepScroll) {
       const box = document.getElementById('absenDetailBox');
-      if (!keepScroll) box.innerHTML = '<div class="text-muted small py-3">Memuat detail...</div>';
+      if (!keepScroll) { box.innerHTML = '<div class="text-muted small py-3">Memuat detail...</div>'; absenDetail.filter = 'semua'; }
       const res = await callApi('getAbsenDetail', { sesiId: id });
       if (!res || !res.success) { if (!(res && res.expired)) box.innerHTML = `<div class="text-danger small">${escHtml(res ? res.message : 'Gagal')}</div>`; return; }
+      absenDetail.id = id; absenDetail.res = res;
+      renderAbsenDetail();
+      if (!keepScroll) box.scrollIntoView({ behavior: 'smooth' });
+    }
+    function setAbsenFilter(f) { absenDetail.filter = f; renderAbsenDetail(); }
+    function renderAbsenDetail() {
+      const box = document.getElementById('absenDetailBox'), res = absenDetail.res, id = absenDetail.id, f = absenDetail.filter;
+      if (!res) return;
       const cnt = {}; res.data.forEach(d => cnt[d.status] = (cnt[d.status] || 0) + 1);
+      const nBelum = cnt['Belum'] || 0, nSudah = res.data.length - nBelum;
       const opts = ['Hadir', 'Izin', 'Sakit', 'Alpa', 'Belum'];
+      const rows = res.data.filter(d => f === 'belum' ? d.status === 'Belum' : f === 'sudah' ? d.status !== 'Belum' : true);
+      const fb = (key, label, n, cls) => `<button type="button" class="btn btn-sm ${f === key ? 'btn-' + cls : 'btn-outline-' + cls}" onclick="setAbsenFilter('${key}')">${label} (${n})</button>`;
       box.innerHTML = `<div class="card card-item"><div class="card-body">
         <h6 class="fw-bold mb-1">Detail: ${escHtml(res.sesi.judul)} <span class="badge bg-primary">${escHtml(res.sesi.target)}</span></h6>
         ${res.sesi.materi ? `<div class="small mb-2"><i class="fa-solid fa-book-open text-primary me-1"></i><b>Materi:</b> ${escHtml(res.sesi.materi)}</div>` : ''}
         <div class="small text-muted mb-2">${opts.map(o => `${o}: <b>${cnt[o] || 0}</b>`).join(' &bull; ')}</div>
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+          <div class="btn-group" role="group">${fb('semua', 'Semua', res.data.length, 'primary')}${fb('belum', 'Belum Presensi', nBelum, 'danger')}${fb('sudah', 'Sudah Presensi', nSudah, 'success')}</div>
+          ${nBelum ? `<div class="input-group input-group-sm ms-auto" style="width:auto">
+            <span class="input-group-text">Ubah semua yang belum menjadi</span>
+            <select id="absenBulkStatus" class="form-select form-select-sm" style="max-width:100px"><option>Alpa</option><option>Hadir</option><option>Izin</option><option>Sakit</option></select>
+            <button type="button" id="absenBulkBtn" class="btn btn-warning" onclick="setAbsenBatchBelum()"><i class="fa-solid fa-users-gear me-1"></i>Terapkan (${nBelum})</button></div>` : ''}
+        </div>
         <div class="rekap-table-scroll"><table class="table table-rekap mb-0">
           <thead><tr><th>No</th><th>Nama</th><th>Rombel</th><th>Status</th><th>Jam</th><th>Metode</th></tr></thead><tbody>
-          ${res.data.map((d, i) => `<tr><td>${i + 1}</td><td class="fw-semibold">${escHtml(d.nama)}</td><td>${escHtml(d.rombel)}</td>
+          ${rows.length ? rows.map((d, i) => `<tr><td>${i + 1}</td><td class="fw-semibold">${escHtml(d.nama)}</td><td>${escHtml(d.rombel)}</td>
             <td><select class="form-select form-select-sm" style="width:110px" data-prev="${escHtml(d.status)}" onchange="setAbsenManual('${escHtml(id)}','${escHtml(d.nis)}',this)">
               ${opts.map(o => `<option ${o === d.status ? 'selected' : ''}>${o}</option>`).join('')}</select></td>
-            <td class="small">${escHtml(d.waktu)}</td><td class="small">${escHtml(d.metode)}</td></tr>`).join('')}
+            <td class="small">${escHtml(d.waktu)}</td><td class="small">${escHtml(d.metode)}</td></tr>`).join('') : '<tr><td colspan="6" class="text-center text-muted py-3">Tidak ada siswa pada filter ini.</td></tr>'}
           </tbody></table></div></div></div>`;
-      if (!keepScroll) box.scrollIntoView({ behavior: 'smooth' });
+    }
+    async function setAbsenBatchBelum() {
+      const res = absenDetail.res, id = absenDetail.id; if (!res) return;
+      const status = document.getElementById('absenBulkStatus').value;
+      const list = res.data.filter(d => d.status === 'Belum'); if (!list.length) return;
+      if (!(await Popup.confirm({ type: 'warning', title: 'Ubah Semua yang Belum Presensi?', text: `${list.length} siswa yang belum presensi akan ditandai "${status}". Siswa yang sudah presensi tidak akan berubah.`, confirmText: 'Ya, Terapkan' }))) return;
+      const btn = document.getElementById('absenBulkBtn'); if (btn) btn.disabled = true;
+      try {
+        const r = await callApi('setAbsenBatch', { sesiId: id, nisList: list.map(d => d.nis), status });
+        if (r && r.success) { Popup.toast(r.message); absenDetail.filter = 'semua'; showAbsenDetail(id, true); loadSesiAbsenAdmin(); }
+        else { if (btn) btn.disabled = false; if (!(r && r.expired)) await Popup.error(r ? r.message : 'Gagal menyimpan.', 'Tidak Tersimpan'); }
+      } catch (err) { if (btn) btn.disabled = false; await Popup.error(err.message, 'Tidak Tersimpan'); }
     }
     async function setAbsenManual(sesiId, nis, sel) {
       const status = sel.value, prev = sel.dataset.prev;
