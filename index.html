@@ -628,7 +628,7 @@
         <p class="text-white-50 small mb-0">LMS Pendidikan Pancasila</p>
         <p class="login-desc">Ruang belajar daring untuk mengakses materi, mengumpulkan tugas, mengisi presensi, serta melihat nilai dan pengumuman dari guru.</p>
         
-        <ul class="nav nav-pills nav-justified login-toggle my-3" id="loginTab">
+        <ul class="nav nav-pills nav-justified login-toggle my-3 d-none" id="loginTab">
           <li class="nav-item">
             <button class="nav-link active" id="tabSiswa" type="button" onclick="switchLoginTab('peserta')">
               <i class="fa-solid fa-user-graduate me-1"></i> Siswa
@@ -1718,7 +1718,10 @@
 
     let currentUser = null;
     let currentClassView = 'ALL';
-    let selectedRole = 'peserta';
+    // ===== PENGATURAN HALAMAN: 'siswa' (index.html) atau 'admin' (guru.html) =====
+    const HALAMAN = 'siswa';
+    const SESSION_KEY = HALAMAN === 'admin' ? 'lms_user_session_guru' : 'lms_user_session';
+    let selectedRole = HALAMAN === 'admin' ? 'admin' : 'peserta';
     let allRekapData = [];
     let rekapLoaded = false;
 
@@ -1802,14 +1805,15 @@
     }
 
     window.addEventListener('DOMContentLoaded', function() {
-      const savedUser = localStorage.getItem('lms_user_session');
+      switchLoginTab(selectedRole);
+      const savedUser = localStorage.getItem(SESSION_KEY);
       if (savedUser) {
         try {
           currentUser = JSON.parse(savedUser);
           showDashboard();
         } catch (e) {
           console.error('Gagal memulihkan sesi:', e);
-          localStorage.removeItem('lms_user_session');
+          localStorage.removeItem(SESSION_KEY);
         }
       }
     });
@@ -1902,10 +1906,10 @@
         }
         if (res.success) {
           currentUser = res;
-          localStorage.setItem('lms_user_session', JSON.stringify(currentUser));
+          localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
           showDashboard();
         } else {
-          alertBox.textContent = (res.message || 'Login gagal.');
+          alertBox.textContent = (res.message || 'Login gagal.').replace('silakan pilih tab login yang sesuai!', 'silakan gunakan halaman login Guru/Admin.');
           alertBox.classList.remove('d-none');
         }
       } catch (err) {
@@ -4127,7 +4131,7 @@
       swrClear();
       closeSidebar();
       currentUser = null;
-      localStorage.removeItem('lms_user_session');
+      localStorage.removeItem(SESSION_KEY);
       document.getElementById('dashboardSection').classList.add('d-none');
       document.getElementById('loginSection').classList.remove('d-none');
       document.getElementById('loginForm').reset();
