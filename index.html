@@ -221,7 +221,7 @@
     }
     .sidebar-overlay.show { display: block; opacity: 1; }
 
-    .main-content { flex-grow: 1; background: #f7fafc; overflow-y: auto; width: 100%; }
+    .main-content { flex-grow: 1; background: #f7fafc; overflow: visible; width: 100%; min-width: 0; } /* overflow visible agar header sticky menempel saat halaman digulir */
     .top-header {
       background: #fff;
       padding: 1rem 2rem;
@@ -611,7 +611,19 @@
     .rp-seg { display: inline-flex; border: 1.5px solid #cbd5e0; border-radius: 9px; overflow: hidden; }
     .rp-seg button { border: 0; background: #fff; padding: 5px 12px; font-size: .78rem; font-weight: 600; color: #718096; }
     .rp-seg button.active { background: #2b6cb0; color: #fff; }
-</style>
+
+    /* ===== Menu profil di kanan atas ===== */
+    .profile-trigger{background:none;border:0;padding:2px 4px;display:flex;align-items:center;gap:.5rem;border-radius:12px;cursor:pointer;color:inherit}
+    .profile-trigger:hover{background:rgba(0,0,0,.05)}
+    .profile-trigger .caret{font-size:.65rem;color:#6b7280}
+    .profile-menu{position:absolute;right:0;top:calc(100% + 8px);width:290px;max-width:calc(100vw - 24px);background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.18);z-index:1080;overflow:hidden}
+    .profile-menu .pm-head{padding:1.1rem 1rem .9rem;text-align:center;background:linear-gradient(135deg,#1a365d,#2b6cb0);color:#fff}
+    .profile-menu .pm-avatar{width:56px;height:56px;border-radius:50%;background:#d4af37;color:#1a365d;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.5rem;margin:0 auto .5rem}
+    .profile-menu .pm-name{font-weight:700;line-height:1.25;word-break:break-word}
+    .profile-menu .pm-id{font-size:.78rem;opacity:.8;word-break:break-word}
+    .profile-menu .pm-role{padding:.7rem 1rem;font-size:.82rem;color:#374151;border-bottom:1px solid #f1f5f9;text-align:center}
+    .profile-menu .pm-foot{padding:.75rem 1rem}
+  </style>
 </head>
 <body>
 
@@ -806,11 +818,27 @@
         </div>
         <div class="d-flex align-items-center gap-2">
           <button type="button" id="onlineChip" class="btn online-chip d-none" onclick="openOnlineList()" title="Sedang online"><i class="fa-solid fa-circle fa-2xs"></i><span id="onlineCount">0</span> online</button>
-          <div class="text-end d-none d-sm-block">
-            <div class="fw-bold text-dark" id="userDisplayName"></div>
-            <small class="text-success fw-semibold"><i class="fa-solid fa-circle fa-2xs me-1"></i>Online</small>
+          <div class="position-relative" id="profileMenuWrap">
+            <button type="button" class="profile-trigger" onclick="toggleProfileMenu(event)" title="Profil pengguna" aria-haspopup="true">
+              <div class="text-end d-none d-sm-block">
+                <div class="fw-bold text-dark" id="userDisplayName"></div>
+                <small class="text-success fw-semibold"><i class="fa-solid fa-circle fa-2xs me-1"></i>Online</small>
+              </div>
+              <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width: 40px; height: 40px; background-color: #2b6cb0 !important;" id="userAvatarHeader">U</div>
+              <i class="fa-solid fa-chevron-down caret"></i>
+            </button>
+            <div id="profileMenu" class="profile-menu d-none" role="menu">
+              <div class="pm-head">
+                <div class="pm-avatar" id="pmAvatar">U</div>
+                <div class="pm-name" id="pmName">-</div>
+                <div class="pm-id" id="pmId"></div>
+              </div>
+              <div class="pm-role" id="pmRole"></div>
+              <div class="pm-foot">
+                <button type="button" class="btn btn-danger w-100 btn-sm" onclick="closeProfileMenu();logout()"><i class="fa-solid fa-right-from-bracket me-2"></i>Keluar / Logout</button>
+              </div>
+            </div>
           </div>
-          <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width: 40px; height: 40px; background-color: #2b6cb0 !important;" id="userAvatarHeader">U</div>
         </div>
       </header>
 
@@ -4124,6 +4152,22 @@
       utEl('utAbsen').value = ''; utEl('utAbsen').dataset.user = '';
       utSwitch('file');
     }
+
+    // ===== Menu profil kanan atas =====
+    function toggleProfileMenu(e) {
+      if (e) e.stopPropagation();
+      const m = document.getElementById('profileMenu');
+      if (!m.classList.contains('d-none')) { m.classList.add('d-none'); return; }
+      const t = id => (document.getElementById(id) || {}).textContent || '';
+      document.getElementById('pmAvatar').textContent = t('userAvatarHeader') || 'U';
+      document.getElementById('pmName').textContent = t('profileName') || t('userDisplayName');
+      document.getElementById('pmId').textContent = t('profileUsername');
+      document.getElementById('pmRole').textContent = t('userRoleBadge');
+      m.classList.remove('d-none');
+    }
+    function closeProfileMenu() { const m = document.getElementById('profileMenu'); if (m) m.classList.add('d-none'); }
+    document.addEventListener('click', e => { const w = document.getElementById('profileMenuWrap'); if (w && !w.contains(e.target)) closeProfileMenu(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProfileMenu(); });
 
     function logout() {
       utResetAll();
