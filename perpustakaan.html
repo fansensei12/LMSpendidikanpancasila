@@ -3,6 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Mode embed: aktif otomatis saat dibuka di dalam LMS (iframe) atau dengan ?embed=1 -->
+<script>try{if(window.self!==window.top||/[?&]embed=1/.test(location.search))document.documentElement.classList.add('embedded')}catch(e){document.documentElement.classList.add('embedded')}</script>
+<style>
+/* Mode embed: hanya tampilkan kategori + daftar buku (tanpa header, judul besar, pengumuman, footer) */
+html.embedded body>header,
+html.embedded body>footer,
+html.embedded aside[aria-label="Pengumuman"],
+html.embedded section.bg-maroon-950 h2,
+html.embedded section.bg-maroon-950 div>p.mt-3,
+html.embedded a[href="./index.html"],
+html.embedded a[href^="https://fansensei12.github.io/LMSpendidikanpancasila"]{display:none!important}
+html.embedded section.bg-maroon-950>div{display:block;padding-top:.9rem;padding-bottom:.9rem}
+html.embedded section.bg-maroon-950 div.relative{margin-top:0}
+html.embedded main{padding-top:1rem}
+</style>
 <title>Sumber Ajar | Perpustakaan Digital Bahan Ajar</title>
 <link rel="icon" type="image/png" href="logo1.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
