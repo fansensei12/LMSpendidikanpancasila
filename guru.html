@@ -1342,13 +1342,18 @@
             </div>
           </div></div>
           <div class="card card-item mb-3"><div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex justify-content-between align-items-center" style="cursor:pointer" onclick="sesiListToggle()">
               <h6 class="fw-bold mb-0">Daftar Sesi Presensi</h6>
-              <button class="btn btn-sm btn-outline-primary" onclick="loadSesiAbsenAdmin()"><i class="fa-solid fa-rotate me-1"></i> Refresh</button>
+              <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();loadSesiAbsenAdmin()"><i class="fa-solid fa-rotate me-1"></i> Refresh</button>
+                <i class="fa-solid fa-chevron-up text-muted" id="sesiListChevron"></i>
+              </div>
             </div>
-            <div class="rekap-table-scroll"><table class="table table-rekap mb-0">
-              <thead><tr><th>Pertemuan</th><th>Target</th><th>Token</th><th>Status</th><th class="text-center">Hadir</th><th>Aksi</th></tr></thead>
-              <tbody id="absenSesiBody"></tbody></table></div>
+            <div id="sesiListBody" class="mt-2">
+              <div class="rekap-table-scroll"><table class="table table-rekap mb-0">
+                <thead><tr><th>Pertemuan</th><th>Target</th><th>Token</th><th>Status</th><th class="text-center">Hadir</th><th>Aksi</th></tr></thead>
+                <tbody id="absenSesiBody"></tbody></table></div>
+            </div>
           </div></div>
           <div id="absenDetailBox"></div>
         </div>
@@ -3663,6 +3668,11 @@
       if (!src || !dst || !src.innerHTML || dst.dataset.synced === src.innerHTML.length + '') return;
       const cur = dst.value; dst.innerHTML = src.innerHTML; dst.dataset.synced = src.innerHTML.length + '';
       if (cur) dst.value = cur;
+    }
+    function sesiListToggle() {
+      const b = document.getElementById('sesiListBody'), open = b.classList.contains('d-none');
+      b.classList.toggle('d-none', !open);
+      document.getElementById('sesiListChevron').className = 'fa-solid text-muted ' + (open ? 'fa-chevron-up' : 'fa-chevron-down');
     }
     function pcToggle() {
       const body = document.getElementById('pcBody');
