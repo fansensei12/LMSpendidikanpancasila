@@ -623,6 +623,10 @@
     .profile-menu .pm-id{font-size:.78rem;opacity:.8;word-break:break-word}
     .profile-menu .pm-role{padding:.7rem 1rem;font-size:.82rem;color:#374151;border-bottom:1px solid #f1f5f9;text-align:center}
     .profile-menu .pm-foot{padding:.75rem 1rem}
+  
+    /* ===== Tombol Perpustakaan di header ===== */
+    .btn-perpus{display:inline-flex;align-items:center;gap:.45rem;border:1.5px solid #2b6cb0;background:#fff;color:#2b6cb0;border-radius:999px;padding:.4rem .8rem;font-weight:600;font-size:.85rem;line-height:1.2;cursor:pointer;transition:background .15s,color .15s}
+    .btn-perpus:hover,.btn-perpus.active{background:#2b6cb0;color:#fff}
   </style>
 </head>
 <body>
@@ -763,6 +767,12 @@
           </a>
         </li>
 
+        <li class="menu-admin-rekap" style="display:none;">
+          <a class="nav-link" id="menu-RESETPW" onclick="openResetPwView()">
+            <i class="fa-solid fa-user-lock"></i> Reset Password Siswa
+          </a>
+        </li>
+
         <li class="menu-header menu-siswa-nilai" style="display:none;">Tugas, Presensi & Nilai</li>
         <li class="menu-siswa-nilai" style="display:none;">
           <a class="nav-link nav-link-tugas" id="menu-UPLOAD" onclick="openUploadView()">
@@ -817,6 +827,7 @@
           </div>
         </div>
         <div class="d-flex align-items-center gap-2">
+          <button type="button" id="menu-PERPUS" class="btn-perpus" onclick="openPerpustakaanView()" title="Perpustakaan Sumber Ajar" aria-label="Perpustakaan"><i class="fa-solid fa-book-open-reader"></i><span class="d-none d-md-inline">Perpustakaan</span></button>
           <button type="button" id="onlineChip" class="btn online-chip d-none" onclick="openOnlineList()" title="Sedang online"><i class="fa-solid fa-circle fa-2xs"></i><span id="onlineCount">0</span> online</button>
           <div class="position-relative" id="profileMenuWrap">
             <button type="button" class="profile-trigger" onclick="toggleProfileMenu(event)" title="Profil pengguna" aria-haspopup="true">
@@ -835,6 +846,7 @@
               </div>
               <div class="pm-role" id="pmRole"></div>
               <div class="pm-foot">
+                <button type="button" class="btn btn-outline-primary w-100 btn-sm mb-2" onclick="closeProfileMenu();openChangePassword()"><i class="fa-solid fa-key me-2"></i>Ganti Password</button>
                 <button type="button" class="btn btn-danger w-100 btn-sm" onclick="closeProfileMenu();logout()"><i class="fa-solid fa-right-from-bracket me-2"></i>Keluar / Logout</button>
               </div>
             </div>
@@ -1116,6 +1128,30 @@
           </div>
         </div>
 
+
+        <!-- ==================== RESET PASSWORD SISWA (GURU) ==================== -->
+        <div id="resetPwSection" class="d-none">
+          <div class="card card-item"><div class="card-body">
+            <h6 class="fw-bold mb-1"><i class="fa-solid fa-user-lock text-primary me-2"></i>Reset Password Siswa</h6>
+            <div class="small text-muted mb-3">Pilih siswa, lalu klik <b>Reset</b> untuk membuat password baru. Berikan password baru itu kepada siswa; siswa bisa menggantinya sendiri lewat menu profil.</div>
+            <div class="row g-2 mb-3">
+              <div class="col-12 col-md-4"><select id="rpwRombel" class="form-select form-select-sm" onchange="rpwRender()"><option value="">Semua rombel</option></select></div>
+              <div class="col-12 col-md-8"><input id="rpwSearch" type="search" class="form-control form-control-sm" placeholder="Cari nama atau NIS/NISN..." oninput="rpwRender()"></div>
+            </div>
+            <div class="rekap-table-scroll"><table class="table table-rekap mb-0">
+              <thead><tr><th>No</th><th>Nama</th><th>NIS / NISN</th><th>Rombel</th><th style="width:110px">Aksi</th></tr></thead>
+              <tbody id="rpwBody"><tr><td colspan="5" class="text-center text-muted py-3">Memuat daftar siswa...</td></tr></tbody>
+            </table></div>
+            <div id="rpwInfo" class="small text-muted mt-2"></div>
+          </div></div>
+        </div>
+
+        <!-- ==================== PERPUSTAKAAN (SUMBER AJAR) ==================== -->
+        <div id="perpustakaanSection" class="d-none">
+          <div class="card card-item p-0 overflow-hidden" style="border-radius:14px">
+            <iframe id="perpustakaanFrame" title="Perpustakaan Sumber Ajar" style="width:100%;border:0;display:block;height:70vh" allow="fullscreen"></iframe>
+          </div>
+        </div>
 
         <!-- ==================== TAMPILAN 3: NILAI SAYA (SISWA) ==================== -->
         <div id="nilaiSayaSection" class="d-none">
@@ -1628,6 +1664,48 @@
   </div>
 
 
+
+  <!-- MODAL RESET PASSWORD SISWA (guru) -->
+  <div class="modal fade" id="rpwModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h6 class="modal-title fw-bold"><i class="fa-solid fa-user-lock me-2 text-primary"></i>Reset Password</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="rpwModalBody"></div>
+        <div class="modal-footer" id="rpwModalFoot"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL GANTI PASSWORD (semua pengguna) -->
+  <div class="modal fade" id="pwModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h6 class="modal-title fw-bold"><i class="fa-solid fa-key me-2 text-primary"></i>Ganti Password</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="pwAlert" class="alert alert-danger py-2 small d-none"></div>
+          <div class="mb-3"><label class="form-label small fw-semibold">Password Lama</label>
+            <div class="input-group"><input type="password" id="pwOld" class="form-control" autocomplete="current-password">
+            <button class="btn btn-outline-secondary" type="button" onclick="togglePwVis('pwOld',this)" tabindex="-1"><i class="fa-solid fa-eye"></i></button></div></div>
+          <div class="mb-3"><label class="form-label small fw-semibold">Password Baru <span class="text-muted fw-normal">(minimal 6 karakter)</span></label>
+            <div class="input-group"><input type="password" id="pwNew" class="form-control" autocomplete="new-password">
+            <button class="btn btn-outline-secondary" type="button" onclick="togglePwVis('pwNew',this)" tabindex="-1"><i class="fa-solid fa-eye"></i></button></div></div>
+          <div class="mb-1"><label class="form-label small fw-semibold">Ulangi Password Baru</label>
+            <div class="input-group"><input type="password" id="pwNew2" class="form-control" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitChangePassword()">
+            <button class="btn btn-outline-secondary" type="button" onclick="togglePwVis('pwNew2',this)" tabindex="-1"><i class="fa-solid fa-eye"></i></button></div></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-primary btn-sm" id="pwSaveBtn" onclick="submitChangePassword()"><i class="fa-solid fa-floppy-disk me-1"></i>Simpan Password</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div class="modal fade" id="onlineModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
@@ -2655,6 +2733,9 @@
       document.getElementById('absenAdminSection').classList.add('d-none');
       document.getElementById('uploadTugasSection').classList.add('d-none');
       document.getElementById('rekapPresensiSection').classList.add('d-none');
+      document.getElementById('perpustakaanSection').classList.add('d-none');
+      document.getElementById('resetPwSection').classList.add('d-none');
+      const bp = document.getElementById('menu-PERPUS'); if (bp) bp.classList.remove('active');
     }
     function showOnlyNilaiView(sectionId, menuId, title) {
       closeSidebar();
@@ -2666,6 +2747,125 @@
       document.getElementById(menuId).classList.add('active');
       document.getElementById('pageTitle').textContent = title;
     }
+    // ===== Perpustakaan (Sumber Ajar) dimuat di dalam LMS =====
+    const PERPUSTAKAAN_URL = 'https://fansensei12.github.io/LMSpendidikanpancasila/perpustakaan.html?embed=1'; // alamat LENGKAP (wajib, agar tetap jalan saat LMS dibuka dari Google Sites/embed)
+    function fitPerpustakaanFrame() {
+      const f = document.getElementById('perpustakaanFrame'), sec = document.getElementById('perpustakaanSection');
+      if (!f || !sec || sec.classList.contains('d-none')) return;
+      const hdr = document.querySelector('.top-header'), pad = window.innerWidth <= 768 ? 16 : 32;
+      f.style.height = Math.max(420, window.innerHeight - (hdr ? hdr.offsetHeight : 70) - pad * 2) + 'px';
+    }
+    function openPerpustakaanView() {
+      if (!currentUser) return;
+      showOnlyNilaiView('perpustakaanSection', 'menu-PERPUS', 'Perpustakaan Sumber Ajar');
+      const f = document.getElementById('perpustakaanFrame');
+      if (!f.getAttribute('src')) f.setAttribute('src', PERPUSTAKAAN_URL);
+      window.scrollTo(0, 0);
+      fitPerpustakaanFrame();
+    }
+    window.addEventListener('resize', fitPerpustakaanFrame);
+
+    // ===== Reset password siswa (guru) =====
+    let rpwList = [], rpwTarget = null;
+    function openResetPwView() {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      showOnlyNilaiView('resetPwSection', 'menu-RESETPW', 'Reset Password Siswa');
+      const fill = res => {
+        if (!res || !res.success) return;
+        rpwList = res.siswa || [];
+        const sel = document.getElementById('rpwRombel'), cur = sel.value;
+        sel.innerHTML = '<option value="">Semua rombel</option>' + (res.rombelList || []).map(r => `<option>${escHtml(r)}</option>`).join('');
+        sel.value = cur; rpwRender();
+      };
+      if (rpwList.length) rpwRender();
+      swr('getSiswaList', {}, fill).catch(() => {});
+    }
+    function rpwRender() {
+      const rb = document.getElementById('rpwRombel').value, q = document.getElementById('rpwSearch').value.trim().toLowerCase();
+      const rows = rpwList.filter(s => (!rb || s.rombel === rb) && (!q || (s.nama + ' ' + s.id + ' ' + (s.nisn || '')).toLowerCase().includes(q)));
+      const MAX = 300, show = rows.slice(0, MAX);
+      document.getElementById('rpwBody').innerHTML = show.length ? show.map((s, i) => `<tr><td>${i + 1}</td><td class="fw-semibold">${escHtml(s.nama)}</td><td>${escHtml(s.id)}${s.nisn && s.nisn !== s.id ? ' / ' + escHtml(s.nisn) : ''}</td><td>${escHtml(s.rombel)}</td>
+        <td><button class="btn btn-sm btn-outline-warning" data-id="${escHtml(s.id)}" onclick="rpwOpen(this.dataset.id)"><i class="fa-solid fa-key me-1"></i>Reset</button></td></tr>`).join('')
+        : '<tr><td colspan="5" class="text-center text-muted py-3">Tidak ada siswa yang cocok.</td></tr>';
+      document.getElementById('rpwInfo').textContent = rows.length > MAX ? `Menampilkan ${MAX} dari ${rows.length} siswa. Persempit dengan rombel atau pencarian.` : `${rows.length} siswa`;
+    }
+    function rpwRandom() {
+      const a = new Uint32Array(1); (window.crypto || window.msCrypto).getRandomValues(a);
+      return String(100000 + (a[0] % 900000));
+    }
+    function rpwOpen(id) {
+      const s = rpwList.find(x => x.id === id); if (!s) return;
+      rpwTarget = s;
+      document.getElementById('rpwModalBody').innerHTML = `
+        <div id="rpwAlert" class="alert alert-danger py-2 small d-none"></div>
+        <div class="mb-2"><div class="fw-bold">${escHtml(s.nama)}</div><div class="small text-muted">${escHtml(s.id)} &bull; ${escHtml(s.rombel)}</div></div>
+        <label class="form-label small fw-semibold">Password Baru <span class="text-muted fw-normal">(minimal 6 karakter)</span></label>
+        <div class="input-group"><input type="text" id="rpwNew" class="form-control" value="${rpwRandom()}" autocomplete="off" onkeydown="if(event.key==='Enter')rpwSubmit()">
+        <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('rpwNew').value=rpwRandom()" title="Buat password acak"><i class="fa-solid fa-shuffle"></i></button></div>`;
+      document.getElementById('rpwModalFoot').innerHTML = `<button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-warning btn-sm" id="rpwSaveBtn" onclick="rpwSubmit()"><i class="fa-solid fa-key me-1"></i>Reset Password</button>`;
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('rpwModal')).show();
+    }
+    function rpwCopy() {
+      const t = (document.getElementById('rpwShown') || {}).textContent || '';
+      if (navigator.clipboard) navigator.clipboard.writeText(t).then(() => Popup.toast('Password disalin')).catch(() => Popup.toast('Tidak bisa menyalin, salin manual.', false));
+      else Popup.toast('Tidak bisa menyalin, salin manual.', false);
+    }
+    async function rpwSubmit() {
+      if (!rpwTarget) return;
+      const v = document.getElementById('rpwNew').value.trim(), a = document.getElementById('rpwAlert'), btn = document.getElementById('rpwSaveBtn');
+      const fail = m => { a.textContent = m; a.classList.remove('d-none'); };
+      if (v.length < 6) return fail('Password baru minimal 6 karakter.');
+      btn.disabled = true;
+      try {
+        const res = await callApi('resetPassword', { id: rpwTarget.id, newPassword: v });
+        if (res && res.success) {
+          document.getElementById('rpwModalBody').innerHTML = `
+            <div class="text-center py-2"><i class="fa-solid fa-circle-check text-success fa-2x mb-2"></i>
+            <div class="fw-bold">${escHtml(rpwTarget.nama)}</div><div class="small text-muted mb-2">Password baru (berikan kepada siswa):</div>
+            <div class="fs-3 fw-bold font-monospace user-select-all" id="rpwShown">${escHtml(v)}</div>
+            <div class="small text-muted mt-2">Catat sekarang. Password ini tidak ditampilkan lagi setelah jendela ditutup.</div></div>`;
+          document.getElementById('rpwModalFoot').innerHTML = `<button type="button" class="btn btn-outline-primary btn-sm" onclick="rpwCopy()"><i class="fa-regular fa-copy me-1"></i>Salin</button>
+            <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">Selesai</button>`;
+        } else if (!(res && res.expired)) { fail(res ? res.message : 'Gagal mereset password.'); }
+      } catch (err) { fail(err.message || 'Gagal terhubung ke server.'); }
+      finally { if (btn) btn.disabled = false; }
+    }
+
+    // ===== Ganti password (semua pengguna) =====
+    function togglePwVis(id, btn) {
+      const i = document.getElementById(id); if (!i) return;
+      const show = i.type === 'password'; i.type = show ? 'text' : 'password';
+      btn.innerHTML = show ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
+    }
+    function openChangePassword() {
+      ['pwOld', 'pwNew', 'pwNew2'].forEach(id => { const e = document.getElementById(id); e.value = ''; e.type = 'password'; });
+      const a = document.getElementById('pwAlert'); a.classList.add('d-none'); a.textContent = '';
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('pwModal')).show();
+      setTimeout(() => document.getElementById('pwOld').focus(), 300);
+    }
+    async function submitChangePassword() {
+      const o = document.getElementById('pwOld').value.trim(), n = document.getElementById('pwNew').value.trim(), n2 = document.getElementById('pwNew2').value.trim();
+      const a = document.getElementById('pwAlert'), btn = document.getElementById('pwSaveBtn');
+      const fail = m => { a.textContent = m; a.classList.remove('d-none'); };
+      a.classList.add('d-none');
+      if (!o) return fail('Password lama wajib diisi.');
+      if (n.length < 6) return fail('Password baru minimal 6 karakter.');
+      if (n !== n2) return fail('Ulangi password baru tidak sama.');
+      if (n === o) return fail('Password baru tidak boleh sama dengan password lama.');
+      btn.disabled = true;
+      try {
+        const res = await callApi('changePassword', { oldPassword: o, newPassword: n });
+        if (res && res.success) {
+          bootstrap.Modal.getInstance(document.getElementById('pwModal')).hide();
+          await Popup.success('Password Berhasil Diubah', res.message || 'Gunakan password baru saat login berikutnya.');
+        } else if (!(res && res.expired)) {
+          fail(res ? res.message : 'Gagal mengubah password.');
+        }
+      } catch (err) { fail(err.message || 'Gagal terhubung ke server.'); }
+      finally { btn.disabled = false; }
+    }
+
     function nilaiColor(n) { return n >= 75 ? 'text-success' : (n >= 60 ? 'text-warning' : 'text-danger'); }
 
     // --- Siswa ---
