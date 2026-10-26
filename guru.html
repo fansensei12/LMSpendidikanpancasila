@@ -627,6 +627,19 @@
     /* ===== Tombol Perpustakaan di header ===== */
     .btn-perpus{display:inline-flex;align-items:center;gap:.45rem;border:1.5px solid #2b6cb0;background:#fff;color:#2b6cb0;border-radius:999px;padding:.4rem .8rem;font-weight:600;font-size:.85rem;line-height:1.2;cursor:pointer;transition:background .15s,color .15s}
     .btn-perpus:hover,.btn-perpus.active{background:#2b6cb0;color:#fff}
+  
+    /* ===== Teks berjalan (ticker) di atas header ===== */
+    .top-stack { position: sticky; top: 0; z-index: 1030; }
+    .top-stack .top-header { position: relative; top: auto; }
+    .ticker-bar { display: flex; align-items: center; background: #1a365d; color: #fff; font-size: .85rem; cursor: pointer; overflow: hidden; }
+    .ticker-label { background: #d4af37; color: #1a365d; padding: .45rem .8rem; font-weight: 700; flex-shrink: 0; position: relative; z-index: 1; }
+    .ticker-viewport { overflow: hidden; flex: 1; min-width: 0; }
+    .ticker-track { display: inline-flex; white-space: nowrap; padding: .45rem 0; animation: tickerMove var(--tk-dur, 30s) linear infinite; will-change: transform; }
+    .ticker-bar:hover .ticker-track, .ticker-bar:active .ticker-track { animation-play-state: paused; }
+    .ticker-item { padding-right: 2rem; }
+    .ticker-item::after { content: "\2022"; margin-left: 2rem; color: #d4af37; }
+    @keyframes tickerMove { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    @media (prefers-reduced-motion: reduce) { .ticker-track { animation: none; } .ticker-viewport { overflow-x: auto; } }
   </style>
 </head>
 <body>
@@ -816,6 +829,11 @@
     </aside>
 
     <main class="main-content">
+      <div class="top-stack">
+      <div id="tickerBar" class="ticker-bar d-none" onclick="openPengumumanView()" title="Klik untuk melihat pengumuman">
+        <span class="ticker-label"><i class="fa-solid fa-bullhorn"></i></span>
+        <div class="ticker-viewport"><div class="ticker-track" id="tickerTrack"></div></div>
+      </div>
       <header class="top-header">
         <div class="d-flex align-items-center gap-2">
           <button class="btn-hamburger" onclick="toggleSidebar()" title="Buka Menu Navigasi">
@@ -853,6 +871,7 @@
           </div>
         </div>
       </header>
+      </div>
 
       <div class="content-body">
         
@@ -1289,6 +1308,13 @@
                 <textarea id="pengumumanIsi" class="form-control form-control-sm mb-2" rows="3" placeholder="Isi pesan untuk siswa..." required></textarea>
                 <button type="submit" id="btnKirimPengumuman" class="btn btn-sm btn-danger fw-bold w-100"><i class="fa-solid fa-paper-plane me-1"></i> Kirim ke Siswa</button>
               </form>
+              <hr class="my-3">
+              <div class="small fw-semibold mb-1"><i class="fa-solid fa-star text-warning me-1"></i> Teks Berjalan Khusus <span class="text-muted fw-normal">(tampil di atas header bersama judul pengumuman terbaru)</span></div>
+              <div class="input-group input-group-sm">
+                <input type="text" id="tickerInput" class="form-control" maxlength="300" placeholder="Contoh: Selamat datang di LMS Pendidikan Pancasila SMPN 7 Banjarmasin">
+                <button type="button" class="btn btn-primary" onclick="simpanTicker(false)"><i class="fa-solid fa-floppy-disk me-1"></i>Simpan</button>
+                <button type="button" class="btn btn-outline-danger" onclick="simpanTicker(true)" title="Hapus teks khusus"><i class="fa-solid fa-trash"></i></button>
+              </div>
             </div>
           </div>
           <div id="pengumumanList"></div>
@@ -1877,7 +1903,7 @@
 
     // ===== "Tampilkan data tersimpan dulu, perbarui di latar belakang" =====
     // Data terakhir disimpan di perangkat. Menu langsung tampil seketika, lalu diperbarui bila ada yang berubah.
-    const MUTATING_ACTIONS = ['addMateri','updateMateri','deleteMateri','addTugas','updateTugas','deleteTugas','moveRowPosition','toggleStatusCekTugas','saveNilaiBatch','deleteNilai','addPengumuman','deletePengumuman','submitAbsen','createSesiAbsen','closeSesiAbsen','updateTokenAbsen','setAbsenManual','setAbsenBatch','presensiCepat','toggleSembunyi','updateMateriAbsen'];
+    const MUTATING_ACTIONS = ['addMateri','updateMateri','deleteMateri','addTugas','updateTugas','deleteTugas','moveRowPosition','toggleStatusCekTugas','saveNilaiBatch','deleteNilai','addPengumuman','deletePengumuman','submitAbsen','createSesiAbsen','closeSesiAbsen','updateTokenAbsen','setAbsenManual','setAbsenBatch','setTicker','presensiCepat','toggleSembunyi','updateMateriAbsen'];
     const swrMem = {};
     function swrKey(action, payload) {
       const p = Object.assign({}, payload); delete p.fresh;
@@ -3378,10 +3404,37 @@
     function seenKey() { return 'lms_pengumuman_seen_' + (currentUser ? currentUser.username : ''); }
     function idTime(id) { return Number(String(id).replace(/\D/g, '')) || 0; }
 
+    // ===== Teks berjalan di atas header =====
+    function updateTicker(res) {
+      const bar = document.getElementById('tickerBar'); if (!bar) return;
+      const items = [];
+      if (res && res.success) {
+        if (res.ticker) items.push(`<span class="ticker-item"><i class="fa-solid fa-star me-1" style="color:#d4af37"></i>${escHtml(res.ticker)}</span>`);
+        const lim = Date.now() - 14 * 86400000;
+        (res.data || []).filter(p => idTime(p.id) >= lim).slice(0, 5).forEach(p => items.push(`<span class="ticker-item"><i class="fa-solid fa-bullhorn me-1" style="color:#d4af37"></i>${escHtml(p.judul)}</span>`));
+      }
+      if (!items.length) { bar.classList.add('d-none'); return; }
+      const track = document.getElementById('tickerTrack'), vp = track.parentElement, set = items.join('');
+      bar.classList.remove('d-none');
+      track.innerHTML = set;
+      const w1 = Math.max(track.scrollWidth, 1), k = Math.max(1, Math.ceil(vp.clientWidth / w1)), one = set.repeat(k);
+      track.innerHTML = one + one;   // dua salinan agar putarannya mulus
+      track.style.setProperty('--tk-dur', Math.max(12, Math.round((w1 * k) / 60)) + 's');
+    }
+    async function simpanTicker(hapus) {
+      const inp = document.getElementById('tickerInput'), teks = hapus ? '' : inp.value.trim();
+      try {
+        const r = await callApi('setTicker', { teks });
+        if (r && r.success) { Popup.toast(r.message); if (hapus) inp.value = ''; refreshPengumumanBadge(); }
+        else if (!(r && r.expired)) Popup.error(r ? r.message : 'Gagal menyimpan teks berjalan.');
+      } catch (err) { Popup.error(err.message); }
+    }
+
     async function refreshPengumumanBadge() {
       try {
         await swr('getPengumuman', {}, res => {
           if (!res || !res.success) return;
+          updateTicker(res);
           const seen = Number(localStorage.getItem(seenKey()) || 0);
           const n = res.data.filter(p => idTime(p.id) > seen).length;
           const b = document.getElementById('pengumumanBadge');
@@ -3416,6 +3469,7 @@
               <div class="text-muted mt-2" style="font-size:.75rem;"><i class="fa-regular fa-clock me-1"></i>${escHtml(p.waktu)} &bull; ${escHtml(p.pengirim)}</div>
             </div>
           </div>`).join('') : '<div class="text-muted small py-3">Belum ada pengumuman.</div>';
+        updateTicker(res); { const ti = document.getElementById('tickerInput'); if (ti && document.activeElement !== ti) ti.value = res.ticker || ''; }
         if (res.data.length) localStorage.setItem(seenKey(), Math.max(...res.data.map(p => idTime(p.id))));
         document.getElementById('pengumumanBadge').classList.add('d-none');
         });
@@ -4382,6 +4436,7 @@
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProfileMenu(); });
 
     function logout() {
+      { const tb = document.getElementById('tickerBar'); if (tb) tb.classList.add('d-none'); }
       utResetAll();
       stopPresence();
       swrClear();
