@@ -563,6 +563,12 @@
     .ut-cam-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 8; transition: opacity .05s; }
     .ut-cam-flash.on { opacity: .85; }
 
+    /* ==================== UPLOAD SUMBER AJAR (guru) ==================== */
+    .us-cover-prev { width: 56px; height: 74px; border-radius: 8px; background: #edf2f7; display: flex; align-items: center; justify-content: center; color: #a0aec0; overflow: hidden; flex-shrink: 0; }
+    .us-cover-prev img { width: 100%; height: 100%; object-fit: cover; }
+    .us-drop { display: flex; align-items: center; gap: 14px; border: 2px dashed #cbd5e0; border-radius: 14px; padding: 14px; cursor: pointer; background: #f7fafc; transition: all .2s; margin: 0; }
+    .us-drop:hover, .us-drop.dragover { border-color: #3182ce; background: rgba(49,130,206,.05); }
+
     /* ==================== SEMBUNYIKAN ITEM + PRESENSI CEPAT ==================== */
     .item-hidden { opacity: .62; border: 1.5px dashed #a0aec0 !important; background: #f7fafc !important; }
     .badge-hidden { background: #718096; color: #fff; font-size: .68rem; font-weight: 600; }
@@ -756,6 +762,12 @@
         <li class="menu-admin-rekap" style="display:none;">
           <a class="nav-link nav-link-rekap" id="menu-REKAP" onclick="openRekapTugasView()">
             <i class="fa-solid fa-clipboard-check"></i> Cek Pengumpulan Tugas
+          </a>
+        </li>
+
+        <li class="menu-admin-rekap" style="display:none;">
+          <a class="nav-link nav-link-tugas" id="menu-UPSUMBER" onclick="openUploadSumberView()">
+            <i class="fa-solid fa-folder-plus"></i> Upload Sumber Ajar
           </a>
         </li>
 
@@ -1169,6 +1181,118 @@
         <div id="perpustakaanSection" class="d-none">
           <div class="card card-item p-0 overflow-hidden" style="border-radius:14px">
             <iframe id="perpustakaanFrame" title="Perpustakaan Sumber Ajar" style="width:100%;border:0;display:block;height:70vh" allow="fullscreen"></iframe>
+          </div>
+        </div>
+
+
+        <!-- ==================== UPLOAD SUMBER AJAR (GURU) ==================== -->
+        <div id="uploadSumberSection" class="d-none">
+          <div class="card card-item border-top border-success border-4 p-3 p-md-4" style="max-width:720px;margin:0 auto;">
+
+            <!-- Loading -->
+            <div id="usLoading" class="ut-state d-none">
+              <div class="spinner-border text-primary mb-3" style="width:2.6rem;height:2.6rem"></div>
+              <h6 class="fw-bold mb-1">Menyimpan sumber ajar...</h6>
+              <p class="text-muted small mb-0">Jangan tutup atau refresh halaman ini</p>
+            </div>
+
+            <!-- Sukses -->
+            <div id="usSuccess" class="ut-state d-none">
+              <div class="ut-state-ico ok"><i class="fa-solid fa-check"></i></div>
+              <h5 class="fw-bold mb-1">Sumber Ajar Tersimpan!</h5>
+              <p class="text-muted small mb-0">Materi sudah masuk ke Perpustakaan Sumber Ajar.</p>
+              <div class="ut-id-card ut-sum">
+                <div class="row g-2">
+                  <div class="col-12"><div class="ut-id-label">Judul</div><div class="ut-id-val text-warning" id="usSumJudul">-</div></div>
+                  <div class="col-4"><div class="ut-id-label">Kategori</div><div class="ut-id-val" id="usSumKat">-</div></div>
+                  <div class="col-4"><div class="ut-id-label">Jenjang</div><div class="ut-id-val" id="usSumJenjang">-</div></div>
+                  <div class="col-4"><div class="ut-id-label">Format</div><div class="ut-id-val" id="usSumFmt">-</div></div>
+                </div>
+              </div>
+              <div class="d-flex gap-2 justify-content-center flex-wrap mt-4">
+                <button class="btn btn-outline-secondary fw-bold rounded-pill px-4" onclick="usReset()"><i class="fa-solid fa-plus me-1"></i> Upload Lagi</button>
+                <button class="btn btn-success fw-bold rounded-pill px-4" onclick="openPerpustakaanView()"><i class="fa-solid fa-book-open-reader me-1"></i> Lihat di Perpustakaan</button>
+              </div>
+            </div>
+
+            <!-- Gagal -->
+            <div id="usError" class="ut-state d-none">
+              <div class="ut-state-ico bad"><i class="fa-solid fa-triangle-exclamation"></i></div>
+              <h5 class="fw-bold mb-1">Penyimpanan Gagal</h5>
+              <p class="text-muted small" id="usErrorMsg">Terjadi kesalahan.</p>
+              <button class="btn btn-outline-secondary fw-bold rounded-pill px-4 mt-2" onclick="usBackToForm()"><i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Form</button>
+            </div>
+
+            <!-- Form -->
+            <div id="usForm">
+              <h5 class="fw-bold text-dark mb-1"><i class="fa-solid fa-folder-plus text-success me-2"></i>Upload Sumber Ajar</h5>
+              <p class="text-muted small mb-3">Tambahkan bahan ajar baru ke Perpustakaan Sumber Ajar. Siswa dapat langsung membukanya setelah tersimpan.</p>
+
+              <div class="ut-id-card mb-3">
+                <div class="row g-2">
+                  <div class="col-12 col-sm-7"><div class="ut-id-label">Diunggah oleh</div><div class="ut-id-val" id="usIdNama">-</div></div>
+                  <div class="col-12 col-sm-5"><div class="ut-id-label">Tujuan</div><div class="ut-id-val">Perpustakaan Sumber Ajar</div></div>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-secondary mb-1" for="usJudul">Judul Materi *</label>
+                <input type="text" id="usJudul" class="form-control" placeholder="Contoh: Modul Ajar Pancasila, Norma dan UUD NRI 1945">
+              </div>
+
+              <div class="row g-2 mb-3">
+                <div class="col-12 col-sm-4">
+                  <label class="form-label small fw-bold text-secondary mb-1" for="usKategori">Kategori *</label>
+                  <select id="usKategori" class="form-select"></select>
+                </div>
+                <div class="col-12 col-sm-4">
+                  <label class="form-label small fw-bold text-secondary mb-1" for="usJenjang">Jenjang *</label>
+                  <select id="usJenjang" class="form-select"></select>
+                </div>
+                <div class="col-12 col-sm-4">
+                  <label class="form-label small fw-bold text-secondary mb-1" for="usFormat">Format *</label>
+                  <select id="usFormat" class="form-select"></select>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-secondary mb-1" for="usUrl">Tautan Materi *</label>
+                <input type="url" id="usUrl" class="form-control" placeholder="https://drive.google.com/...">
+                <div class="form-text">Tempel link file (Google Drive, Canva, dll). Pastikan akses link sudah dibuka untuk umum.</div>
+              </div>
+
+              <div class="mb-3">
+                <span class="form-label small fw-bold text-secondary d-block mb-1">Sampul (opsional)</span>
+                <label class="us-drop" id="usDrop" for="usCoverFile"
+                       ondragover="event.preventDefault(); this.classList.add('dragover')"
+                       ondragleave="this.classList.remove('dragover')"
+                       ondrop="event.preventDefault(); this.classList.remove('dragover'); usPickCover(event.dataTransfer.files[0])">
+                  <div class="us-cover-prev" id="usCoverPrev"><i class="fa-solid fa-image"></i></div>
+                  <div class="min-w-0">
+                    <div class="fw-semibold small text-truncate" id="usCoverName">Klik atau seret gambar ke sini</div>
+                    <div class="text-muted" style="font-size:.74rem">JPG atau PNG. Otomatis dikecilkan agar unggahan cepat.</div>
+                  </div>
+                </label>
+                <input type="file" id="usCoverFile" accept="image/*" class="d-none" onchange="usPickCover(this.files[0])">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-secondary mb-1" for="usDesk">Deskripsi Singkat</label>
+                <textarea id="usDesk" rows="3" class="form-control" placeholder="Ringkasan materi, capaian pembelajaran, atau petunjuk pemakaian"></textarea>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-secondary mb-1" for="usPwd">Sandi Pengelola Perpustakaan *</label>
+                <input type="password" id="usPwd" class="form-control" autocomplete="off" placeholder="Sandi guru pengelola sumber ajar">
+                <div class="form-text">Cukup diisi sekali; tersimpan selama tab ini terbuka.</div>
+              </div>
+
+              <div id="usFormErr" class="alert alert-danger py-2 small d-none" role="alert"></div>
+
+              <button type="button" class="btn btn-success w-100 fw-bold py-2" id="usBtnSave" onclick="usSubmit()">
+                <i class="fa-solid fa-cloud-arrow-up me-2"></i>Simpan ke Perpustakaan
+              </button>
+            </div>
           </div>
         </div>
 
@@ -2765,6 +2889,7 @@
       document.getElementById('uploadTugasSection').classList.add('d-none');
       document.getElementById('rekapPresensiSection').classList.add('d-none');
       document.getElementById('perpustakaanSection').classList.add('d-none');
+      document.getElementById('uploadSumberSection').classList.add('d-none');
       document.getElementById('resetPwSection').classList.add('d-none');
       const bp = document.getElementById('menu-PERPUS'); if (bp) bp.classList.remove('active');
     }
@@ -2795,6 +2920,112 @@
       fitPerpustakaanFrame();
     }
     window.addEventListener('resize', fitPerpustakaanFrame);
+
+    // ===== Upload Sumber Ajar (guru/admin) — form langsung di LMS, data dikirim ke backend Perpustakaan =====
+    const SUMBER_API_URL = 'https://script.google.com/macros/s/AKfycbwvDyhT9NzcZ8FhssJ17w2HcKAHW2esGOtnX7DXeIM4Jn3XCgOxosNWnUMm9GVEDpJi/exec';
+    const US_KATEGORI = [['Modul Ajar','Modul Ajar'],['PowerPoint','PowerPoint'],['Canva','Canva'],['MPI','MPI Interaktif'],['Artikel','Artikel']];
+    const US_JENJANG  = [['Fase D (SMP)','Fase D (SMP)'],['Fase E (SMA)','Fase E (SMA)'],['Fase F (SMA)','Fase F (SMA)'],['SD','Fase A/B/C (SD)'],['Umum','Umum / Guru']];
+    const US_FORMAT   = [['PDF','PDF'],['PowerPoint','PowerPoint'],['Canva','Canva'],['MPI','MPI'],['Artikel','Artikel']];
+    let usCover = null;
+
+    function usFillSelect(id, arr) {
+      const el = document.getElementById(id);
+      if (el.options.length) return;
+      el.innerHTML = arr.map(a => `<option value="${escHtml(a[0])}">${escHtml(a[1])}</option>`).join('');
+    }
+    function usShow(which) {
+      ['usForm', 'usLoading', 'usSuccess', 'usError'].forEach(id => document.getElementById(id).classList.toggle('d-none', id !== which));
+    }
+    function usFormErr(msg) {
+      const e = document.getElementById('usFormErr');
+      e.textContent = msg || ''; e.classList.toggle('d-none', !msg);
+    }
+    function usBackToForm() { usShow('usForm'); }
+    function usReset() {
+      ['usJudul', 'usUrl', 'usDesk'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('usKategori').selectedIndex = 0;
+      document.getElementById('usJenjang').selectedIndex = 0;
+      document.getElementById('usFormat').selectedIndex = 0;
+      usCover = null;
+      document.getElementById('usCoverFile').value = '';
+      document.getElementById('usCoverPrev').innerHTML = '<i class="fa-solid fa-image"></i>';
+      document.getElementById('usCoverName').textContent = 'Klik atau seret gambar ke sini';
+      usFormErr('');
+      usShow('usForm');
+    }
+    function openUploadSumberView() {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      showOnlyNilaiView('uploadSumberSection', 'menu-UPSUMBER', 'Upload Sumber Ajar');
+      usFillSelect('usKategori', US_KATEGORI); usFillSelect('usJenjang', US_JENJANG); usFillSelect('usFormat', US_FORMAT);
+      document.getElementById('usIdNama').textContent = currentUser.name || '-';
+      try { const p = sessionStorage.getItem('sa_pwd'); if (p && !document.getElementById('usPwd').value) document.getElementById('usPwd').value = p; } catch (e) {}
+      usShow('usForm');
+      window.scrollTo(0, 0);
+    }
+    function usCompress(file) {
+      return new Promise((ok, no) => {
+        const im = new Image();
+        im.onload = () => {
+          const s = Math.min(1, 900 / im.width), c = document.createElement('canvas');
+          c.width = im.width * s; c.height = im.height * s;
+          c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+          URL.revokeObjectURL(im.src); ok(c.toDataURL('image/jpeg', .82));
+        };
+        im.onerror = no; im.src = URL.createObjectURL(file);
+      });
+    }
+    async function usPickCover(f) {
+      if (!f) return;
+      if (!f.type.startsWith('image/')) { usFormErr('File sampul harus berupa gambar.'); return; }
+      try {
+        const d = await usCompress(f);
+        usCover = { base64: d.split(',')[1], name: f.name.replace(/\.\w+$/, '') + '.jpg', type: 'image/jpeg' };
+        document.getElementById('usCoverPrev').innerHTML = `<img src="${d}" alt="Pratinjau sampul">`;
+        document.getElementById('usCoverName').textContent = f.name;
+        usFormErr('');
+      } catch (e) { usFormErr('Gambar sampul tidak dapat dibaca.'); }
+    }
+    async function usSubmit() {
+      usFormErr('');
+      const val = id => document.getElementById(id).value.trim();
+      const judul = val('usJudul'), url = val('usUrl'), pwd = val('usPwd');
+      if (!judul) return usFormErr('Judul materi belum diisi.');
+      if (!/^https?:\/\//i.test(url)) return usFormErr('Tautan materi wajib diisi dan diawali http:// atau https://');
+      if (!pwd) return usFormErr('Sandi pengelola perpustakaan belum diisi.');
+      const payload = {
+        type: 'add_material', password: pwd, title: judul,
+        category: val('usKategori'), grade: val('usJenjang'), format: val('usFormat'),
+        resource_url: url, description: val('usDesk'), cover_file: usCover
+      };
+      usShow('usLoading');
+      try {
+        const res = await fetch(SUMBER_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+        const txt = await res.text(); let j;
+        try { j = JSON.parse(txt); } catch (_) { throw new Error('Server mengirim balasan tak terduga. Pastikan Apps Script sudah di-deploy sebagai Web app (akses "Anyone") dengan versi terbaru.'); }
+        if (j.status === 'success') {
+          try { sessionStorage.setItem('sa_pwd', pwd); } catch (e) {}
+          const sel = id => { const el = document.getElementById(id); return el.options[el.selectedIndex].text; };
+          document.getElementById('usSumJudul').textContent = judul;
+          document.getElementById('usSumKat').textContent = sel('usKategori');
+          document.getElementById('usSumJenjang').textContent = sel('usJenjang');
+          document.getElementById('usSumFmt').textContent = sel('usFormat');
+          usShow('usSuccess');
+          // supaya form bersih untuk upload berikutnya (sandi tetap terisi)
+          const keepPwd = document.getElementById('usPwd').value; usReset(); document.getElementById('usPwd').value = keepPwd; usShow('usSuccess');
+        } else if (j.code === 'AUTH' || /sandi|password|ditolak|unauthor|salah/i.test(j.message || '')) {
+          try { sessionStorage.removeItem('sa_pwd'); } catch (e) {}
+          document.getElementById('usPwd').value = '';
+          document.getElementById('usErrorMsg').textContent = 'Sandi pengelola ditolak server. Periksa sandi lalu coba lagi.';
+          usShow('usError');
+        } else {
+          document.getElementById('usErrorMsg').textContent = j.message || 'Penyimpanan gagal. Coba lagi.';
+          usShow('usError');
+        }
+      } catch (err) {
+        document.getElementById('usErrorMsg').textContent = (err.message && !/fetch/i.test(err.message)) ? err.message : 'Tidak dapat terhubung ke server. Periksa internet Anda.';
+        usShow('usError');
+      }
+    }
 
     // ===== Reset password siswa (guru) =====
     let rpwList = [], rpwTarget = null;
