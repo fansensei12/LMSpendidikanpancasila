@@ -249,6 +249,14 @@
     }
     .btn-hamburger:active { transform: scale(0.95); }
 
+    /* ===== TABLET: sidebar bisa disembunyikan / ditampilkan lewat tombol ☰ di header (pilihan diingat di perangkat) ===== */
+    @media (min-width: 769px) and (max-width: 1199px), (min-width: 1200px) and (max-width: 1400px) and (pointer: coarse) {
+      .btn-hamburger { display: inline-flex; }
+      .btn-close-sidebar { display: inline-flex; }
+      .sidebar { transition: margin-left 0.3s ease-in-out, visibility 0s; }
+      .app-layout.sidebar-collapsed .sidebar { margin-left: -270px; visibility: hidden; transition: margin-left 0.3s ease-in-out, visibility 0s 0.3s; }
+    }
+
     .content-body { padding: 2rem; }
 
     /* CARDS & UI COMPONENTS */
@@ -653,7 +661,7 @@
     <div class="card card-login">
       <div class="login-header">
         <div class="icon-box"><i class="fa-solid fa-graduation-cap fa-2x"></i></div>
-        <h4 class="fw-bold mb-1" style="color: #d4af37;">RUANG KARAKTER</h4>
+        <h4 class="fw-bold mb-1" style="color: #d4af37;">SMPN 7 Banjarmasin</h4>
         <p class="text-white-50 small mb-0">LMS Pendidikan Pancasila</p>
         <p class="login-desc">Ruang belajar daring untuk mengakses materi, mengumpulkan tugas, mengisi presensi, serta melihat nilai dan pengumuman dari guru.</p>
         
@@ -714,10 +722,10 @@
 
     <aside id="appSidebar" class="sidebar">
       <div class="sidebar-brand">
-        <button class="btn-close-sidebar" onclick="closeSidebar()" title="Tutup Menu">
+        <button class="btn-close-sidebar" onclick="hideSidebarBtn()" title="Tutup Menu">
           <i class="fa-solid fa-xmark"></i>
         </button>
-        <h5 class="fw-bold mb-0 text-warning"><i class="fa-solid fa-shield-halved me-2"></i>RUANG KARAKTER</h5>
+        <h5 class="fw-bold mb-0 text-warning"><i class="fa-solid fa-shield-halved me-2"></i>Pancasila LMS</h5>
         <small class="text-white-50">SMPN 7 Banjarmasin</small>
       </div>
 
@@ -1955,9 +1963,51 @@
       }
     });
 
+    // ===== Sidebar: HP = panel geser + latar gelap; TABLET = berdampingan dengan konten, bisa disembunyikan / ditampilkan =====
+    const SIDEBAR_PREF_KEY = 'lms_sidebar_collapsed';
+    const TABLET_MQ = '(min-width: 769px) and (max-width: 1199px), (min-width: 1200px) and (max-width: 1400px) and (pointer: coarse)';
+    function isTabletLayout() { try { return window.matchMedia(TABLET_MQ).matches; } catch (e) { return false; } }
+    function getSidebarPref() { try { return localStorage.getItem(SIDEBAR_PREF_KEY); } catch (e) { return null; } }
+    function syncHamburger() {
+      const layout = document.getElementById('dashboardSection');
+      const tersembunyi = !!layout && layout.classList.contains('sidebar-collapsed') && isTabletLayout();
+      document.querySelectorAll('.btn-hamburger').forEach(function (b) {
+        if (isTabletLayout()) {
+          b.setAttribute('aria-expanded', tersembunyi ? 'false' : 'true');
+          b.title = tersembunyi ? 'Tampilkan Menu' : 'Sembunyikan Menu';
+        } else { b.removeAttribute('aria-expanded'); b.title = 'Buka Menu Navigasi'; }
+      });
+    }
+    // Pilihan pengguna (disimpan). Tanpa pilihan: tablet potret (<1024px) awalnya tersembunyi, tablet lanskap awalnya tampil.
+    function setSidebarCollapsed(collapsed) {
+      const layout = document.getElementById('dashboardSection');
+      if (!layout) return;
+      layout.classList.toggle('sidebar-collapsed', collapsed);
+      try { localStorage.setItem(SIDEBAR_PREF_KEY, collapsed ? '1' : '0'); } catch (e) {}
+      syncHamburger();
+    }
+    function applySidebarPref() {
+      const layout = document.getElementById('dashboardSection');
+      if (!layout) return;
+      const pref = getSidebarPref();
+      layout.classList.toggle('sidebar-collapsed', pref === '1' || (pref === null && window.innerWidth < 1024));
+      syncHamburger();
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applySidebarPref); else applySidebarPref();
+    window.addEventListener('resize', applySidebarPref);
+
     function toggleSidebar() {
+      if (isTabletLayout()) {
+        const layout = document.getElementById('dashboardSection');
+        setSidebarCollapsed(!layout.classList.contains('sidebar-collapsed'));
+        return;
+      }
       document.getElementById('appSidebar').classList.toggle('show');
       document.getElementById('sidebarOverlay').classList.toggle('show');
+    }
+    // Tombol X di dalam sidebar
+    function hideSidebarBtn() {
+      if (isTabletLayout()) setSidebarCollapsed(true); else closeSidebar();
     }
 
     function closeSidebar() {
@@ -1965,6 +2015,11 @@
       const overlay = document.getElementById('sidebarOverlay');
       if (sidebar) sidebar.classList.remove('show');
       if (overlay) overlay.classList.remove('show');
+      // Tablet potret: setelah memilih menu, sidebar menutup sendiri agar konten lega (kecuali pengguna memilih "selalu tampil")
+      if (isTabletLayout() && window.innerWidth < 1024 && getSidebarPref() !== '0') {
+        const layout = document.getElementById('dashboardSection');
+        if (layout) { layout.classList.add('sidebar-collapsed'); syncHamburger(); }
+      }
     }
 
     function showSuccessModal(title, message) {
