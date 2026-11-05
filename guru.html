@@ -1209,6 +1209,7 @@
               <div class="ut-state-ico ok"><i class="fa-solid fa-check"></i></div>
               <h5 class="fw-bold mb-1">Sumber Ajar Tersimpan!</h5>
               <p class="text-muted small mb-0">Materi sudah masuk ke Perpustakaan Sumber Ajar.</p>
+              <div id="usTokenInfo" class="small mt-3 d-none"></div>
               <div class="ut-id-card ut-sum">
                 <div class="row g-2">
                   <div class="col-12"><div class="ut-id-label">Judul</div><div class="ut-id-val text-warning" id="usSumJudul">-</div></div>
@@ -1267,6 +1268,15 @@
                 <label class="form-label small fw-bold text-secondary mb-1" for="usUrl">Tautan Materi *</label>
                 <input type="url" id="usUrl" class="form-control" placeholder="https://drive.google.com/...">
                 <div class="form-text">Tempel link file (Google Drive, Canva, dll). Pastikan akses link sudah dibuka untuk umum.</div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-secondary mb-1" for="usToken">Token Akses (opsional)</label>
+                <div class="input-group">
+                  <input type="text" id="usToken" class="form-control text-uppercase" maxlength="20" autocomplete="off" spellcheck="false" placeholder="Kosongkan jika materi terbuka untuk semua">
+                  <button type="button" class="btn btn-outline-secondary" onclick="usGenToken()">Acak</button>
+                </div>
+                <div class="form-text">Jika diisi, siswa harus memasukkan token ini untuk membuka materi di Perpustakaan. Bagikan tokennya saat materi dibuka.</div>
               </div>
 
               <div class="mb-3">
@@ -2988,6 +2998,11 @@
       if (el.options.length) return;
       el.innerHTML = arr.map(a => `<option value="${escHtml(a[0])}">${escHtml(a[1])}</option>`).join('');
     }
+    function usGenToken() {
+      const A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789', r = new Uint32Array(6);
+      crypto.getRandomValues(r);
+      document.getElementById('usToken').value = Array.from(r, n => A[n % A.length]).join('');
+    }
     function usShow(which) {
       ['usForm', 'usLoading', 'usSuccess', 'usError'].forEach(id => document.getElementById(id).classList.toggle('d-none', id !== which));
     }
@@ -2997,7 +3012,7 @@
     }
     function usBackToForm() { usShow('usForm'); }
     function usReset() {
-      ['usJudul', 'usUrl', 'usDesk'].forEach(id => document.getElementById(id).value = '');
+      ['usJudul', 'usUrl', 'usDesk', 'usToken'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('usKategori').selectedIndex = 0;
       document.getElementById('usJenjang').selectedIndex = 0;
       document.getElementById('usFormat').selectedIndex = 0;
@@ -3043,14 +3058,14 @@
     async function usSubmit() {
       usFormErr('');
       const val = id => document.getElementById(id).value.trim();
-      const judul = val('usJudul'), url = val('usUrl'), pwd = val('usPwd');
+      const judul = val('usJudul'), url = val('usUrl'), pwd = val('usPwd'), token = val('usToken').replace(/\s+/g, '').toUpperCase();
       if (!judul) return usFormErr('Judul materi belum diisi.');
       if (!/^https?:\/\//i.test(url)) return usFormErr('Tautan materi wajib diisi dan diawali http:// atau https://');
       if (!pwd) return usFormErr('Sandi pengelola perpustakaan belum diisi.');
       const payload = {
         type: 'add_material', password: pwd, title: judul,
         category: val('usKategori'), grade: val('usJenjang'), format: val('usFormat'),
-        resource_url: url, description: val('usDesk'), cover_file: usCover
+        resource_url: url, description: val('usDesk'), cover_file: usCover, token: token
       };
       usShow('usLoading');
       try {
@@ -3064,6 +3079,10 @@
           document.getElementById('usSumKat').textContent = sel('usKategori');
           document.getElementById('usSumJenjang').textContent = sel('usJenjang');
           document.getElementById('usSumFmt').textContent = sel('usFormat');
+          const inf = document.getElementById('usTokenInfo');
+          if (!token) { inf.className = 'small mt-3 d-none'; inf.textContent = ''; }
+          else if (j.token_saved === true) { inf.className = 'small mt-3 text-success'; inf.textContent = 'Token akses: ' + token + '. Bagikan kepada siswa saat materi dibuka.'; }
+          else { inf.className = 'small mt-3 text-danger fw-bold'; inf.textContent = 'Peringatan: token BELUM tersimpan karena server Perpustakaan belum diperbarui. Materi ini masih terbuka untuk semua.'; }
           usShow('usSuccess');
           // supaya form bersih untuk upload berikutnya (sandi tetap terisi)
           const keepPwd = document.getElementById('usPwd').value; usReset(); document.getElementById('usPwd').value = keepPwd; usShow('usSuccess');
