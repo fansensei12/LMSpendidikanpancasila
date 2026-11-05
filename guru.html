@@ -571,6 +571,10 @@
     .ut-cam-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 8; transition: opacity .05s; }
     .ut-cam-flash.on { opacity: .85; }
 
+    /* ==================== KELOLA NILAI (guru) ==================== */
+    .kn-dirty > td { background: #fffbeb; }
+    .kn-nilai { min-width: 84px; }
+
     /* ==================== UPLOAD SUMBER AJAR (guru) ==================== */
     .us-cover-prev { width: 56px; height: 74px; border-radius: 8px; background: #edf2f7; display: flex; align-items: center; justify-content: center; color: #a0aec0; overflow: hidden; flex-shrink: 0; }
     .us-cover-prev img { width: 100%; height: 100%; object-fit: cover; }
@@ -782,6 +786,11 @@
         <li class="menu-admin-rekap" style="display:none;">
           <a class="nav-link" id="menu-INPUTNILAI" onclick="openInputNilaiView()">
             <i class="fa-solid fa-star-half-stroke"></i> Input Nilai Siswa
+          </a>
+        </li>
+        <li class="menu-admin-rekap" style="display:none;">
+          <a class="nav-link" id="menu-KELOLANILAI" onclick="openKelolaNilaiView()">
+            <i class="fa-solid fa-pen-to-square"></i> Kelola Nilai
           </a>
         </li>
         <li class="menu-admin-rekap" style="display:none;">
@@ -1371,6 +1380,52 @@
             </div>
             <div id="rnRingkas" class="small mb-2 text-muted"></div>
             <div id="rnWrap"><table class="table table-hover table-sm align-middle" id="rnTable"><tbody><tr><td class="text-center text-muted py-4">Memuat...</td></tr></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- ==================== KELOLA NILAI (GURU) ==================== -->
+        <div id="kelolaNilaiSection" class="d-none">
+          <div class="card card-item border-top border-primary border-4 p-3 p-md-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+              <div>
+                <h5 class="fw-bold text-dark mb-1"><i class="fa-solid fa-pen-to-square text-primary me-2"></i>Kelola Nilai</h5>
+                <small class="text-muted">Pilih rombel dan penilaian, lalu ubah nilai yang sudah ada atau isi yang belum terisi. Hanya baris yang Anda ubah yang tersimpan, nilai siswa lain tidak tersentuh.</small>
+              </div>
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="knRefresh()"><i class="fa-solid fa-rotate me-1"></i>Muat Ulang</button>
+                <a id="knSheetLink" href="#" target="_blank" class="btn btn-sm btn-success fw-semibold d-none"><i class="fa-solid fa-table me-1"></i> Buka Tab Nilai</a>
+              </div>
+            </div>
+            <div class="row g-2 mb-3 bg-light p-3 rounded-3 border">
+              <div class="col-md-4 col-12">
+                <label class="form-label small fw-bold text-secondary mb-1" for="knRombel">Rombel</label>
+                <select id="knRombel" class="form-select form-select-sm" onchange="knOnPick('rombel')"><option value="">Memuat...</option></select>
+              </div>
+              <div class="col-md-8 col-12">
+                <label class="form-label small fw-bold text-secondary mb-1" for="knJudul">Penilaian</label>
+                <select id="knJudul" class="form-select form-select-sm" onchange="knOnPick('judul')"><option value="">Memuat...</option></select>
+              </div>
+            </div>
+            <div id="knEmpty" class="text-center py-4 text-muted">Pilih rombel dan penilaian untuk menampilkan daftar siswa...</div>
+            <div id="knTools" class="d-none">
+              <div id="knInfo" class="small text-muted mb-2"></div>
+              <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                <div class="btn-group" role="group" id="knFilter"></div>
+                <input type="search" id="knSearch" class="form-control form-control-sm" style="max-width:210px" placeholder="Cari nama / NIS..." oninput="knSetSearch(this.value)" aria-label="Cari siswa">
+                <div id="knBulk" class="input-group input-group-sm ms-md-auto d-none" style="width:auto">
+                  <span class="input-group-text">Isi yang belum dinilai dengan</span>
+                  <input type="number" id="knBulkNilai" class="form-control" style="max-width:80px" min="0" max="100" step="any" aria-label="Nilai untuk semua yang belum dinilai">
+                  <button type="button" class="btn btn-warning" onclick="knBulkFill()"><i class="fa-solid fa-users-gear me-1"></i>Terapkan (<span id="knBulkN">0</span>)</button>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary fw-bold" id="knSaveAll" onclick="knSaveAll()" disabled><i class="fa-solid fa-floppy-disk me-1"></i>Simpan Perubahan (<span id="knSaveAllN">0</span>)</button>
+              </div>
+              <div class="rekap-table-scroll">
+                <table class="table table-rekap mb-0">
+                  <thead><tr><th>No</th><th>Nama Siswa</th><th>NIS</th><th style="width:120px">Nilai</th><th>Catatan</th><th>Terakhir Diubah</th><th>Aksi</th></tr></thead>
+                  <tbody id="knBody"></tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2006,7 +2061,7 @@
 
     // Fungsi Helper Pemanggil API Google Apps Script (Bebas Blokir CORS di GitHub Pages)
     // Aksi yang aman diulang otomatis saat server sibuk (submitAbsen aman: server menolak absen ganda)
-    const RETRY_ACTIONS = ['getPresensiNilai','getLmsData','getPengumuman','getNilaiSaya','getSesiAbsenAktif','submitAbsen','getSesiAbsenAdmin','getAbsenDetail','getSiswaList','getNilaiAdmin','getRekapTugasData','getRekapPresensi'];
+    const RETRY_ACTIONS = ['getPresensiNilai','getLmsData','getPengumuman','getNilaiSaya','getSesiAbsenAktif','submitAbsen','getSesiAbsenAdmin','getAbsenDetail','getSiswaList','getNilaiAdmin','getJudulNilai','getRekapTugasData','getRekapPresensi'];
     const SERVER_BUSY_MSG = 'Server tidak dapat merespons saat ini. Kemungkinan banyak siswa mengakses bersamaan. Tunggu beberapa detik, lalu coba lagi.';
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -2947,6 +3002,7 @@
     function hideNilaiViews() {
       document.getElementById('nilaiSayaSection').classList.add('d-none');
       document.getElementById('inputNilaiSection').classList.add('d-none');
+      document.getElementById('kelolaNilaiSection').classList.add('d-none');
       document.getElementById('rekapNilaiSection').classList.add('d-none');
       document.getElementById('pengumumanSection').classList.add('d-none');
       document.getElementById('absenSiswaSection').classList.add('d-none');
@@ -3702,6 +3758,184 @@
       if (!(await Popup.confirm({ type: 'danger', title: 'Hapus Nilai?', text: 'Nilai siswa ini untuk penilaian "' + judul + '" akan dihapus.', confirmText: 'Ya, Hapus' }))) return;
       const res = await callApi('deleteNilai', { nis, judul });
       if (res && res.success) { delete nilaiDraft[nis]; loadNilaiGrid(); } else if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal menghapus');
+    }
+
+    // ==================== KELOLA NILAI (guru): ubah nilai & isi yang belum terisi ====================
+    // Menyimpan lewat saveNilaiBatch di server: yang ditulis HANYA baris yang benar-benar berubah (tanggal siswa lain tidak ikut berubah).
+    let kn = { rombel: '', judul: '', rows: [], dirty: {}, filter: 'semua', q: '', busy: false };
+    const knEl = id => document.getElementById(id);
+    const knNum = v => { const s = String(v == null ? '' : v).trim().replace(',', '.'); if (s === '') return null; const n = Number(s); return isNaN(n) ? NaN : n; };
+    const knValid = v => { const n = knNum(v); return n !== null && !isNaN(n) && n >= 0 && n <= 100; };
+    const knRound = x => Math.round(x * 10) / 10;
+    function knIsDirty(row, d) {
+      const a = knNum(d.nilai), b = knNum(row.nilai);
+      const sameNilai = (a === null && b === null) || (a !== null && b !== null && !isNaN(a) && !isNaN(b) && Math.abs(a - b) < 1e-9);
+      return !(sameNilai && String(d.catatan).trim() === String(row.catatan).trim());
+    }
+
+    async function openKelolaNilaiView() {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      showOnlyNilaiView('kelolaNilaiSection', 'menu-KELOLANILAI', 'Kelola Nilai');
+      window.scrollTo(0, 0);
+      try {
+        await swr('getSiswaList', {}, res => {
+          if (!res || !res.success) { if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal memuat siswa'); return; }
+          siswaAll = res.siswa;
+          const sel = knEl('knRombel'), cur = sel.value;
+          sel.innerHTML = '<option value="">Pilih rombel...</option>' + res.rombelList.map(r => `<option value="${escHtml(r)}">${escHtml(r)}</option>`).join('');
+          if (cur) sel.value = cur;
+          sel.dataset.prev = sel.value;
+        });
+      } catch (err) { Popup.error(err.message); }
+      await knLoadJudul(false, true);
+    }
+    async function knLoadJudul(fresh, thenRows) {
+      const sel = knEl('knJudul'), cur = kn.judul;
+      const res = await callApi('getJudulNilai', fresh ? { fresh: true } : {});
+      if (!res || !res.success) { if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal memuat daftar penilaian'); return; }
+      const list = res.data || [];
+      sel.innerHTML = '<option value="">' + (list.length ? 'Pilih penilaian...' : 'Belum ada penilaian (buat dulu lewat Input Nilai Siswa)') + '</option>' +
+        list.map(j => `<option value="${escHtml(j.judul)}">${escHtml(j.judul)} · ${j.n} nilai</option>`).join('');
+      if (cur && list.some(j => j.judul === cur)) sel.value = cur;
+      sel.dataset.prev = sel.value;
+      if (thenRows) await knLoadRows(fresh);
+    }
+    async function knGuard() {
+      const n = Object.keys(kn.dirty).length;
+      if (!n) return true;
+      return await Popup.confirm({ type: 'warning', title: 'Buang Perubahan?', text: n + ' perubahan yang belum disimpan akan hilang.', confirmText: 'Ya, Buang' });
+    }
+    async function knOnPick(which) {
+      const sel = knEl(which === 'rombel' ? 'knRombel' : 'knJudul');
+      if (!(await knGuard())) { sel.value = sel.dataset.prev || ''; return; }
+      sel.dataset.prev = sel.value;
+      kn.dirty = {}; kn.filter = 'semua'; kn.q = ''; knEl('knSearch').value = '';
+      knLoadRows(false);
+    }
+    async function knRefresh() {
+      if (!(await knGuard())) return;
+      kn.dirty = {};
+      await knLoadJudul(true, true);
+    }
+    async function knLoadRows(fresh) {
+      kn.rombel = knEl('knRombel').value; kn.judul = knEl('knJudul').value;
+      if (!kn.rombel || !kn.judul) { kn.rows = []; knRender(); return; }
+      knEl('knEmpty').classList.remove('d-none'); knEl('knEmpty').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Memuat...'; knEl('knTools').classList.add('d-none');
+      const res = await callApi('getNilaiAdmin', Object.assign({ rombel: kn.rombel }, fresh ? { fresh: true } : {}));
+      if (!res || !res.success) { if (!(res && res.expired)) Popup.error(res ? res.message : 'Gagal memuat nilai'); return; }
+      if (res.sheetUrl) { const a = knEl('knSheetLink'); a.href = res.sheetUrl; a.classList.remove('d-none'); }
+      const key = kn.judul.toLowerCase(), rec = {};
+      (res.data || []).forEach(n => { if (String(n.judul).toLowerCase() === key) rec[n.nis] = n; });
+      kn.rows = siswaAll.filter(s => s.rombel === kn.rombel).map(s => {
+        const r = rec[s.id];
+        return { nis: s.id, nama: s.nama, ada: !!r, nilai: r ? String(r.nilai) : '', catatan: r ? (r.catatan || '') : '', tanggal: r ? (r.tanggal || '') : '', penilai: r ? (r.penilai || '') : '' };
+      });
+      Object.keys(kn.dirty).forEach(nis => { const r = kn.rows.find(x => x.nis === nis); if (!r || !knIsDirty(r, kn.dirty[nis])) delete kn.dirty[nis]; });
+      knRender();
+    }
+    function knRowHtml(r, no) {
+      const d = kn.dirty[r.nis], nilai = d ? d.nilai : r.nilai, catatan = d ? d.catatan : r.catatan, nis = escHtml(r.nis);
+      const tgl = r.ada ? `<div class="small">${escHtml(r.tanggal)}</div><div class="text-muted" style="font-size:.7rem">${escHtml(r.penilai)}</div>` : '<span class="text-muted small">-</span>';
+      const status = r.ada ? '<span class="badge bg-success">Tersimpan</span>' : '<span class="badge bg-secondary">Belum dinilai</span>';
+      return `<tr data-nis="${nis}" class="${d ? 'kn-dirty' : ''}">
+        <td>${no}</td><td class="fw-semibold">${escHtml(r.nama)}<div class="mt-1">${status}</div></td><td class="small text-muted">${nis}</td>
+        <td><input type="number" min="0" max="100" step="any" class="form-control form-control-sm kn-nilai${d && d.nilai !== '' && !knValid(d.nilai) ? ' is-invalid' : ''}" value="${escHtml(nilai)}" oninput="knInput('${nis}')" onkeydown="knKey(event)" aria-label="Nilai ${escHtml(r.nama)}"></td>
+        <td><input type="text" class="form-control form-control-sm kn-catatan" value="${escHtml(catatan)}" oninput="knInput('${nis}')" aria-label="Catatan ${escHtml(r.nama)}"></td>
+        <td>${tgl}</td>
+        <td class="text-nowrap"><button type="button" class="btn btn-sm btn-primary kn-save${d ? '' : ' d-none'}" onclick="knSaveRow('${nis}')" title="Simpan baris ini"><i class="fa-solid fa-floppy-disk"></i></button>${r.ada ? ` <button type="button" class="btn-admin-action btn-admin-delete" title="Hapus nilai" onclick="knDelete('${nis}')"><i class="fa-solid fa-trash"></i></button>` : ''}</td>
+      </tr>`;
+    }
+    function knRender() {
+      const tools = knEl('knTools'), empty = knEl('knEmpty');
+      if (!kn.rombel || !kn.judul) {
+        tools.classList.add('d-none'); empty.classList.remove('d-none');
+        empty.textContent = 'Pilih rombel dan penilaian untuk menampilkan daftar siswa...';
+        return;
+      }
+      empty.classList.add('d-none'); tools.classList.remove('d-none');
+      const rows = kn.rows, saved = rows.filter(r => r.ada), vals = saved.map(r => Number(r.nilai)).filter(v => !isNaN(v));
+      knEl('knInfo').innerHTML = `Sudah dinilai <b>${saved.length}</b> dari <b>${rows.length}</b> siswa` +
+        (vals.length ? ` &bull; Rata-rata <b>${knRound(vals.reduce((a, b) => a + b, 0) / vals.length)}</b> &bull; Tertinggi <b>${Math.max(...vals)}</b> &bull; Terendah <b>${Math.min(...vals)}</b>` : '');
+      const fb = (key, label, n, cls) => `<button type="button" class="btn btn-sm ${kn.filter === key ? 'btn-' + cls : 'btn-outline-' + cls}" onclick="knSetFilter('${key}')">${label} (${n})</button>`;
+      knEl('knFilter').innerHTML = fb('semua', 'Semua', rows.length, 'primary') + fb('belum', 'Belum Dinilai', rows.length - saved.length, 'danger') + fb('sudah', 'Sudah Dinilai', saved.length, 'success');
+      const q = kn.q.trim().toLowerCase();
+      const shown = rows.filter(r => (kn.filter === 'belum' ? !r.ada : kn.filter === 'sudah' ? r.ada : true) && (!q || r.nama.toLowerCase().includes(q) || r.nis.includes(q)));
+      knEl('knBody').innerHTML = rows.length
+        ? (shown.length ? shown.map((r, i) => knRowHtml(r, i + 1)).join('') : '<tr><td colspan="7" class="text-center text-muted py-3">Tidak ada siswa pada filter ini.</td></tr>')
+        : '<tr><td colspan="7" class="text-center text-muted py-3">Tidak ada siswa di rombel ini.</td></tr>';
+      knUpdateUi();
+    }
+    function knUpdateUi() {
+      const n = Object.keys(kn.dirty).length, belum = kn.rows.filter(r => !r.ada && !kn.dirty[r.nis]).length;
+      knEl('knSaveAll').disabled = !n || kn.busy; knEl('knSaveAllN').textContent = n;
+      knEl('knBulk').classList.toggle('d-none', !belum); knEl('knBulkN').textContent = belum;
+    }
+    function knSetFilter(f) { kn.filter = f; knRender(); }
+    function knSetSearch(v) { kn.q = v; knRender(); }
+    function knInput(nis) {
+      const tr = knEl('knBody').querySelector(`tr[data-nis="${CSS.escape(nis)}"]`), r = kn.rows.find(x => x.nis === nis);
+      if (!tr || !r) return;
+      const d = { nilai: tr.querySelector('.kn-nilai').value, catatan: tr.querySelector('.kn-catatan').value };
+      if (knIsDirty(r, d)) kn.dirty[nis] = d; else delete kn.dirty[nis];
+      tr.classList.toggle('kn-dirty', !!kn.dirty[nis]);
+      tr.querySelector('.kn-save').classList.toggle('d-none', !kn.dirty[nis]);
+      tr.querySelector('.kn-nilai').classList.toggle('is-invalid', d.nilai !== '' && !knValid(d.nilai));
+      knUpdateUi();
+    }
+    function knKey(e) {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const ins = [...knEl('knBody').querySelectorAll('.kn-nilai')], i = ins.indexOf(e.target);
+      if (i >= 0 && ins[i + 1]) { ins[i + 1].focus(); ins[i + 1].select(); }
+    }
+    // Kirim ke server (hanya baris yang berubah ditulis di sisi server), lalu muat ulang data
+    async function knCommit(items) {
+      kn.busy = true; knUpdateUi();
+      try {
+        const res = await callApi('saveNilaiBatch', { judul: kn.judul, items });
+        if (res && res.success) {
+          Popup.toast(res.message);
+          items.forEach(it => { delete kn.dirty[it.nis]; });
+          await knLoadJudul(false, false);
+          await knLoadRows(false);
+        } else if (!(res && res.expired)) await Popup.error(res ? res.message : 'Gagal menyimpan.', 'Tidak Tersimpan');
+      } catch (err) { await Popup.error(err.message, 'Tidak Tersimpan'); }
+      kn.busy = false; knUpdateUi();
+    }
+    async function knSave(nisList) {
+      if (kn.busy || !nisList.length) return;
+      const items = [], bad = [];
+      nisList.forEach(nis => {
+        const d = kn.dirty[nis], r = kn.rows.find(x => x.nis === nis);
+        if (!d || !r) return;
+        if (!knValid(d.nilai)) { bad.push(r.nama); return; }
+        items.push({ nis, nilai: knNum(d.nilai), catatan: d.catatan.trim() });
+      });
+      if (bad.length) {
+        await Popup.warning('Nilai harus angka 0-100: ' + bad.slice(0, 5).join(', ') + (bad.length > 5 ? ' dan ' + (bad.length - 5) + ' lainnya' : '') + '. Untuk menghapus nilai, klik ikon tempat sampah.', 'Nilai Belum Valid');
+        return;
+      }
+      if (items.length) await knCommit(items);
+    }
+    function knSaveRow(nis) { return knSave([nis]); }
+    function knSaveAll() { return knSave(Object.keys(kn.dirty)); }
+    async function knBulkFill() {
+      if (kn.busy) return;
+      const v = knEl('knBulkNilai').value;
+      if (!knValid(v)) { await Popup.warning('Isi nilai (0-100) yang akan diberikan.', 'Nilai Belum Valid'); return; }
+      const list = kn.rows.filter(r => !r.ada && !kn.dirty[r.nis]);
+      if (!list.length) { Popup.toast('Tidak ada siswa yang belum dinilai.'); return; }
+      if (!(await Popup.confirm({ type: 'warning', title: 'Isi Semua yang Belum Dinilai?', text: list.length + ' siswa yang belum dinilai akan diberi nilai ' + knNum(v) + ' untuk "' + kn.judul + '". Siswa yang sudah dinilai tidak berubah.', confirmText: 'Ya, Terapkan' }))) return;
+      await knCommit(list.map(r => ({ nis: r.nis, nilai: knNum(v), catatan: '' })));
+    }
+    async function knDelete(nis) {
+      const r = kn.rows.find(x => x.nis === nis); if (!r) return;
+      if (!(await Popup.confirm({ type: 'danger', title: 'Hapus Nilai?', text: 'Nilai ' + r.nama + ' untuk penilaian "' + kn.judul + '" akan dihapus.', confirmText: 'Ya, Hapus' }))) return;
+      try {
+        const res = await callApi('deleteNilai', { nis, judul: kn.judul });
+        if (res && res.success) { delete kn.dirty[nis]; Popup.toast('Nilai dihapus'); await knLoadJudul(false, false); await knLoadRows(false); }
+        else if (!(res && res.expired)) await Popup.error(res ? res.message : 'Gagal menghapus.', 'Tidak Terhapus');
+      } catch (err) { await Popup.error(err.message, 'Tidak Terhapus'); }
     }
 
     // ==================== PENGUMUMAN / BROADCAST ====================
