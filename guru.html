@@ -1536,8 +1536,11 @@
         <!-- ==================== TAMPILAN 7: KELOLA PRESENSI (GURU) ==================== -->
         <div id="absenAdminSection" class="d-none">
           <div class="card card-item mb-3 border-start border-success border-4"><div class="card-body">
-            <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-door-open me-1"></i> Buka Presensi Baru</h6>
-            <form onsubmit="handleBukaAbsen(event)">
+            <div class="d-flex justify-content-between align-items-center" style="cursor:pointer" onclick="bukaAbsenToggle()">
+              <h6 class="fw-bold text-success mb-0"><i class="fa-solid fa-door-open me-1"></i> Buka Presensi Baru</h6>
+              <i class="fa-solid fa-chevron-up text-muted" id="bukaAbsenChevron"></i>
+            </div>
+            <form id="bukaAbsenBody" class="mt-3" onsubmit="handleBukaAbsen(event)">
               <div class="row g-2">
                 <div class="col-md-4"><input type="text" id="absenJudul" class="form-control form-control-sm" placeholder="Judul / Pertemuan (misal: Pertemuan 5)" required></div>
                 <div class="col-md-3"><select id="absenTarget" class="form-select form-select-sm"></select></div>
@@ -2212,6 +2215,13 @@
         if (layout) { layout.classList.add('sidebar-collapsed'); syncHamburger(); }
       }
     }
+
+    // Tablet: setelah memilih menu di sidebar, sidebar langsung tersembunyi otomatis
+    document.addEventListener('click', function (e) {
+      if (!isTabletLayout()) return;
+      const a = e.target.closest && e.target.closest('.sidebar-menu .nav-link');
+      if (a) setSidebarCollapsed(true);
+    });
 
     function showSuccessModal(title, message) {
       return Popup.success(title, message);
@@ -4262,6 +4272,11 @@
       const cur = dst.value; dst.innerHTML = src.innerHTML; dst.dataset.synced = src.innerHTML.length + '';
       if (cur) dst.value = cur;
     }
+    function bukaAbsenToggle() {
+      const b = document.getElementById('bukaAbsenBody'), open = b.classList.contains('d-none');
+      b.classList.toggle('d-none', !open);
+      document.getElementById('bukaAbsenChevron').className = 'fa-solid text-muted ' + (open ? 'fa-chevron-up' : 'fa-chevron-down');
+    }
     function sesiListToggle() {
       const b = document.getElementById('sesiListBody'), open = b.classList.contains('d-none');
       b.classList.toggle('d-none', !open);
@@ -4315,12 +4330,27 @@
             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pcSemua('Alpa')">Semua Alpa</button>
           </div>
         </div>
+        <div class="input-group input-group-sm mb-2">
+          <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+          <input type="search" id="pcCari" class="form-control" placeholder="Cari nama siswa..." autocomplete="off" oninput="pcCariFilter()">
+        </div>
+        <div id="pcCariKosong" class="text-muted small text-center py-2 d-none">Siswa tidak ditemukan.</div>
         <div class="pc-list">${pcSiswa.map((s, i) => `
-          <div class="pc-row"><div class="pc-name">${escHtml(s.nama)}<small>${escHtml(s.rombel || s.kelas)} · ${escHtml(s.id)}</small></div>
+          <div class="pc-row" data-nama="${escHtml((s.nama + ' ' + (s.id || '')).toLowerCase())}"><div class="pc-name">${escHtml(s.nama)}<small>${escHtml(s.rombel || s.kelas)} · ${escHtml(s.id)}</small></div>
           <div class="pc-btns" id="pcb${i}">${pcBtnHtml(i)}</div></div>`).join('')}</div>
         <div class="small text-muted mt-2">H = Hadir · I = Izin · S = Sakit · A = Alpa. Hasil tersimpan sebagai sesi presensi biasa di daftar di bawah.</div>
         <button type="button" id="pcSave" class="btn btn-success fw-bold w-100 mt-2" onclick="pcSimpan()"><i class="fa-solid fa-floppy-disk me-1"></i> Simpan Presensi (${pcSiswa.length} siswa)</button>`;
       pcCounts();
+    }
+    function pcCariFilter() {
+      const q = (document.getElementById('pcCari').value || '').trim().toLowerCase();
+      let tampil = 0;
+      document.querySelectorAll('#pcList .pc-row').forEach(r => {
+        const cocok = !q || (r.dataset.nama || '').includes(q);
+        r.style.display = cocok ? '' : 'none';
+        if (cocok) tampil++;
+      });
+      document.getElementById('pcCariKosong').classList.toggle('d-none', tampil > 0);
     }
     function pcSet(i, st) { pcStatus[i] = st; document.getElementById('pcb' + i).innerHTML = pcBtnHtml(i); pcCounts(); }
     function pcSemua(st) { pcStatus = pcSiswa.map(() => st); pcSiswa.forEach((_, i) => { document.getElementById('pcb' + i).innerHTML = pcBtnHtml(i); }); pcCounts(); }
