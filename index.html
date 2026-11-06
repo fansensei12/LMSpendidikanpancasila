@@ -2022,6 +2022,13 @@
       }
     }
 
+    // Tablet: setelah memilih menu di sidebar, sidebar langsung tersembunyi otomatis
+    document.addEventListener('click', function (e) {
+      if (!isTabletLayout()) return;
+      const a = e.target.closest && e.target.closest('.sidebar-menu .nav-link');
+      if (a) setSidebarCollapsed(true);
+    });
+
     function showSuccessModal(title, message) {
       return Popup.success(title, message);
     }
