@@ -503,6 +503,8 @@
     #rnTable thead th { position: sticky; top: 0; background: #f1f5f9; z-index: 2; white-space: nowrap; text-align: center; vertical-align: middle; }
     #rnTable .rn-nama { position: sticky; left: 0; background: #fff; z-index: 1; min-width: 160px; text-align: left; }
     #rnTable thead th.rn-nama { z-index: 3; background: #f1f5f9; }
+    #rnTable .rn-copy { border: 0; background: transparent; color: #a0aec0; padding: 0 3px; margin-left: 4px; font-size: .75rem; line-height: 1; border-radius: 5px; cursor: pointer; }
+    #rnTable .rn-copy:hover, #rnTable .rn-copy:active { color: #2b6cb0; background: #e2e8f0; }
     #rnTable tfoot td { position: sticky; bottom: 0; background: #f8fafc; font-weight: 700; text-align: center; border-top: 2px solid #cbd5e1; }
     #rnTable tfoot td.rn-nama { text-align: left; z-index: 3; background: #f8fafc; }
 
@@ -2373,11 +2375,20 @@
       const foot = ['', 'Rata-rata', '', '', ...colAvg.map(v => v === null ? '' : Number(v.toFixed(1))), all === null ? '' : Number(all.toFixed(1))];
       rnView = { head, body, foot };
       document.getElementById('rnTable').innerHTML =
-        '<thead><tr><th>No</th><th class="rn-nama">Nama</th><th>NIS</th><th>Rombel</th>' + juduls.map(j => `<th title="${escHtml(j)}">${escHtml(j)}</th>`).join('') + '<th>Rata-rata</th></tr></thead><tbody>' +
+        '<thead><tr><th>No</th><th class="rn-nama">Nama' + rnCopyBtn(1) + '</th><th>NIS' + rnCopyBtn(2) + '</th><th>Rombel' + rnCopyBtn(3) + '</th>' + juduls.map((j, k) => `<th title="${escHtml(j)}">${escHtml(j)}${rnCopyBtn(4 + k)}</th>`).join('') + '<th>Rata-rata' + rnCopyBtn(head.length - 1) + '</th></tr></thead><tbody>' +
         rows.map((r, i) => `<tr><td class="text-center text-muted">${i + 1}</td><td class="rn-nama fw-semibold">${escHtml(r.s.nama)}</td><td class="small text-muted text-center">${escHtml(r.s.id)}</td><td class="text-center small">${escHtml(r.s.rombel)}</td>` +
           r.vals.map((v, k) => { const c = r.m[juduls[k]]; return v === null ? '<td class="text-center text-muted">-</td>' : `<td class="text-center fw-bold ${nilaiColor(v)}" ${c && c.catatan ? `title="${escHtml(c.catatan)}"` : ''}>${fmt(v)}${c && c.catatan ? '<i class="fa-solid fa-comment-dots ms-1 text-muted" style="font-size:.6rem"></i>' : ''}</td>`; }).join('') +
           `<td class="text-center fw-bold ${r.avg === null ? 'text-muted' : nilaiColor(r.avg)}">${r.avg === null ? '-' : r.avg.toFixed(1)}</td></tr>`).join('') +
         '</tbody><tfoot><tr><td></td><td class="rn-nama">Rata-rata</td><td></td><td></td>' + colAvg.map(v => `<td>${v === null ? '-' : v.toFixed(1)}</td>`).join('') + `<td>${all === null ? '-' : all.toFixed(1)}</td></tr></tfoot>`;
+    }
+    function rnCopyBtn(idx) { return `<button type="button" class="rn-copy" title="Salin kolom ini" onclick="salinKolomNilai(${idx})"><i class="fa-regular fa-copy"></i></button>`; }
+    async function salinKolomNilai(idx) {
+      if (!rnView.body.length) { Popup.error('Belum ada data untuk disalin.'); return; }
+      // Hanya isi kolom (tanpa judul), urutan sama dengan tabel yang tampil, sel kosong tetap ada agar baris tetap sejajar saat ditempel
+      const teks = rnView.body.map(r => r[idx] === undefined || r[idx] === null ? '' : r[idx]).join('\n');
+      try { await navigator.clipboard.writeText(teks); }
+      catch (e) { const t = document.createElement('textarea'); t.value = teks; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+      Popup.toast('Kolom "' + rnView.head[idx] + '" disalin (' + rnView.body.length + ' baris)');
     }
     function rnRows() { return rnView.body.length ? [rnView.head, ...rnView.body, rnView.foot] : []; }
     function unduhRekapNilai() {
