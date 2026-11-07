@@ -10,184 +10,184 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
-    .custom-scrollbar::-webkit-scrollbar { height: 7px; width: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen">
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col antialiased">
 
   <!-- Header Nav -->
   <header class="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-30 shadow-md">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-xl font-bold">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-lg">
           <i class="fa-solid fa-server"></i>
         </div>
         <div>
-          <h1 class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
-            DATABASE SERVER SISWA
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-bold tracking-tight text-white">DATABASE SERVER SISWA</h1>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>
-              API Connected
+              Live Sync
             </span>
-          </h1>
-          <p class="text-xs text-slate-400">Monitoring & Manajemen Data Terpusat</p>
+          </div>
+          <p class="text-[11px] text-slate-400">Monitoring & Manajemen Data Terstruktur</p>
         </div>
       </div>
-      <div class="flex items-center gap-2.5">
-        <button onclick="fetchData()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition flex items-center gap-2">
-          <i id="btnRefreshIcon" class="fa-solid fa-arrows-rotate"></i>
+      <div class="flex items-center gap-2">
+        <button onclick="fetchData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition flex items-center gap-1.5 shadow-xs">
+          <i id="btnRefreshIcon" class="fa-solid fa-arrows-rotate text-[11px]"></i>
           <span>Segarkan</span>
         </button>
-        <button onclick="openModalTambah()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-2">
-          <i class="fa-solid fa-user-plus"></i>
+        <button onclick="openModalTambah()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5">
+          <i class="fa-solid fa-user-plus text-[11px]"></i>
           <span>Tambah Siswa</span>
         </button>
       </div>
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex-1 w-full space-y-4">
 
-    <!-- KPI / Statistics Summary Cards -->
-    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3.5">
-        <div class="p-3 bg-blue-50 text-blue-600 rounded-lg text-lg">
+    <!-- KPI / Ringkasan Data -->
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-base">
           <i class="fa-solid fa-users"></i>
         </div>
         <div>
-          <div class="text-[11px] text-slate-500 font-medium uppercase">Total Siswa</div>
-          <div id="statTotal" class="text-xl sm:text-2xl font-bold text-slate-900">-</div>
+          <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Siswa</div>
+          <div id="statTotal" class="text-xl font-bold text-slate-900 leading-tight">-</div>
         </div>
       </div>
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3.5">
-        <div class="p-3 bg-indigo-50 text-indigo-600 rounded-lg text-lg">
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-base">
           <i class="fa-solid fa-mars"></i>
         </div>
         <div>
-          <div class="text-[11px] text-slate-500 font-medium uppercase">Laki-Laki (L)</div>
-          <div id="statLaki" class="text-xl sm:text-2xl font-bold text-slate-900">-</div>
+          <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Laki-Laki (L)</div>
+          <div id="statLaki" class="text-xl font-bold text-slate-900 leading-tight">-</div>
         </div>
       </div>
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3.5">
-        <div class="p-3 bg-pink-50 text-pink-600 rounded-lg text-lg">
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-pink-50 text-pink-600 flex items-center justify-center text-base">
           <i class="fa-solid fa-venus"></i>
         </div>
         <div>
-          <div class="text-[11px] text-slate-500 font-medium uppercase">Perempuan (P)</div>
-          <div id="statPerempuan" class="text-xl sm:text-2xl font-bold text-slate-900">-</div>
+          <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Perempuan (P)</div>
+          <div id="statPerempuan" class="text-xl font-bold text-slate-900 leading-tight">-</div>
         </div>
       </div>
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3.5">
-        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg text-lg">
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-base">
           <i class="fa-solid fa-chalkboard-user"></i>
         </div>
         <div>
-          <div class="text-[11px] text-slate-500 font-medium uppercase">Total Rombel</div>
-          <div id="statKelas" class="text-xl sm:text-2xl font-bold text-slate-900">-</div>
+          <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Kelas</div>
+          <div id="statKelas" class="text-xl font-bold text-slate-900 leading-tight">-</div>
         </div>
       </div>
     </section>
 
-    <!-- Toolbar Filter & Search -->
-    <section class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
-      <div class="flex flex-1 w-full md:w-auto items-center gap-3">
-        <div class="relative flex-1 max-w-md">
+    <!-- Toolbar Pencarian & Filter -->
+    <section class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex flex-1 w-full items-center gap-2">
+        <div class="relative flex-1">
           <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
             <i class="fa-solid fa-magnifying-glass text-xs"></i>
           </span>
-          <input type="text" id="searchInput" oninput="renderTable()" placeholder="Cari Nama, NISN, atau No Induk..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+          <input type="text" id="searchInput" oninput="renderTable()" placeholder="Cari Nama, NISN, atau No Induk..." class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none transition">
         </div>
-        <div class="w-40">
-          <select id="filterKelas" onchange="renderTable()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+        <div class="w-36">
+          <select id="filterKelas" onchange="renderTable()" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
             <option value="">Semua Kelas</option>
           </select>
         </div>
       </div>
-      <div class="text-xs text-slate-500 font-medium flex items-center gap-1.5 self-end md:self-auto">
+      <div class="text-[11px] text-slate-500 font-medium shrink-0 flex items-center gap-1.5">
         <i class="fa-solid fa-arrow-down-a-z text-slate-400"></i>
-        <span>Urut otomatis: <b>Kelas &rarr; Abjad Nama</b></span>
+        <span>Urut: <b>Kelas &rarr; Abjad Nama</b></span>
       </div>
     </section>
 
-    <!-- Database Table -->
+    <!-- Tabel Pas 1 Layar (Responsive Grid / Clean Fit) -->
     <section class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-      <div class="overflow-x-auto custom-scrollbar">
-        <table class="w-full text-left text-xs whitespace-nowrap">
-          <thead class="bg-emerald-700 text-white font-semibold uppercase tracking-wider text-[11px] border-b border-emerald-800">
+      <div class="w-full overflow-hidden">
+        <table class="w-full table-fixed text-left text-xs divide-y divide-slate-200">
+          <thead class="bg-emerald-800 text-white font-semibold text-[11px] tracking-wider uppercase">
             <tr>
-              <th class="px-3 py-3 text-center">No</th>
-              <th class="px-3 py-3">No Induk</th>
-              <th class="px-3 py-3">NISN</th>
-              <th class="px-4 py-3">Nama Siswa</th>
-              <th class="px-3 py-3 text-center">JK</th>
-              <th class="px-3 py-3">Agama</th>
-              <th class="px-3 py-3 text-center">Kelas</th>
-              <th class="px-3 py-3 text-center">Kelas Romawi</th>
-              <th class="px-3 py-3">Rombel</th>
-              <th class="px-3 py-3">Pilihan LMS</th>
-              <th class="px-3 py-3">Rombel Kelasku</th>
-              <th class="px-3 py-3">Ket Kelas</th>
-              <th class="px-3 py-3 text-center">Aksi</th>
+              <th class="w-10 py-3 text-center">No</th>
+              <th class="w-24 sm:w-28 px-2 py-3">Identitas</th>
+              <th class="px-3 py-3">Nama Lengkap & Informasi</th>
+              <th class="w-14 py-3 text-center">JK</th>
+              <th class="w-20 px-2 py-3 hidden md:table-cell">Agama</th>
+              <th class="w-24 sm:w-28 px-2 py-3 text-center">Kelas / Rombel</th>
+              <th class="w-24 px-2 py-3 text-center hidden lg:table-cell">LMS</th>
+              <th class="w-12 py-3 text-center">Aksi</th>
             </tr>
           </thead>
-          <tbody id="tableBody" class="divide-y divide-slate-100">
+          <tbody id="tableBody" class="divide-y divide-slate-100 bg-white">
             <tr>
-              <td colspan="13" class="px-4 py-12 text-center text-slate-400">
+              <td colspan="8" class="py-12 text-center text-slate-400">
                 <i class="fa-solid fa-circle-notch fa-spin text-xl mb-2 text-emerald-600 block"></i>
-                Menghubungkan ke API Google Apps Script...
+                Memuat data dari server spreadsheet...
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-      <div class="px-4 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-        <div>Menampilkan <span id="showingCount" class="font-bold text-slate-700">0</span> dari <span id="totalRawCount" class="font-bold text-slate-700">0</span> data</div>
-        <div id="syncTime" class="text-[11px] text-slate-400">Status: Sinkron</div>
+      <!-- Footer Status -->
+      <div class="px-4 py-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-500">
+        <div>Menampilkan <span id="showingCount" class="font-bold text-slate-800">0</span> dari <span id="totalRawCount" class="font-bold text-slate-800">0</span> total siswa</div>
+        <div id="syncTime" class="text-slate-400">Status Server: Normal</div>
       </div>
     </section>
 
   </main>
 
-  <!-- Modal Tambah Siswa -->
-  <div id="modalTambah" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full overflow-hidden">
-      <div class="bg-slate-900 px-6 py-4 flex items-center justify-between text-white border-b border-slate-800">
-        <div class="flex items-center gap-2">
-          <i class="fa-solid fa-user-plus text-emerald-400"></i>
-          <h3 class="font-semibold text-sm">Entri Siswa Baru</h3>
+  <!-- ================= POPUP MODAL TAMBAH SISWA ================= -->
+  <div id="modalTambah" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden transition-opacity duration-200">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden transform transition-all scale-95 opacity-0 duration-200" id="modalTambahBox">
+      
+      <!-- Modal Header -->
+      <div class="bg-slate-900 px-5 py-3.5 flex items-center justify-between text-white border-b border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm">
+            <i class="fa-solid fa-user-plus"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm leading-none">Entri Data Siswa Baru</h3>
+            <span class="text-[11px] text-slate-400">Data otomatis diurutkan di database</span>
+          </div>
         </div>
-        <button onclick="closeModalTambah()" class="text-slate-400 hover:text-white transition">
-          <i class="fa-solid fa-xmark text-lg"></i>
+        <button onclick="closeModalTambah()" class="w-7 h-7 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
-      <form id="formTambah" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+      <!-- Modal Body / Form -->
+      <form id="formTambah" onsubmit="handleFormSubmit(event)" class="p-5 space-y-3.5">
+        <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">No Induk *</label>
-            <input type="text" name="noInduk" required placeholder="Contoh: 14911" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">No Induk <span class="text-rose-500">*</span></label>
+            <input type="text" name="noInduk" required placeholder="Contoh: 14911" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none font-mono">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">NISN *</label>
-            <input type="text" name="nisn" required placeholder="Contoh: 3138990221" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">NISN <span class="text-rose-500">*</span></label>
+            <input type="text" name="nisn" required placeholder="Contoh: 3138990221" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none font-mono">
           </div>
-          <div class="sm:col-span-2">
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Siswa *</label>
-            <input type="text" name="nama" required placeholder="Contoh: AHMAD FARIZ NAUFAL" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none uppercase">
+          <div class="col-span-2">
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Nama Lengkap Siswa <span class="text-rose-500">*</span></label>
+            <input type="text" name="nama" required placeholder="Nama lengkap sesuai dokumen" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none uppercase font-semibold">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Jenis Kelamin *</label>
-            <select name="jk" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Jenis Kelamin <span class="text-rose-500">*</span></label>
+            <select name="jk" required class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
               <option value="L">Laki-Laki (L)</option>
               <option value="P">Perempuan (P)</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Agama</label>
-            <select name="agama" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Agama</label>
+            <select name="agama" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
               <option value="ISLAM">ISLAM</option>
               <option value="KRISTEN">KRISTEN</option>
               <option value="KATOLIK">KATOLIK</option>
@@ -197,63 +197,109 @@
             </select>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Kelas *</label>
-            <input type="text" name="kelas" required placeholder="7A, 8B, 9C" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none uppercase">
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Kelas <span class="text-rose-500">*</span></label>
+            <input type="text" name="kelas" required placeholder="Contoh: 7A, 8B" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none uppercase font-bold text-emerald-700">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Pilihan LMS</label>
-            <input type="text" name="pilihanLms" placeholder="PILIHAN (opsional)" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Pilihan LMS</label>
+            <input type="text" name="pilihanLms" placeholder="PILIHAN (opsional)" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none">
           </div>
         </div>
 
-        <p class="text-[11px] text-slate-400 italic">
-          * Kolom Kelas Romawi, Rombel, dan Keterangan Kelas akan diisi otomatis di spreadsheet berdasarkan kelas.
-        </p>
+        <div class="p-2.5 bg-emerald-50 border border-emerald-100 rounded-lg text-[11px] text-emerald-800 flex items-start gap-2">
+          <i class="fa-solid fa-circle-info text-emerald-600 mt-0.5"></i>
+          <span>Kelas Romawi, Rombel, dan Keterangan Kelas akan diformulasikan otomatis oleh sistem server.</span>
+        </div>
 
-        <div class="pt-3 border-t border-slate-200 flex justify-end gap-2">
-          <button type="button" onclick="closeModalTambah()" class="px-4 py-2 border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-100 transition">Batal</button>
-          <button type="submit" id="btnSubmit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-2">
+        <!-- Modal Footer -->
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeModalTambah()" class="px-4 py-1.5 border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-100 transition">Batal</button>
+          <button type="submit" id="btnSubmit" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5">
             <i class="fa-solid fa-floppy-disk"></i>
-            <span>Simpan</span>
+            <span>Simpan Data</span>
           </button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Toast Notification -->
-  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 max-w-sm w-full bg-slate-900 text-white p-4 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700">
-    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
-    <div class="text-xs flex-1" id="toastMessage">Pesan</div>
+  <!-- ================= POPUP MODAL HAPUS KUSTOM ================= -->
+  <div id="modalHapus" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden transition-opacity duration-200">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-sm w-full overflow-hidden transform transition-all scale-95 opacity-0 duration-200" id="modalHapusBox">
+      
+      <div class="p-5 text-center">
+        <!-- Icon Peringatan -->
+        <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xl mx-auto mb-3 shadow-inner">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        
+        <h3 class="text-sm font-bold text-slate-900 mb-1">Hapus Data Siswa?</h3>
+        <p class="text-xs text-slate-500 mb-4">Tindakan ini permanen. Data siswa akan dihapus dari server dan nomor urut akan disusun ulang otomatis.</p>
+        
+        <!-- Kartu Identitas Siswa Target -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-left mb-4 flex items-center gap-3">
+          <div id="targetAvatar" class="w-9 h-9 rounded-lg bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0 uppercase">
+            -
+          </div>
+          <div class="min-w-0 flex-1">
+            <div id="targetNama" class="text-xs font-bold text-slate-900 truncate">Nama Siswa</div>
+            <div class="text-[10px] text-slate-500 font-mono mt-0.5">
+              NISN: <span id="targetNisn">-</span> | Induk: <span id="targetInduk">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tombol Aksi Hapus -->
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="closeModalHapus()" class="w-full py-2 border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-100 transition">
+            Batal
+          </button>
+          <button type="button" id="btnKonfirmasiHapus" onclick="eksekusiHapus()" class="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-trash-can text-xs"></i>
+            <span>Ya, Hapus</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= FLOATING TOAST NOTIFIKASI ================= -->
+  <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 transform -translate-y-12 opacity-0 pointer-events-none transition-all duration-300 max-w-md w-auto px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2.5 border bg-slate-900/95 backdrop-blur-md text-white border-slate-700">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
+    <span class="text-xs font-medium" id="toastMessage">Pesan notifikasi</span>
   </div>
 
   <script>
-    // URL Endpoint API Apps Script aktif Anda
     const API_URL = "https://script.google.com/macros/s/AKfycbyio4fY4j4wI43WfImizneYJoUVEv6dumt6GMtSuvlLjmGSV9h55sDV2YiB5h0J9B1Oig/exec";
 
     let rawData = [];
+    let deleteTarget = { nisn: "", noInduk: "", nama: "" };
 
     document.addEventListener("DOMContentLoaded", () => {
       fetchData();
     });
 
+    // Toast Notifikasi Halus di Atas Layar
     function showToast(message, isError = false) {
       const toast = document.getElementById("toast");
       const toastIcon = document.getElementById("toastIcon");
       const toastMsg = document.getElementById("toastMessage");
 
       toastMsg.innerText = message;
-      toastIcon.className = isError 
-        ? "fa-solid fa-circle-xmark text-rose-400 text-lg" 
-        : "fa-solid fa-circle-check text-emerald-400 text-lg";
+      if (isError) {
+        toastIcon.className = "fa-solid fa-circle-xmark text-rose-400 text-sm";
+      } else {
+        toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-sm";
+      }
 
-      toast.classList.remove("translate-y-20", "opacity-0");
+      toast.classList.remove("-translate-y-12", "opacity-0", "pointer-events-none");
       setTimeout(() => {
-        toast.classList.add("translate-y-20", "opacity-0");
+        toast.classList.add("-translate-y-12", "opacity-0", "pointer-events-none");
       }, 3500);
     }
 
-    // Mengambil data melalui GET request
+    // Ambil Data dari Apps Script
     async function fetchData() {
       const refreshIcon = document.getElementById("btnRefreshIcon");
       refreshIcon.classList.add("fa-spin");
@@ -269,10 +315,10 @@
           renderTable();
           document.getElementById("syncTime").innerText = "Sinkron: " + new Date().toLocaleTimeString();
         } else {
-          showToast("Gagal memuat data: " + result.message, true);
+          showToast("Gagal memuat: " + result.message, true);
         }
       } catch (err) {
-        showToast("Koneksi API Gagal: " + err.message, true);
+        showToast("Gagal koneksi API: " + err.message, true);
       } finally {
         refreshIcon.classList.remove("fa-spin");
       }
@@ -302,6 +348,7 @@
       filterSelect.innerHTML = options;
     }
 
+    // Render Tabel Compact & Anti Scroll Manual
     function renderTable() {
       const search = (document.getElementById("searchInput").value || "").toLowerCase().trim();
       const filterKelas = document.getElementById("filterKelas").value;
@@ -321,9 +368,9 @@
       if (filtered.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="13" class="px-4 py-8 text-center text-slate-400">
+            <td colspan="8" class="py-10 text-center text-slate-400">
               <i class="fa-regular fa-folder-open text-2xl mb-1 block"></i>
-              Tidak ada data siswa yang cocok.
+              Tidak ada data siswa yang cocok dengan kriteria pencarian.
             </td>
           </tr>
         `;
@@ -333,28 +380,37 @@
       let html = "";
       filtered.forEach((row) => {
         const jkBadge = row.jk === "L" 
-          ? '<span class="inline-block px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold text-[10px]">L</span>' 
-          : '<span class="inline-block px-1.5 py-0.5 rounded bg-pink-100 text-pink-800 font-semibold text-[10px]">P</span>';
+          ? '<span class="inline-block px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-bold text-[10px]">L</span>' 
+          : '<span class="inline-block px-1.5 py-0.5 rounded bg-pink-50 text-pink-700 border border-pink-200 font-bold text-[10px]">P</span>';
+
+        const rombelInfo = [row.rombel, row.rombelKelasku].filter(Boolean).join(" • ");
 
         html += `
           <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-            <td class="px-3 py-2.5 text-center font-medium text-slate-500">${row.no}</td>
-            <td class="px-3 py-2.5 font-mono text-slate-700">${row.noInduk}</td>
-            <td class="px-3 py-2.5 font-mono text-slate-700">${row.nisn}</td>
-            <td class="px-4 py-2.5 font-semibold text-slate-900">${row.nama}</td>
-            <td class="px-3 py-2.5 text-center">${jkBadge}</td>
-            <td class="px-3 py-2.5 text-slate-600">${row.agama}</td>
-            <td class="px-3 py-2.5 text-center font-bold text-emerald-700">${row.kelas}</td>
-            <td class="px-3 py-2.5 text-center text-slate-600">${row.kelasRomawi}</td>
-            <td class="px-3 py-2.5 text-slate-600">${row.rombel}</td>
-            <td class="px-3 py-2.5">
-              ${row.pilihanLms ? `<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold text-[10px]">${row.pilihanLms}</span>` : '<span class="text-slate-300">-</span>'}
+            <td class="py-2.5 text-center font-medium text-slate-400">${row.no}</td>
+            <td class="px-2 py-2.5">
+              <div class="font-mono text-[11px] font-semibold text-slate-800">${row.noInduk}</div>
+              <div class="font-mono text-[10px] text-slate-400">${row.nisn}</div>
             </td>
-            <td class="px-3 py-2.5 text-slate-500">${row.rombelKelasku || '-'}</td>
-            <td class="px-3 py-2.5 text-slate-600">${row.ketKelas}</td>
-            <td class="px-3 py-2.5 text-center">
-              <button onclick="konfirmasiHapus('${row.nisn}', '${row.nama.replace(/'/g, "\\'")}', '${row.noInduk}')" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="Hapus Siswa">
-                <i class="fa-solid fa-trash-can"></i>
+            <td class="px-3 py-2.5">
+              <div class="font-bold text-slate-900 truncate" title="${row.nama}">${row.nama}</div>
+              <div class="text-[10px] text-slate-500 truncate">
+                ${row.ketKelas ? `<span class="text-slate-600 font-medium">${row.ketKelas}</span>` : ''}
+                ${rombelInfo ? `<span class="text-slate-400"> (${rombelInfo})</span>` : ''}
+              </div>
+            </td>
+            <td class="py-2.5 text-center">${jkBadge}</td>
+            <td class="px-2 py-2.5 text-slate-600 hidden md:table-cell text-[11px]">${row.agama}</td>
+            <td class="px-2 py-2.5 text-center">
+              <span class="inline-block px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-xs">${row.kelas}</span>
+              ${row.kelasRomawi ? `<div class="text-[10px] text-slate-400 font-mono mt-0.5">${row.kelasRomawi}</div>` : ''}
+            </td>
+            <td class="px-2 py-2.5 text-center hidden lg:table-cell">
+              ${row.pilihanLms ? `<span class="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-medium text-[10px]">${row.pilihanLms}</span>` : '<span class="text-slate-300">-</span>'}
+            </td>
+            <td class="py-2.5 text-center">
+              <button onclick="bukaModalHapus('${row.nisn}', '${row.nama.replace(/'/g, "\\'")}', '${row.noInduk}')" class="w-7 h-7 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition inline-flex items-center justify-center" title="Hapus Siswa">
+                <i class="fa-solid fa-trash-can text-xs"></i>
               </button>
             </td>
           </tr>
@@ -364,16 +420,27 @@
       tbody.innerHTML = html;
     }
 
+    // Modal Tambah Handlers
     function openModalTambah() {
       document.getElementById("formTambah").reset();
-      document.getElementById("modalTambah").classList.remove("hidden");
+      const modal = document.getElementById("modalTambah");
+      const box = document.getElementById("modalTambahBox");
+      modal.classList.remove("hidden");
+      setTimeout(() => {
+        box.classList.remove("scale-95", "opacity-0");
+        box.classList.add("scale-100", "opacity-100");
+      }, 20);
     }
 
     function closeModalTambah() {
-      document.getElementById("modalTambah").classList.add("hidden");
+      const box = document.getElementById("modalTambahBox");
+      box.classList.remove("scale-100", "opacity-100");
+      box.classList.add("scale-95", "opacity-0");
+      setTimeout(() => {
+        document.getElementById("modalTambah").classList.add("hidden");
+      }, 200);
     }
 
-    // Mengirim Form Data via POST JSON
     async function handleFormSubmit(e) {
       e.preventDefault();
       const form = e.target;
@@ -409,36 +476,71 @@
           showToast("Gagal: " + result.message, true);
         }
       } catch (err) {
-        showToast("Error pengiriman: " + err.message, true);
+        showToast("Error saat menyimpan: " + err.message, true);
       } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
       }
     }
 
-    // Menghapus data siswa
-    async function konfirmasiHapus(nisn, nama, noInduk) {
-      const confirmMsg = `Yakin ingin menghapus data siswa ini?\n\nNama: ${nama}\nNISN: ${nisn}\nNo Induk: ${noInduk}\n\nData akan dihapus permanen dari server dan penomoran disusun ulang otomatis.`;
-      if (!confirm(confirmMsg)) return;
+    // Modal Hapus Handlers
+    function bukaModalHapus(nisn, nama, noInduk) {
+      deleteTarget = { nisn, nama, noInduk };
 
-      showToast("Sedang memproses penghapusan...");
+      document.getElementById("targetNama").innerText = nama;
+      document.getElementById("targetNisn").innerText = nisn || "-";
+      document.getElementById("targetInduk").innerText = noInduk || "-";
+      document.getElementById("targetAvatar").innerText = nama.charAt(0) || "S";
+
+      const modal = document.getElementById("modalHapus");
+      const box = document.getElementById("modalHapusBox");
+      modal.classList.remove("hidden");
+      setTimeout(() => {
+        box.classList.remove("scale-95", "opacity-0");
+        box.classList.add("scale-100", "opacity-100");
+      }, 20);
+    }
+
+    function closeModalHapus() {
+      const box = document.getElementById("modalHapusBox");
+      box.classList.remove("scale-100", "opacity-100");
+      box.classList.add("scale-95", "opacity-0");
+      setTimeout(() => {
+        document.getElementById("modalHapus").classList.add("hidden");
+      }, 200);
+    }
+
+    async function eksekusiHapus() {
+      const btn = document.getElementById("btnKonfirmasiHapus");
+      const originalText = btn.innerHTML;
+
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-xs"></i> <span>Menghapus...</span>`;
 
       try {
         const response = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ action: "hapus", nisn: nisn, noInduk: noInduk })
+          body: JSON.stringify({ 
+            action: "hapus", 
+            nisn: deleteTarget.nisn, 
+            noInduk: deleteTarget.noInduk 
+          })
         });
         const result = await response.json();
 
         if (result.success) {
+          closeModalHapus();
           showToast(result.message);
           fetchData();
         } else {
           showToast("Gagal: " + result.message, true);
         }
       } catch (err) {
-        showToast("Terjadi kesalahan: " + err.message, true);
+        showToast("Error: " + err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
       }
     }
   </script>
