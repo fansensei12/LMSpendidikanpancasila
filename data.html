@@ -33,7 +33,7 @@
               Live Sync
             </span>
           </div>
-          <p class="text-[11px] text-slate-400">Monitoring & Manajemen Data Terstruktur</p>
+          <p class="text-[11px] text-slate-400">Monitoring & Manajemen Database Pusat</p>
         </div>
       </div>
       <div class="flex items-center gap-2">
@@ -58,7 +58,7 @@
           <i class="fa-solid fa-users"></i>
         </div>
         <div>
-          <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Seluruh Siswa</div>
+          <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Siswa</div>
           <div id="statTotal" class="text-xl font-bold text-slate-900 leading-tight">-</div>
         </div>
       </div>
@@ -85,19 +85,19 @@
           <i class="fa-solid fa-chalkboard-user"></i>
         </div>
         <div>
-          <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Rombel / Kelas</div>
+          <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Kelas</div>
           <div id="statKelas" class="text-xl font-bold text-slate-900 leading-tight">-</div>
         </div>
       </div>
     </section>
 
-    <!-- BAR INFORMASI REKAPITULASI JUMLAH SISWA PER KELAS / ROMBEL -->
+    <!-- Bar Informasi Rombel / Kelas -->
     <section class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2">
           <i class="fa-solid fa-chart-pie text-emerald-600 text-xs"></i>
           <span class="text-xs font-bold text-slate-800">Jumlah Siswa Per Kelas & Rombel</span>
-          <span class="text-[10px] text-slate-400 font-normal hidden sm:inline">(Klik badge untuk menyaring data kelas)</span>
+          <span class="text-[10px] text-slate-400 font-normal hidden sm:inline">(Klik badge untuk filter)</span>
         </div>
         <button onclick="setFilterKelas('')" class="text-[11px] text-emerald-600 hover:text-emerald-800 font-medium transition">
           Reset Filter
@@ -129,34 +129,33 @@
       </div>
     </section>
 
-    <!-- Tabel Pas 1 Layar dengan Kolom Absen Per Kelas -->
+    <!-- Tabel Pas 1 Layar dengan Tombol Edit & Hapus -->
     <section class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
       <div class="w-full overflow-hidden">
         <table class="w-full table-fixed text-left text-xs divide-y divide-slate-200">
           <thead class="bg-emerald-800 text-white font-semibold text-[11px] tracking-wider uppercase">
             <tr>
-              <th class="w-14 py-3 text-center" title="Nomor Absen Siswa Dalam Kelas Tersebut">Absen</th>
-              <th class="w-10 py-3 text-center hidden sm:table-cell" title="Nomor Urut Database Master">No</th>
+              <th class="w-12 py-3 text-center" title="Nomor Absen Siswa">Absen</th>
+              <th class="w-10 py-3 text-center hidden sm:table-cell" title="Nomor Baris Master">No</th>
               <th class="w-24 sm:w-28 px-2 py-3">Identitas</th>
               <th class="px-3 py-3">Nama Lengkap & Rombel</th>
-              <th class="w-14 py-3 text-center">JK</th>
+              <th class="w-12 py-3 text-center">JK</th>
               <th class="w-20 px-2 py-3 hidden md:table-cell">Agama</th>
               <th class="w-24 sm:w-28 px-2 py-3 text-center">Kelas / Rombel</th>
               <th class="w-24 px-2 py-3 text-center hidden lg:table-cell">LMS</th>
-              <th class="w-12 py-3 text-center">Aksi</th>
+              <th class="w-16 py-3 text-center">Aksi</th>
             </tr>
           </thead>
           <tbody id="tableBody" class="divide-y divide-slate-100 bg-white">
             <tr>
               <td colspan="9" class="py-12 text-center text-slate-400">
                 <i class="fa-solid fa-circle-notch fa-spin text-xl mb-2 text-emerald-600 block"></i>
-                Memuat data dari server spreadsheet...
+                Memuat data dari server DATABASEPUSAT...
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-      <!-- Footer Status -->
       <div class="px-4 py-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-500">
         <div>Menampilkan <span id="showingCount" class="font-bold text-slate-800">0</span> dari <span id="totalRawCount" class="font-bold text-slate-800">0</span> total siswa</div>
         <div id="syncTime" class="text-slate-400">Status Server: Normal</div>
@@ -176,7 +175,7 @@
           </div>
           <div>
             <h3 class="font-bold text-sm leading-none">Entri Data Siswa Baru</h3>
-            <span class="text-[11px] text-slate-400">Nomor absen dan nomor urut akan disusun otomatis</span>
+            <span class="text-[11px] text-slate-400">Tersimpan langsung ke DATABASEPUSAT</span>
           </div>
         </div>
         <button onclick="closeModalTambah()" class="w-7 h-7 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition">
@@ -196,7 +195,7 @@
           </div>
           <div class="col-span-2">
             <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Nama Lengkap Siswa <span class="text-rose-500">*</span></label>
-            <input type="text" name="nama" required placeholder="Nama lengkap sesuai dokumen" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none uppercase font-semibold">
+            <input type="text" name="nama" required placeholder="Nama lengkap siswa" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none uppercase font-semibold">
           </div>
           <div>
             <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Jenis Kelamin <span class="text-rose-500">*</span></label>
@@ -218,7 +217,7 @@
           </div>
           <div>
             <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Kelas <span class="text-rose-500">*</span></label>
-            <input type="text" name="kelas" required placeholder="Contoh: 7A, 8B" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none uppercase font-bold text-emerald-700">
+            <input type="text" name="kelas" required placeholder="7A, 8B, 9C" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none uppercase font-bold text-emerald-700">
           </div>
           <div>
             <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Pilihan LMS</label>
@@ -226,16 +225,87 @@
           </div>
         </div>
 
-        <div class="p-2.5 bg-emerald-50 border border-emerald-100 rounded-lg text-[11px] text-emerald-800 flex items-start gap-2">
-          <i class="fa-solid fa-circle-info text-emerald-600 mt-0.5"></i>
-          <span>Kelas Romawi, Rombel, dan Keterangan Kelas diformulasikan otomatis oleh server database.</span>
-        </div>
-
         <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
           <button type="button" onclick="closeModalTambah()" class="px-4 py-1.5 border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-100 transition">Batal</button>
           <button type="submit" id="btnSubmit" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5">
             <i class="fa-solid fa-floppy-disk"></i>
             <span>Simpan Data</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= POPUP MODAL EDIT SISWA ================= -->
+  <div id="modalEdit" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden transition-opacity duration-200">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden transform transition-all scale-95 opacity-0 duration-200" id="modalEditBox">
+      
+      <div class="bg-slate-900 px-5 py-3.5 flex items-center justify-between text-white border-b border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center text-sm">
+            <i class="fa-solid fa-user-pen"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm leading-none">Edit Data Siswa</h3>
+            <span class="text-[11px] text-slate-400">Sinkronisasi langsung ke DATABASEPUSAT</span>
+          </div>
+        </div>
+        <button onclick="closeModalEdit()" class="w-7 h-7 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="formEdit" onsubmit="handleFormEditSubmit(event)" class="p-5 space-y-3.5">
+        <!-- Field Identitas Lama Sebagai Key Update -->
+        <input type="hidden" id="editOldNisn" name="oldNisn">
+        <input type="hidden" id="editOldNoInduk" name="oldNoInduk">
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">No Induk <span class="text-rose-500">*</span></label>
+            <input type="text" id="editNoInduk" name="noInduk" required class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none font-mono">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">NISN <span class="text-rose-500">*</span></label>
+            <input type="text" id="editNisn" name="nisn" required class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none font-mono">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Nama Lengkap Siswa <span class="text-rose-500">*</span></label>
+            <input type="text" id="editNama" name="nama" required class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none uppercase font-semibold">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Jenis Kelamin <span class="text-rose-500">*</span></label>
+            <select id="editJk" name="jk" required class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <option value="L">Laki-Laki (L)</option>
+              <option value="P">Perempuan (P)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Agama</label>
+            <select id="editAgama" name="agama" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <option value="ISLAM">ISLAM</option>
+              <option value="KRISTEN">KRISTEN</option>
+              <option value="KATOLIK">KATOLIK</option>
+              <option value="HINDU">HINDU</option>
+              <option value="BUDDHA">BUDDHA</option>
+              <option value="KONGHUCU">KONGHUCU</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Kelas <span class="text-rose-500">*</span></label>
+            <input type="text" id="editKelas" name="kelas" required class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none uppercase font-bold text-blue-700">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Pilihan LMS</label>
+            <input type="text" id="editPilihanLms" name="pilihanLms" placeholder="PILIHAN" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none">
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeModalEdit()" class="px-4 py-1.5 border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-100 transition">Batal</button>
+          <button type="submit" id="btnSubmitEdit" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5">
+            <i class="fa-solid fa-check"></i>
+            <span>Simpan Perubahan</span>
           </button>
         </div>
       </form>
@@ -252,7 +322,7 @@
         </div>
         
         <h3 class="text-sm font-bold text-slate-900 mb-1">Hapus Data Siswa?</h3>
-        <p class="text-xs text-slate-500 mb-4">Tindakan ini permanen. Data siswa akan dihapus dari server dan urutan absen akan disinkronkan kembali.</p>
+        <p class="text-xs text-slate-500 mb-4">Tindakan ini permanen. Data siswa akan dihapus dari DATABASEPUSAT dan absen akan disusun ulang.</p>
         
         <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-left mb-4 flex items-center gap-3">
           <div id="targetAvatar" class="w-9 h-9 rounded-lg bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0 uppercase">
@@ -323,9 +393,7 @@
         const result = await response.json();
 
         if (result.success) {
-          // Format dan tetapkan nomor absen per kelas
           rawData = hitungNomorAbsen(result.data || []);
-          
           populateFilterKelas();
           updateStats();
           renderBarRombel();
@@ -341,7 +409,6 @@
       }
     }
 
-    // Menghitung nomor absen yang mengulang dari 1 untuk setiap pergantian kelas
     function hitungNomorAbsen(data) {
       const countPerKelas = {};
       return data.map((item) => {
@@ -370,12 +437,10 @@
       document.getElementById("statKelas").innerText = listKelas.size;
     }
 
-    // Render Bar Keterangan Jumlah Siswa Per Kelas & Rombel
     function renderBarRombel() {
       const container = document.getElementById("barRombelContainer");
       const currentSelected = document.getElementById("filterKelas").value;
 
-      // Kelompokkan jumlah siswa berdasarkan kelas
       const counts = {};
       rawData.forEach(item => {
         const k = item.kelas || "Tanpa Kelas";
@@ -403,9 +468,7 @@
           ? "bg-emerald-700 text-white border-emerald-800 shadow-sm ring-2 ring-emerald-500/30" 
           : "bg-slate-50 hover:bg-emerald-50 text-slate-700 border-slate-200 hover:border-emerald-300";
 
-        const badgeJkClass = isSelected
-          ? "text-emerald-100"
-          : "text-slate-400";
+        const badgeJkClass = isSelected ? "text-emerald-100" : "text-slate-400";
 
         html += `
           <button type="button" onclick="setFilterKelas('${k}')" class="px-2.5 py-1.5 rounded-lg border text-xs font-medium transition flex items-center gap-2 ${activeClass}">
@@ -443,7 +506,6 @@
       filterSelect.innerHTML = options;
     }
 
-    // Render Tabel Utama dengan Nomor Absen
     function renderTable() {
       const search = (document.getElementById("searchInput").value || "").toLowerCase().trim();
       const filterKelas = document.getElementById("filterKelas").value;
@@ -473,22 +535,23 @@
       }
 
       let html = "";
-      filtered.forEach((row) => {
+      filtered.forEach((row, idx) => {
         const jkBadge = row.jk === "L" 
           ? '<span class="inline-block px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-bold text-[10px]">L</span>' 
           : '<span class="inline-block px-1.5 py-0.5 rounded bg-pink-50 text-pink-700 border border-pink-200 font-bold text-[10px]">P</span>';
 
         const rombelInfo = [row.rombel, row.rombelKelasku].filter(Boolean).join(" • ");
+        
+        // Escape json data untuk parameter edit
+        const rowDataEscaped = encodeURIComponent(JSON.stringify(row));
 
         html += `
           <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-            <!-- Kolom Nomor Absen Kelas -->
             <td class="py-2.5 text-center">
               <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-900 text-white font-bold text-[11px] shadow-xs">
                 ${row.noAbsen}
               </span>
             </td>
-            <!-- Kolom Nomor Master Sheet -->
             <td class="py-2.5 text-center font-medium text-slate-400 hidden sm:table-cell text-[11px]">${row.no}</td>
             <td class="px-2 py-2.5">
               <div class="font-mono text-[11px] font-semibold text-slate-800">${row.noInduk}</div>
@@ -511,9 +574,16 @@
               ${row.pilihanLms ? `<span class="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-medium text-[10px]">${row.pilihanLms}</span>` : '<span class="text-slate-300">-</span>'}
             </td>
             <td class="py-2.5 text-center">
-              <button onclick="bukaModalHapus('${row.nisn}', '${row.nama.replace(/'/g, "\\'")}', '${row.noInduk}')" class="w-7 h-7 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition inline-flex items-center justify-center" title="Hapus Siswa">
-                <i class="fa-solid fa-trash-can text-xs"></i>
-              </button>
+              <div class="flex items-center justify-center gap-1">
+                <!-- Tombol Edit Siswa -->
+                <button onclick="bukaModalEdit('${rowDataEscaped}')" class="w-6 h-6 rounded-md text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition inline-flex items-center justify-center" title="Edit Data Siswa">
+                  <i class="fa-solid fa-pen-to-square text-xs"></i>
+                </button>
+                <!-- Tombol Hapus Siswa -->
+                <button onclick="bukaModalHapus('${row.nisn}', '${row.nama.replace(/'/g, "\\'")}', '${row.noInduk}')" class="w-6 h-6 rounded-md text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition inline-flex items-center justify-center" title="Hapus Siswa">
+                  <i class="fa-solid fa-trash-can text-xs"></i>
+                </button>
+              </div>
             </td>
           </tr>
         `;
@@ -579,6 +649,92 @@
         }
       } catch (err) {
         showToast("Error saat menyimpan: " + err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
+
+    // Modal Edit Handlers
+    function bukaModalEdit(encodedRow) {
+      const data = JSON.parse(decodeURIComponent(encodedRow));
+
+      // Simpan identifier lama agar baris di DATABASEPUSAT tidak tertukar jika NISN/No Induk diubah
+      document.getElementById("editOldNisn").value = data.nisn || "";
+      document.getElementById("editOldNoInduk").value = data.noInduk || "";
+
+      // Isi input form dengan nilai saat ini
+      document.getElementById("editNoInduk").value = data.noInduk || "";
+      document.getElementById("editNisn").value = data.nisn || "";
+      document.getElementById("editNama").value = data.nama || "";
+      document.getElementById("editJk").value = data.jk || "L";
+      document.getElementById("editAgama").value = data.agama || "ISLAM";
+      document.getElementById("editKelas").value = data.kelas || "";
+      document.getElementById("editPilihanLms").value = data.pilihanLms || "";
+
+      const modal = document.getElementById("modalEdit");
+      const box = document.getElementById("modalEditBox");
+      modal.classList.remove("hidden");
+      setTimeout(() => {
+        box.classList.remove("scale-95", "opacity-0");
+        box.classList.add("scale-100", "opacity-100");
+      }, 20);
+    }
+
+    function closeModalEdit() {
+      const box = document.getElementById("modalEditBox");
+      box.classList.remove("scale-100", "opacity-100");
+      box.classList.add("scale-95", "opacity-0");
+      setTimeout(() => {
+        document.getElementById("modalEdit").classList.add("hidden");
+      }, 200);
+    }
+
+    async function handleFormEditSubmit(e) {
+      e.preventDefault();
+      const form = e.target;
+      const btn = document.getElementById("btnSubmitEdit");
+      const originalText = btn.innerHTML;
+
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Menyimpan...`;
+
+      const oldIdentifier = {
+        nisn: document.getElementById("editOldNisn").value,
+        noInduk: document.getElementById("editOldNoInduk").value
+      };
+
+      const payload = {
+        noInduk: form.noInduk.value.trim(),
+        nisn: form.nisn.value.trim(),
+        nama: form.nama.value.trim(),
+        jk: form.jk.value,
+        agama: form.agama.value,
+        kelas: form.kelas.value.trim().toUpperCase(),
+        pilihanLms: form.pilihanLms.value.trim()
+      };
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ 
+            action: "edit", 
+            oldIdentifier: oldIdentifier, 
+            payload: payload 
+          })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          closeModalEdit();
+          showToast(result.message);
+          fetchData();
+        } else {
+          showToast("Gagal memperbarui: " + result.message, true);
+        }
+      } catch (err) {
+        showToast("Error edit data: " + err.message, true);
       } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
