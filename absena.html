@@ -1758,6 +1758,8 @@
         document.getElementById('inpBMapelSH').value       = k.mapelSH;
         // Terapkan bobot lokal per-user jika ada (override server default)
         muatBobotSidebar();
+        // Urutkan otomatis: kelas dulu, lalu nama (abjad). Siswa baru di baris paling bawah sheet otomatis masuk sesuai abjad.
+        hasil.siswa.sort((a,b)=> a.kelas.localeCompare(b.kelas,'id',{numeric:true}) || a.nama.localeCompare(b.nama,'id'));
         dataMasterSiswa = hasil.siswa;
         const setKelas = new Set(); hasil.siswa.forEach(s=>setKelas.add(s.kelas));
         daftarSemuaKelasSekolah = Array.from(setKelas).sort();
@@ -2841,7 +2843,7 @@
           const hadirSiswa=hadirCount>0?Math.round(hadirSum/hadirCount):100;
           dataSiswa.push({noAbsen:row[2],nis:row[1],nama:row[3],kehadiran:hadirSiswa,paket:paket});
         }
-        dataSiswa.sort((a,b)=>a.noAbsen-b.noAbsen);
+        dataSiswa.sort((a,b)=>String(a.nama).localeCompare(String(b.nama),'id'));
         dataAdminSemuaMapelCache = {dataSiswa,daftarMapel,kls};
 
         // Isi dropdown GURU (bukan mapel)
@@ -3065,7 +3067,7 @@
           dataSiswaSesuai.push({noAbsen:res.dataRaw[j][2],nis:res.dataRaw[j][1],nama:res.dataRaw[j][3],kehadiran:hadir,paketNilaiMapel:paketNilaiMapel});
         }
       }
-      dataSiswaSesuai.sort((a,b)=>a.noAbsen-b.noAbsen); rekapObjekLegerTerakhir=dataSiswaSesuai;
+      dataSiswaSesuai.sort((a,b)=>String(a.nama).localeCompare(String(b.nama),'id')); rekapObjekLegerTerakhir=dataSiswaSesuai;
       let html=`<thead><tr style="background:#0a0a14;">
         <th rowspan="2">No</th><th rowspan="2">NIS</th><th rowspan="2">Abs</th><th rowspan="2" style="text-align:left;min-width:180px;">Nama Siswa</th>`;
       daftarMapelTampil.forEach(m=>{html+=`<th colspan="11" style="background:#0f0a14;color:#c0182a;font-size:10px;letter-spacing:0.1em;">${m.toUpperCase()}</th>`;});
