@@ -10,6 +10,10 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
+    .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col antialiased">
@@ -47,14 +51,14 @@
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex-1 w-full space-y-4">
 
-    <!-- KPI / Ringkasan Data -->
+    <!-- KPI / Ringkasan Data Global -->
     <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
       <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3">
         <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-base">
           <i class="fa-solid fa-users"></i>
         </div>
         <div>
-          <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Siswa</div>
+          <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Seluruh Siswa</div>
           <div id="statTotal" class="text-xl font-bold text-slate-900 leading-tight">-</div>
         </div>
       </div>
@@ -81,9 +85,26 @@
           <i class="fa-solid fa-chalkboard-user"></i>
         </div>
         <div>
-          <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Kelas</div>
+          <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Rombel / Kelas</div>
           <div id="statKelas" class="text-xl font-bold text-slate-900 leading-tight">-</div>
         </div>
+      </div>
+    </section>
+
+    <!-- BAR INFORMASI REKAPITULASI JUMLAH SISWA PER KELAS / ROMBEL -->
+    <section class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-chart-pie text-emerald-600 text-xs"></i>
+          <span class="text-xs font-bold text-slate-800">Jumlah Siswa Per Kelas & Rombel</span>
+          <span class="text-[10px] text-slate-400 font-normal hidden sm:inline">(Klik badge untuk menyaring data kelas)</span>
+        </div>
+        <button onclick="setFilterKelas('')" class="text-[11px] text-emerald-600 hover:text-emerald-800 font-medium transition">
+          Reset Filter
+        </button>
+      </div>
+      <div id="barRombelContainer" class="flex flex-wrap gap-2 pt-1 items-center">
+        <span class="text-xs text-slate-400 italic">Memuat rekapitulasi rombel...</span>
       </div>
     </section>
 
@@ -96,27 +117,28 @@
           </span>
           <input type="text" id="searchInput" oninput="renderTable()" placeholder="Cari Nama, NISN, atau No Induk..." class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none transition">
         </div>
-        <div class="w-36">
-          <select id="filterKelas" onchange="renderTable()" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+        <div class="w-44">
+          <select id="filterKelas" onchange="renderTable()" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none transition font-medium">
             <option value="">Semua Kelas</option>
           </select>
         </div>
       </div>
       <div class="text-[11px] text-slate-500 font-medium shrink-0 flex items-center gap-1.5">
         <i class="fa-solid fa-arrow-down-a-z text-slate-400"></i>
-        <span>Urut: <b>Kelas &rarr; Abjad Nama</b></span>
+        <span>Urut: <b>Kelas &rarr; Absen Siswa (Abjad)</b></span>
       </div>
     </section>
 
-    <!-- Tabel Pas 1 Layar (Responsive Grid / Clean Fit) -->
+    <!-- Tabel Pas 1 Layar dengan Kolom Absen Per Kelas -->
     <section class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
       <div class="w-full overflow-hidden">
         <table class="w-full table-fixed text-left text-xs divide-y divide-slate-200">
           <thead class="bg-emerald-800 text-white font-semibold text-[11px] tracking-wider uppercase">
             <tr>
-              <th class="w-10 py-3 text-center">No</th>
+              <th class="w-14 py-3 text-center" title="Nomor Absen Siswa Dalam Kelas Tersebut">Absen</th>
+              <th class="w-10 py-3 text-center hidden sm:table-cell" title="Nomor Urut Database Master">No</th>
               <th class="w-24 sm:w-28 px-2 py-3">Identitas</th>
-              <th class="px-3 py-3">Nama Lengkap & Informasi</th>
+              <th class="px-3 py-3">Nama Lengkap & Rombel</th>
               <th class="w-14 py-3 text-center">JK</th>
               <th class="w-20 px-2 py-3 hidden md:table-cell">Agama</th>
               <th class="w-24 sm:w-28 px-2 py-3 text-center">Kelas / Rombel</th>
@@ -126,7 +148,7 @@
           </thead>
           <tbody id="tableBody" class="divide-y divide-slate-100 bg-white">
             <tr>
-              <td colspan="8" class="py-12 text-center text-slate-400">
+              <td colspan="9" class="py-12 text-center text-slate-400">
                 <i class="fa-solid fa-circle-notch fa-spin text-xl mb-2 text-emerald-600 block"></i>
                 Memuat data dari server spreadsheet...
               </td>
@@ -147,7 +169,6 @@
   <div id="modalTambah" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden transition-opacity duration-200">
     <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden transform transition-all scale-95 opacity-0 duration-200" id="modalTambahBox">
       
-      <!-- Modal Header -->
       <div class="bg-slate-900 px-5 py-3.5 flex items-center justify-between text-white border-b border-slate-800">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm">
@@ -155,7 +176,7 @@
           </div>
           <div>
             <h3 class="font-bold text-sm leading-none">Entri Data Siswa Baru</h3>
-            <span class="text-[11px] text-slate-400">Data otomatis diurutkan di database</span>
+            <span class="text-[11px] text-slate-400">Nomor absen dan nomor urut akan disusun otomatis</span>
           </div>
         </div>
         <button onclick="closeModalTambah()" class="w-7 h-7 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition">
@@ -163,7 +184,6 @@
         </button>
       </div>
 
-      <!-- Modal Body / Form -->
       <form id="formTambah" onsubmit="handleFormSubmit(event)" class="p-5 space-y-3.5">
         <div class="grid grid-cols-2 gap-3">
           <div>
@@ -208,10 +228,9 @@
 
         <div class="p-2.5 bg-emerald-50 border border-emerald-100 rounded-lg text-[11px] text-emerald-800 flex items-start gap-2">
           <i class="fa-solid fa-circle-info text-emerald-600 mt-0.5"></i>
-          <span>Kelas Romawi, Rombel, dan Keterangan Kelas akan diformulasikan otomatis oleh sistem server.</span>
+          <span>Kelas Romawi, Rombel, dan Keterangan Kelas diformulasikan otomatis oleh server database.</span>
         </div>
 
-        <!-- Modal Footer -->
         <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
           <button type="button" onclick="closeModalTambah()" class="px-4 py-1.5 border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-100 transition">Batal</button>
           <button type="submit" id="btnSubmit" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5">
@@ -228,15 +247,13 @@
     <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-sm w-full overflow-hidden transform transition-all scale-95 opacity-0 duration-200" id="modalHapusBox">
       
       <div class="p-5 text-center">
-        <!-- Icon Peringatan -->
         <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xl mx-auto mb-3 shadow-inner">
           <i class="fa-solid fa-triangle-exclamation"></i>
         </div>
         
         <h3 class="text-sm font-bold text-slate-900 mb-1">Hapus Data Siswa?</h3>
-        <p class="text-xs text-slate-500 mb-4">Tindakan ini permanen. Data siswa akan dihapus dari server dan nomor urut akan disusun ulang otomatis.</p>
+        <p class="text-xs text-slate-500 mb-4">Tindakan ini permanen. Data siswa akan dihapus dari server dan urutan absen akan disinkronkan kembali.</p>
         
-        <!-- Kartu Identitas Siswa Target -->
         <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-left mb-4 flex items-center gap-3">
           <div id="targetAvatar" class="w-9 h-9 rounded-lg bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0 uppercase">
             -
@@ -249,7 +266,6 @@
           </div>
         </div>
 
-        <!-- Tombol Aksi Hapus -->
         <div class="grid grid-cols-2 gap-2">
           <button type="button" onclick="closeModalHapus()" class="w-full py-2 border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-100 transition">
             Batal
@@ -280,7 +296,6 @@
       fetchData();
     });
 
-    // Toast Notifikasi Halus di Atas Layar
     function showToast(message, isError = false) {
       const toast = document.getElementById("toast");
       const toastIcon = document.getElementById("toastIcon");
@@ -299,7 +314,6 @@
       }, 3500);
     }
 
-    // Ambil Data dari Apps Script
     async function fetchData() {
       const refreshIcon = document.getElementById("btnRefreshIcon");
       refreshIcon.classList.add("fa-spin");
@@ -309,9 +323,12 @@
         const result = await response.json();
 
         if (result.success) {
-          rawData = result.data || [];
+          // Format dan tetapkan nomor absen per kelas
+          rawData = hitungNomorAbsen(result.data || []);
+          
           populateFilterKelas();
           updateStats();
+          renderBarRombel();
           renderTable();
           document.getElementById("syncTime").innerText = "Sinkron: " + new Date().toLocaleTimeString();
         } else {
@@ -322,6 +339,23 @@
       } finally {
         refreshIcon.classList.remove("fa-spin");
       }
+    }
+
+    // Menghitung nomor absen yang mengulang dari 1 untuk setiap pergantian kelas
+    function hitungNomorAbsen(data) {
+      const countPerKelas = {};
+      return data.map((item) => {
+        const k = (item.kelas || "TANPA_KELAS").trim().toUpperCase();
+        if (!countPerKelas[k]) {
+          countPerKelas[k] = 1;
+        } else {
+          countPerKelas[k]++;
+        }
+        return {
+          ...item,
+          noAbsen: countPerKelas[k]
+        };
+      });
     }
 
     function updateStats() {
@@ -336,6 +370,66 @@
       document.getElementById("statKelas").innerText = listKelas.size;
     }
 
+    // Render Bar Keterangan Jumlah Siswa Per Kelas & Rombel
+    function renderBarRombel() {
+      const container = document.getElementById("barRombelContainer");
+      const currentSelected = document.getElementById("filterKelas").value;
+
+      // Kelompokkan jumlah siswa berdasarkan kelas
+      const counts = {};
+      rawData.forEach(item => {
+        const k = item.kelas || "Tanpa Kelas";
+        if (!counts[k]) {
+          counts[k] = { total: 0, l: 0, p: 0, rombel: item.rombel || item.ketKelas || "" };
+        }
+        counts[k].total++;
+        if ((item.jk || "").toUpperCase() === "L") counts[k].l++;
+        if ((item.jk || "").toUpperCase() === "P") counts[k].p++;
+      });
+
+      const listKelas = Object.keys(counts).sort();
+
+      if (listKelas.length === 0) {
+        container.innerHTML = `<span class="text-xs text-slate-400">Belum ada data siswa.</span>`;
+        return;
+      }
+
+      let html = "";
+      listKelas.forEach(k => {
+        const isSelected = currentSelected === k;
+        const info = counts[k];
+        
+        const activeClass = isSelected 
+          ? "bg-emerald-700 text-white border-emerald-800 shadow-sm ring-2 ring-emerald-500/30" 
+          : "bg-slate-50 hover:bg-emerald-50 text-slate-700 border-slate-200 hover:border-emerald-300";
+
+        const badgeJkClass = isSelected
+          ? "text-emerald-100"
+          : "text-slate-400";
+
+        html += `
+          <button type="button" onclick="setFilterKelas('${k}')" class="px-2.5 py-1.5 rounded-lg border text-xs font-medium transition flex items-center gap-2 ${activeClass}">
+            <div class="flex items-center gap-1.5">
+              <span class="font-bold">${k}</span>
+              ${info.rombel ? `<span class="text-[10px] opacity-75 font-normal">(${info.rombel})</span>` : ''}
+            </div>
+            <div class="flex items-center gap-1 pl-1 border-l border-current/20 font-semibold">
+              <span class="text-xs">${info.total}</span>
+              <span class="text-[10px] ${badgeJkClass} font-normal">(${info.l}L/${info.p}P)</span>
+            </div>
+          </button>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function setFilterKelas(kelas) {
+      document.getElementById("filterKelas").value = kelas;
+      renderBarRombel();
+      renderTable();
+    }
+
     function populateFilterKelas() {
       const filterSelect = document.getElementById("filterKelas");
       const currentSelected = filterSelect.value;
@@ -343,12 +437,13 @@
 
       let options = `<option value="">Semua Kelas</option>`;
       listKelas.forEach(k => {
-        options += `<option value="${k}" ${currentSelected === k ? "selected" : ""}>Kelas ${k}</option>`;
+        const jml = rawData.filter(d => d.kelas === k).length;
+        options += `<option value="${k}" ${currentSelected === k ? "selected" : ""}>Kelas ${k} (${jml} Siswa)</option>`;
       });
       filterSelect.innerHTML = options;
     }
 
-    // Render Tabel Compact & Anti Scroll Manual
+    // Render Tabel Utama dengan Nomor Absen
     function renderTable() {
       const search = (document.getElementById("searchInput").value || "").toLowerCase().trim();
       const filterKelas = document.getElementById("filterKelas").value;
@@ -368,7 +463,7 @@
       if (filtered.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="8" class="py-10 text-center text-slate-400">
+            <td colspan="9" class="py-10 text-center text-slate-400">
               <i class="fa-regular fa-folder-open text-2xl mb-1 block"></i>
               Tidak ada data siswa yang cocok dengan kriteria pencarian.
             </td>
@@ -387,7 +482,14 @@
 
         html += `
           <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-            <td class="py-2.5 text-center font-medium text-slate-400">${row.no}</td>
+            <!-- Kolom Nomor Absen Kelas -->
+            <td class="py-2.5 text-center">
+              <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-900 text-white font-bold text-[11px] shadow-xs">
+                ${row.noAbsen}
+              </span>
+            </td>
+            <!-- Kolom Nomor Master Sheet -->
+            <td class="py-2.5 text-center font-medium text-slate-400 hidden sm:table-cell text-[11px]">${row.no}</td>
             <td class="px-2 py-2.5">
               <div class="font-mono text-[11px] font-semibold text-slate-800">${row.noInduk}</div>
               <div class="font-mono text-[10px] text-slate-400">${row.nisn}</div>
