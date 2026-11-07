@@ -765,7 +765,23 @@
       #labelBtnSimpan { display: none; } /* di HP sangat kecil, sisakan ikon+badge saja */
       #btnSimpanKeSheet { padding: 8px 10px !important; }
     }
-  </style>
+  
+    /* ★ KOLOM NILAI TIDAK TERPOTONG (desktop, tablet, HP) — tabel boleh melebar & digeser ke samping */
+    .tabel-nilai { width:max-content !important; min-width:100%; }
+    .tabel-nilai td, .tabel-nilai th { white-space:nowrap; }
+    .tabel-nilai td.td-nama { white-space:normal; min-width:160px; }
+    .tabel-nilai .inp-nilai {
+      box-sizing:border-box;
+      width:84px !important; min-width:84px !important;
+      padding:6px 8px !important;
+      text-overflow:clip; overflow:visible;
+      font-variant-numeric:tabular-nums;
+    }
+    .tabel-nilai td.td-rata-nh, .tabel-nilai td.td-nilai-tp, .tabel-nilai td.td-rapor { min-width:64px; }
+    @media (max-width: 768px) {
+      .tabel-nilai .inp-nilai { width:90px !important; min-width:90px !important; font-size:14px !important; padding:6px 8px !important; }
+    }
+</style>
 </head>
 <body>
 
