@@ -222,7 +222,9 @@
   // Hanya mencatat ke antrian + localStorage, TIDAK ada request jaringan.
   function catatPerubahanDraft(id, mapel, tp, sub, val){
     const key = kunciDraft(id, mapel, tp, sub);
-    antrianDraftNilai.set(key, { barisExcel:id, mapel:mapel, tpKomp:tp, subKomp:sub, nilai:val });
+    const sis = (typeof dataMasterSiswa !== 'undefined') ? dataMasterSiswa.find(x=>x.id===id) : null;
+    const nilaiBersih = (val===null||val===undefined) ? "" : val.toString().trim().replace(",",".");
+    antrianDraftNilai.set(key, { barisExcel:id, nis:(sis?sis.nis:undefined), mapel:mapel, tpKomp:tp, subKomp:sub, nilai:nilaiBersih });
     simpanDraftKeLocalStorage();
     perbaruiBadgeDraft();
   }
@@ -2103,7 +2105,7 @@
 
   function updateNilai(id,tp,sub,val) {
     const idx=dataMasterSiswa.findIndex(x=>x.id===id); if(idx===-1) return;
-    const v=val.trim()===""?""  :parseFloat(val);
+    const v=val.trim()===""?""  :parseFloat(val.replace(",","."));
     if(sub==="nilaiAsas") dataMasterSiswa[idx].nilaiAsas=v;
     else if(sub==="kehadiran") dataMasterSiswa[idx].kehadiran=v;
     else dataMasterSiswa[idx].nilaiDetailTP[tp][sub]=v;
