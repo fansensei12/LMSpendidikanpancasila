@@ -1,0 +1,3153 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>ABSENA SiDia - Portal Spensev</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>
+  // ============================================================
+  // ADAPTER MIGRASI: google.script.run -> fetch() ke Apps Script Web App
+  // + SISTEM DRAFT LOKAL untuk input nilai (simpan manual via tombol)
+  // ------------------------------------------------------------
+  // Kode aplikasi asli (di bawah blok ini) ditulis untuk Apps Script,
+  // memanggil server lewat:
+  //   google.script.run.withSuccessHandler(fn).withFailureHandler(fn).namaFungsi(arg1, arg2, ...)
+  // Objek `google.script` itu HANYA ada jika halaman dirender dari
+  // dalam container Apps Script. Karena HTML ini sekarang dihost di
+  // GitHub Pages (statis), adapter ini membuat ulang API yang sama
+  // persis secara sintaks, tapi di belakangnya memanggil fetch() ke
+  // Web App Apps Script (URL diisi di APPS_SCRIPT_URL di bawah).
+  //
+  // PERUBAHAN PERILAKU PENYIMPANAN NILAI:
+  //  - Dulu: tiap kali user mengetik 1 nilai, langsung 1 request ke
+  //    server (google.script.run.simpanNilaiMultiMapel(...)).
+  //  - Sekarang: tiap nilai yang diketik HANYA disimpan ke "draft"
+  //    di memori + localStorage (browser). TIDAK ada request ke
+  //    server sampai user menekan tombol "Simpan ke Sheet" di header,
+  //    yang baru benar-benar mengirim SEMUA perubahan sekaligus
+  //    dalam 1 request batch (lebih cepat & hemat kuota Apps Script).
+  //  - Fungsi read (login, muat data awal, leger, dsb) TETAP otomatis
+  //    seperti biasa, tidak melalui sistem draft.
+  //  - Jika tab/browser ditutup sebelum klik "Simpan ke Sheet",
+  //    perubahan yang belum tersimpan akan HILANG (sesuai keputusan).
+  // ============================================================
+
+  // >>> GANTI dengan URL Web App Apps Script Anda (.../exec) <<<
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyTkzgQNZywA6WGOU51jqlJQvu-Bsf7XOgqVwMyJ79s2OADRIlToqYELl8LnxeJ0iIW/exec";
+
+  (function(){
+    // Peta nama fungsi (dipanggil dari kode asli) -> nama action di router doGet/doPost
+    // method "GET" dipakai untuk operasi baca (parameter kecil, lewat query string),
+    // method "POST" dipakai untuk operasi tulis (body JSON, lebih aman untuk payload besar).
+    const PETA_ENDPOINT = {
+      verifikasiLoginPengguna: { method:"POST", action:"verifikasiLoginPengguna",
+        mapArgs:(a)=>({ username:a[0], password:a[1] }) },
+      muatSemuaDataAwal: { method:"GET", action:"muatSemuaDataAwal",
+        mapArgs:(a)=>({ mapelAktif:a[0] }) },
+      getDataSiswaSesuaiMapel: { method:"GET", action:"getDataSiswaSesuaiMapel",
+        mapArgs:(a)=>({ mapelAktif:a[0] }) },
+      // simpanNilaiMultiMapel TIDAK lagi dipanggil langsung dari kode asli
+      // (sudah diganti ke catatPerubahanDraft di updateNilai()), tapi
+      // tetap dipetakan untuk jaga-jaga jika ada pemanggilan lain.
+      simpanNilaiMultiMapel: { method:"POST", action:"simpanNilaiMultiMapel",
+        mapArgs:(a)=>({ barisExcel:a[0], mapel:a[1], tpKomp:a[2], subKomp:a[3], nilai:a[4] }) },
+      simpanNilaiBatch: { method:"POST", action:"simpanNilaiBatch",
+        mapArgs:(a)=>({ daftarPerubahan:a[0] }) },
+      getPengaturanSistem: { method:"GET", action:"getPengaturanSistem",
+        mapArgs:(a)=>({ mapel:a[0] }) },
+      simpanBobotGlobalSistem: { method:"POST", action:"simpanBobotGlobalSistem",
+        mapArgs:(a)=>({ sumatif:a[0], asas:a[1], kehadiran:a[2] }) },
+      simpanBobotInternalMapel: { method:"POST", action:"simpanBobotInternalMapel",
+        mapArgs:(a)=>({ mapel:a[0], bNh:a[1], bSh:a[2] }) },
+      simpanBobotInternalMapelPerUser: { method:"POST", action:"simpanBobotInternalMapelPerUser",
+        mapArgs:(a)=>({ mapel:a[0], namaUser:a[1], bNh:a[2], bSh:a[3] }) },
+      simpanBobotRaporPerUser: { method:"POST", action:"simpanBobotRaporPerUser",
+        mapArgs:(a)=>({ mapel:a[0], namaUser:a[1], sumatif:a[2], asas:a[3], hadir:a[4] }) },
+      simpanBobotInternalGlobal: { method:"POST", action:"simpanBobotInternalGlobal",
+        mapArgs:(a)=>({ bNh:a[0], bSh:a[1] }) },
+      getBobotUntukUser: { method:"GET", action:"getBobotUntukUser",
+        mapArgs:(a)=>({ mapel:a[0], namaUser:a[1] }) },
+      serverHapusNilaiMassalKelas: { method:"POST", action:"serverHapusNilaiMassalKelas",
+        mapArgs:(a)=>({ mapel:a[0], kelasTarget:a[1] }) },
+      serverPembersihanNilaiSpesifikTPAja: { method:"POST", action:"serverPembersihanNilaiSpesifikTPAja",
+        mapArgs:(a)=>({ mapel:a[0], kelas:a[1], tpAktif:a[2] }) },
+      serverHapusKolomTPPilihan: { method:"POST", action:"serverHapusKolomTPPilihan",
+        mapArgs:(a)=>({ mapel:a[0], kelas:a[1], tpAktif:a[2], subKompList:a[3] }) },
+      serverPembersihanNilaiAsasAja: { method:"POST", action:"serverPembersihanNilaiAsasAja",
+        mapArgs:(a)=>({ mapel:a[0], kelas:a[1] }) },
+      ambilDataLegerKelas: { method:"GET", action:"ambilDataLegerKelas",
+        mapArgs:(a)=>({ kelasTarget:a[0] }) },
+      adminProsesUploadMasterCSV: { method:"POST", action:"adminProsesUploadMasterCSV",
+        mapArgs:(a)=>({ dataString:a[0] }) },
+      ambilDaftarGuruAdmin: { method:"GET", action:"ambilDaftarGuruAdmin",
+        mapArgs:(a)=>({}) },
+      adminResetNilaiSemua: { method:"POST", action:"adminResetNilaiSemua",
+        mapArgs:(a)=>({ scope:a[0], mapelTarget:a[1], kelasTarget:a[2], tpList:a[3], hapusAsas:a[4] }) }
+    };
+
+    function buatQueryString(obj){
+      const qs = Object.keys(obj)
+        .filter(k=>obj[k]!==undefined && obj[k]!==null)
+        .map(k=>encodeURIComponent(k)+"="+encodeURIComponent(typeof obj[k]==="object"?JSON.stringify(obj[k]):obj[k]))
+        .join("&");
+      return qs ? "?"+qs : "";
+    }
+
+    function panggilEndpoint(namaFungsi, args, onSuccess, onFailure){
+      const def = PETA_ENDPOINT[namaFungsi];
+      if(!def){
+        console.error("[adapter] Fungsi server tidak dikenal:", namaFungsi);
+        if(onFailure) onFailure(new Error("Fungsi tidak dikenal: "+namaFungsi));
+        return;
+      }
+      const payload = def.mapArgs(args);
+      let url, opsi;
+
+      if(def.method === "GET"){
+        url = APPS_SCRIPT_URL + "?action=" + encodeURIComponent(def.action) + "&" + buatQueryString(payload).replace(/^\?/,"");
+        opsi = { method:"GET" };
+      } else {
+        // POST: Apps Script Web App membaca body via e.postData.contents.
+        // Pakai Content-Type text/plain agar tidak memicu CORS preflight
+        // (preflight OPTIONS tidak didukung oleh Apps Script Web App).
+        url = APPS_SCRIPT_URL;
+        opsi = {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: def.action, params: payload })
+        };
+      }
+
+      fetch(url, opsi)
+        .then(r=>{
+          if(!r.ok) throw new Error("HTTP "+r.status);
+          return r.json();
+        })
+        .then(data=>{ if(onSuccess) onSuccess(data); })
+        .catch(err=>{
+          console.error("[adapter] Gagal memanggil", namaFungsi, err);
+          if(onFailure) onFailure(err);
+        });
+    }
+
+    function buatRunnerProxy(successFn, failureFn){
+      return new Proxy({}, {
+        get(_t, namaFungsi){
+          return function(...args){ panggilEndpoint(namaFungsi, args, successFn, failureFn); };
+        }
+      });
+    }
+
+    // Tiruan API google.script.run, mendukung chaining dalam urutan apapun
+    // dan juga pemanggilan langsung tanpa handler.
+    window.google = {
+      script: {
+        run: new Proxy({}, {
+          get(_t, prop){
+            if(prop === "withSuccessHandler"){
+              return function(successFn){
+                const chain = { withFailureHandler:(failureFn)=>buatRunnerProxy(successFn, failureFn) };
+                return new Proxy(chain, {
+                  get(t,p2){ if(p2 in t) return t[p2]; return (...args)=>panggilEndpoint(p2,args,successFn,null); }
+                });
+              };
+            }
+            if(prop === "withFailureHandler"){
+              return function(failureFn){
+                const chain = { withSuccessHandler:(successFn)=>buatRunnerProxy(successFn, failureFn) };
+                return new Proxy(chain, {
+                  get(t,p2){ if(p2 in t) return t[p2]; return (...args)=>panggilEndpoint(p2,args,null,failureFn); }
+                });
+              };
+            }
+            return function(...args){ panggilEndpoint(prop, args, null, null); };
+          }
+        })
+      }
+    };
+  })();
+
+  // ============================================================
+  // SISTEM DRAFT LOKAL — antrian perubahan nilai yang belum disimpan
+  // ============================================================
+  const DRAFT_STORAGE_KEY = "absena_draft_nilai";
+
+  // antrianDraftNilai: Map agar perubahan berulang pada sel yang sama
+  // (user mengetik ulang sebelum klik simpan) hanya menyimpan nilai
+  // TERAKHIR, bukan menumpuk banyak entri untuk sel yang sama.
+  // Key dibentuk dari kombinasi id+mapel+tp+sub agar unik per sel.
+  let antrianDraftNilai = new Map();
+
+  function kunciDraft(id, mapel, tp, sub){ return id + "|" + mapel + "|" + tp + "|" + sub; }
+
+  function muatDraftDariLocalStorage(){
+    try {
+      const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if(!raw) return;
+      const arr = JSON.parse(raw);
+      antrianDraftNilai = new Map(arr.map(item => [kunciDraft(item.barisExcel, item.mapel, item.tpKomp, item.subKomp), item]));
+    } catch(e) { console.warn("Gagal memuat draft lokal:", e); }
+  }
+
+  function simpanDraftKeLocalStorage(){
+    try {
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(Array.from(antrianDraftNilai.values())));
+    } catch(e) { console.warn("Gagal menyimpan draft lokal:", e); }
+  }
+
+  function perbaruiBadgeDraft(){
+    const n = antrianDraftNilai.size;
+    const badge = document.getElementById('badgeJumlahDraft');
+    const btn = document.getElementById('btnSimpanKeSheet');
+    if(!badge || !btn) return;
+    if(n > 0){
+      badge.style.display = "inline-block";
+      badge.innerText = n;
+      btn.style.boxShadow = "0 0 0 3px rgba(217,119,6,0.4), 0 2px 12px rgba(217,119,6,0.6)";
+    } else {
+      badge.style.display = "none";
+      btn.style.boxShadow = "0 2px 12px rgba(217,119,6,0.4)";
+    }
+  }
+
+  // Dipanggil dari updateNilai() menggantikan pemanggilan server langsung.
+  // Hanya mencatat ke antrian + localStorage, TIDAK ada request jaringan.
+  function catatPerubahanDraft(id, mapel, tp, sub, val){
+    const key = kunciDraft(id, mapel, tp, sub);
+    antrianDraftNilai.set(key, { barisExcel:id, mapel:mapel, tpKomp:tp, subKomp:sub, nilai:val });
+    simpanDraftKeLocalStorage();
+    perbaruiBadgeDraft();
+  }
+
+  // Dipanggil oleh tombol "Simpan Data" di header.
+  // Mengirim SEMUA perubahan di antrian sekaligus dalam 1 request batch.
+  function eksekusiSimpanKeSheet(){
+    if(antrianDraftNilai.size === 0){
+      bukaDialogNotifKustom("Tidak Ada Perubahan","Belum ada nilai baru yang diketik sejak penyimpanan terakhir.","peringatan");
+      return;
+    }
+    const daftarPerubahan = Array.from(antrianDraftNilai.values());
+    const labelBtn = document.getElementById('labelBtnSimpan');
+    const btn = document.getElementById('btnSimpanKeSheet');
+    const labelAsli = labelBtn.innerText;
+
+    btn.disabled = true;
+    labelBtn.innerText = "Menyimpan...";
+    bukaLoadingSistem("Menyimpan ke Database...", `Mengirim ${daftarPerubahan.length} perubahan nilai ke server.`);
+
+    google.script.run
+      .withSuccessHandler(function(hasil){
+        tutupLoadingSistem();
+        btn.disabled = false;
+        labelBtn.innerText = labelAsli;
+        if(hasil && hasil.ok){
+          antrianDraftNilai.clear();
+          simpanDraftKeLocalStorage();
+          perbaruiBadgeDraft();
+          bukaDialogNotifKustom("Simpan Data Sukses", `${hasil.jumlahDiproses} nilai berhasil tersimpan ke database.`, "sukses");
+        } else {
+          bukaDialogNotifKustom("Sebagian Gagal", "Beberapa nilai gagal disimpan. Coba klik Simpan lagi.\n" + ((hasil&&hasil.error)?hasil.error.slice(0,3).join("; "):""), "peringatan");
+        }
+      })
+      .withFailureHandler(function(err){
+        tutupLoadingSistem();
+        btn.disabled = false;
+        labelBtn.innerText = labelAsli;
+        bukaDialogNotifKustom("Gagal Menyimpan", "Tidak bisa menghubungi server. Perubahan TETAP tersimpan di draft lokal, coba klik Simpan lagi: " + err.message, "gagal");
+      })
+      .simpanNilaiBatch(daftarPerubahan);
+  }
+
+  // Peringatkan user jika menutup tab padahal masih ada draft belum disimpan
+  window.addEventListener('beforeunload', function(e){
+    if(antrianDraftNilai.size > 0){
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  // Muat draft yang mungkin tersisa dari sesi sebelumnya (browser sama,
+  // tab tertutup tanpa sengaja sebelum reload — TIDAK hilang dalam kasus
+  // ini karena masih di localStorage; hanya hilang jika localStorage
+  // browser dibersihkan atau device berbeda).
+  document.addEventListener('DOMContentLoaded', function(){
+    muatDraftDariLocalStorage();
+    perbaruiBadgeDraft();
+  });
+  </script>
+  <style>
+    :root {
+      --merah: #c0182a;
+      --merah-gelap: #8b0f1c;
+      --merah-terang: #e8203a;
+      --biru: #1e40af;
+      --biru-tua: #0f1f6b;
+      --hitam: #0a0a0f;
+      --hitam-card: #12121a;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0d0d14; color: #e2e8f0; min-height: 100vh; }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #1a1a26; }
+    ::-webkit-scrollbar-thumb { background: #c0182a88; border-radius: 8px; }
+    ::-webkit-scrollbar-thumb:hover { background: #c0182a; }
+
+    /* LOGIN PAGE */
+    .login-bg {
+      background: radial-gradient(ellipse at 20% 50%, #1e1030 0%, #0a0a0f 50%),
+                  radial-gradient(ellipse at 80% 20%, #1a0010 0%, transparent 50%);
+      background-blend-mode: screen;
+    }
+    .login-orb-1 { position:absolute; width:500px; height:500px; border-radius:50%; background: radial-gradient(circle, #c0182a22 0%, transparent 70%); top:-150px; right:-150px; animation: floatOrb 8s ease-in-out infinite; }
+    .login-orb-2 { position:absolute; width:400px; height:400px; border-radius:50%; background: radial-gradient(circle, #1e40af22 0%, transparent 70%); bottom:-100px; left:-100px; animation: floatOrb 10s ease-in-out infinite reverse; }
+    .login-orb-3 { position:absolute; width:200px; height:200px; border-radius:50%; background: radial-gradient(circle, #c0182a33 0%, transparent 70%); top:40%; left:20%; animation: floatOrb 6s ease-in-out infinite; }
+    @keyframes floatOrb { 0%,100%{transform:translateY(0) scale(1);} 50%{transform:translateY(-30px) scale(1.05);} }
+
+    .card-login {
+      background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%);
+      border: 1px solid rgba(192,24,42,0.3);
+      backdrop-filter: blur(20px);
+      box-shadow: 0 0 60px rgba(192,24,42,0.15), 0 25px 50px rgba(0,0,0,0.5);
+    }
+    .input-login {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #f1f5f9;
+      transition: all 0.3s;
+    }
+    .input-login:focus { border-color: #c0182a; box-shadow: 0 0 0 3px rgba(192,24,42,0.2); background: rgba(255,255,255,0.09); outline:none; }
+    .input-login::placeholder { color: rgba(255,255,255,0.3); }
+    .btn-login { background: linear-gradient(135deg, #c0182a, #8b0f1c); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 4px 20px rgba(192,24,42,0.4); transition: all 0.3s; }
+    .btn-login:hover { background: linear-gradient(135deg, #e8203a, #c0182a); transform: translateY(-1px); box-shadow: 0 8px 30px rgba(192,24,42,0.5); }
+    .btn-login:active { transform: scale(0.98); }
+
+    /* HEADER */
+    .app-header {
+      background: linear-gradient(90deg, #0a0a0f 0%, #12121f 40%, #0a0a18 100%);
+      border-bottom: 1px solid rgba(192,24,42,0.4);
+      box-shadow: 0 2px 30px rgba(0,0,0,0.5), 0 1px 0 rgba(192,24,42,0.2);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .logo-icon {
+      background: linear-gradient(135deg, #c0182a, #8b0f1c);
+      box-shadow: 0 0 20px rgba(192,24,42,0.5);
+    }
+
+    /* SIDEBAR */
+    #sidebar {
+      position: fixed; top: 0; left: 0; height: 100vh; width: 300px;
+      background: linear-gradient(180deg, #0e0e1a 0%, #12121f 100%);
+      border-right: 1px solid rgba(192,24,42,0.3);
+      box-shadow: 5px 0 30px rgba(0,0,0,0.6);
+      z-index: 30; transform: translateX(-100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow-y: auto; display: flex; flex-direction: column;
+    }
+    #sidebar.open { transform: translateX(0); }
+    #sidebarOverlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 29;
+      display: none; backdrop-filter: blur(3px);
+    }
+    #sidebarOverlay.open { display: block; }
+    .sidebar-header {
+      background: linear-gradient(135deg, #c0182a22, #1e40af22);
+      border-bottom: 1px solid rgba(192,24,42,0.25);
+      padding: 20px;
+    }
+    .sidebar-section { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: #c0182a; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .cb-tp-label {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      padding: 10px 12px; border-radius: 10px; cursor: pointer;
+      font-size: 11px; font-weight: 700; color: #cbd5e1;
+      transition: all 0.2s; margin-bottom: 6px;
+    }
+    .cb-tp-label:hover { background: rgba(192,24,42,0.15); border-color: rgba(192,24,42,0.4); color: #fff; }
+    .cb-tp-label input[type="checkbox"] { accent-color: #c0182a; width: 15px; height: 15px; }
+    .cb-kelas-label {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+      padding: 7px 10px; border-radius: 8px; cursor: pointer;
+      font-size: 11px; font-weight: 700; color: #94a3b8;
+      transition: all 0.2s;
+    }
+    .cb-kelas-label:hover { background: rgba(30,64,175,0.2); border-color: rgba(30,64,175,0.4); color: #fff; }
+    .cb-kelas-label input[type="checkbox"] { accent-color: #3b82f6; width: 14px; height: 14px; }
+    .kelas-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    .badge-kelas-aktif {
+      display: inline-block; background: linear-gradient(135deg, #1e40af, #1e3a8a);
+      color: #93c5fd; font-size: 10px; font-weight: 800; padding: 3px 10px;
+      border-radius: 20px; border: 1px solid rgba(59,130,246,0.3);
+    }
+
+    /* MAIN LAYOUT */
+    #appLayout { display: flex; flex-direction: column; min-height: 100vh; }
+    #mainContent { flex: 1; padding: 20px; width: 100%; margin: 0 auto; }
+    #mainContent > div:not(#panelKerjaGuru) { max-width: 1400px; width: 100%; margin: 0 auto; }
+    #panelKerjaGuru { max-width: 1400px; width: 100%; margin: 0 auto; }
+    /* Mode input nilai: kunci tinggi agar hanya tabel yang scroll di dalam */
+    body.mode-input-nilai { overflow: hidden; height: 100vh; }
+    body.mode-input-nilai #halamanUtama { height: 100vh; overflow: hidden; }
+    body.mode-input-nilai #mainContent { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; padding-bottom: 0; }
+    body.mode-input-nilai #panelKerjaGuru { flex: 1; display: flex !important; flex-direction: column; min-height: 0; margin-bottom: 0; }
+    #halamanUtama { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* CARDS */
+    .card {
+      background: linear-gradient(135deg, #16161f 0%, #12121a 100%);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 18px; overflow: hidden;
+    }
+    .card-header {
+      background: linear-gradient(90deg, rgba(192,24,42,0.12), rgba(30,64,175,0.08));
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 14px 18px; display: flex; align-items: center; gap: 10px;
+    }
+    .card-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; }
+
+    /* TOOLBAR */
+    .toolbar {
+      background: linear-gradient(90deg, #0f0f1a, #131320);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 12px 16px;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between;
+    }
+    .btn-danger { background: linear-gradient(135deg,#c0182a,#8b0f1c); border:1px solid rgba(255,255,255,0.1); color:#fff; font-size:11px; font-weight:700; padding:8px 14px; border-radius:10px; cursor:pointer; display:flex;align-items:center;gap:5px; transition:all 0.2s; letter-spacing:0.04em; }
+    .btn-danger:hover { background:linear-gradient(135deg,#e8203a,#c0182a); box-shadow:0 4px 15px rgba(192,24,42,0.4); transform:translateY(-1px); }
+    .btn-warning { background:linear-gradient(135deg,#d97706,#b45309); border:1px solid rgba(255,255,255,0.1); color:#fff; font-size:11px; font-weight:700; padding:8px 14px; border-radius:10px; cursor:pointer; display:flex;align-items:center;gap:5px; transition:all 0.2s; }
+    .btn-warning:hover { background:linear-gradient(135deg,#f59e0b,#d97706); transform:translateY(-1px); }
+    .btn-primary { background:linear-gradient(135deg,#1e40af,#1e3a8a); border:1px solid rgba(59,130,246,0.3); color:#fff; font-size:11px; font-weight:700; padding:8px 14px; border-radius:10px; cursor:pointer; display:flex;align-items:center;gap:5px; transition:all 0.2s; }
+    .btn-primary:hover { background:linear-gradient(135deg,#2563eb,#1e40af); transform:translateY(-1px); box-shadow:0 4px 15px rgba(30,64,175,0.4); }
+    .btn-dark { background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.1); color:#cbd5e1; font-size:11px; font-weight:700; padding:8px 14px; border-radius:10px; cursor:pointer; display:flex;align-items:center;gap:5px; transition:all 0.2s; }
+    .btn-dark:hover { background:rgba(255,255,255,0.12); color:#fff; }
+    .btn-success { background:linear-gradient(135deg,#059669,#047857); border:1px solid rgba(255,255,255,0.1); color:#fff; font-size:11px; font-weight:700; padding:8px 14px; border-radius:10px; cursor:pointer; display:flex;align-items:center;gap:5px; transition:all 0.2s; }
+    .btn-success:hover { background:linear-gradient(135deg,#10b981,#059669); transform:translateY(-1px); }
+
+    /* SELECTS & INPUTS */
+    .sel-dark { background:#1a1a26; border:1px solid rgba(255,255,255,0.12); color:#e2e8f0; font-size:11px; font-weight:700; padding:8px 12px; border-radius:10px; outline:none; cursor:pointer; }
+    .sel-dark:focus { border-color:#c0182a; }
+    .inp-bobot { background:#1a1a26; border:1px solid rgba(255,255,255,0.1); color:#e2e8f0; font-size:12px; font-weight:700; padding:6px; border-radius:8px; outline:none; text-align:center; width:55px; }
+    .inp-bobot:focus { border-color:#c0182a; }
+    .bobot-row { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); padding:10px 14px; border-radius:12px; }
+    .bobot-label { font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; }
+
+    /* TABLE */
+    .tabel-nilai { width:100%; border-collapse:collapse; font-size:11px; }
+    .tabel-nilai thead { position:sticky; top:0; z-index:6; }
+    .tabel-nilai thead th { background:#0e0e1a; color:#64748b; font-weight:800; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; padding:12px 8px; border-bottom:2px solid rgba(255,255,255,0.1); }
+    .tabel-nilai thead th.th-nh   { background:#1a1405; color:#a16207; }
+    .tabel-nilai thead th.th-sh   { background:#1a0e05; color:#c2410c; }
+    .tabel-nilai thead th.th-tp   { background:#05140a; color:#059669; }
+    .tabel-nilai thead th.th-asas { background:#0a0a1a; color:#6366f1; }
+    .tabel-nilai thead th.th-rapor { background:#0e0a1a; color:#7c3aed; }
+    .td-rata-nh { text-align:center; font-weight:800; font-size:11px; min-width:52px; padding:6px 4px; border-right:1px solid rgba(255,255,255,0.06); }
+    .rata-nh-bagus  { color:#4ade80; }
+    .rata-nh-cukup  { color:#fbbf24; }
+    .rata-nh-kurang { color:#f87171; }
+    .rata-nh-kosong { color:#334155; }
+    .tabel-nilai tbody tr { border-bottom:1px solid rgba(255,255,255,0.04); transition:background 0.15s; }
+    .tabel-nilai tbody tr:hover { background:rgba(192,24,42,0.06); }
+    .tabel-nilai td { padding:4px 4px; vertical-align:middle; }
+    .tabel-nilai td.td-no { color:#475569; font-weight:700; text-align:center; font-size:10px; width:36px; padding:8px 4px; }
+    .tabel-nilai td.td-kelas { color:#60a5fa; font-weight:800; text-align:center; width:52px; }
+    .tabel-nilai td.td-nama { color:#e2e8f0; font-weight:700; padding:8px; min-width:160px; }
+    .inp-nilai { width:100%; text-align:center; padding:6px 2px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:7px; color:#e2e8f0; font-weight:700; font-size:12px; outline:none; transition:all 0.2s; }
+    /* ★ Warna nilai otomatis: merah <80, kuning 80-90, hijau ≥91 */
+    .inp-nilai.nilai-merah  { color:#f87171 !important; background:rgba(239,68,68,0.08) !important; border-color:rgba(239,68,68,0.3) !important; }
+    .inp-nilai.nilai-kuning { color:#fbbf24 !important; background:rgba(251,191,36,0.07) !important; border-color:rgba(251,191,36,0.25) !important; }
+    .inp-nilai.nilai-hijau  { color:#34d399 !important; background:rgba(52,211,153,0.07) !important; border-color:rgba(52,211,153,0.25) !important; }
+    .inp-nilai:focus { background:rgba(192,24,42,0.12); border-color:rgba(192,24,42,0.5); }
+    .inp-nh:focus { background:rgba(234,179,8,0.1); border-color:rgba(234,179,8,0.4); }
+    .inp-sh:focus { background:rgba(249,115,22,0.1); border-color:rgba(249,115,22,0.4); }
+    .inp-asas:focus { background:rgba(99,102,241,0.1); border-color:rgba(99,102,241,0.4); }
+    .inp-hadir:focus { background:rgba(16,185,129,0.1); border-color:rgba(16,185,129,0.4); }
+    .badge-t { background:rgba(5,150,105,0.2); color:#34d399; border:1px solid rgba(5,150,105,0.3); padding:3px 8px; border-radius:20px; font-size:10px; font-weight:900; }
+    .badge-r { background:rgba(192,24,42,0.2); color:#f87171; border:1px solid rgba(192,24,42,0.3); padding:3px 8px; border-radius:20px; font-size:10px; font-weight:900; }
+    .badge-nil { color:#475569; font-size:10px; font-weight:700; }
+    .td-nilai-tp { color:#34d399; font-weight:900; text-align:center; font-size:13px; }
+    .td-rapor { color:#a78bfa; font-weight:900; text-align:center; font-size:14px; background:rgba(124,58,237,0.08); }
+
+    /* LEGER */
+    .tabel-leger { width:100%; border-collapse:collapse; font-size:10px; }
+    .tabel-leger thead th { background:#0a0a14; color:#475569; font-weight:800; font-size:9px; text-transform:uppercase; letter-spacing:0.07em; padding:10px 6px; border-bottom:1px solid rgba(255,255,255,0.08); position:sticky; top:0; z-index:5; border-right:1px solid rgba(255,255,255,0.05); }
+    .tabel-leger tbody tr { border-bottom:1px solid rgba(255,255,255,0.04); }
+    .tabel-leger tbody tr:hover { background:rgba(30,64,175,0.08); }
+    .tabel-leger td { padding:8px 6px; border-right:1px solid rgba(255,255,255,0.04); text-align:center; color:#94a3b8; font-weight:600; }
+    .tabel-leger td.td-rapor-leger { background:rgba(124,58,237,0.1); color:#c4b5fd; font-weight:900; font-size:12px; }
+
+    /* MODAL */
+    .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);display:none;justify-content:center;align-items:center;padding:12px;z-index:9999;overflow-y:auto; }
+    .modal-overlay.tampil { display:flex; }
+    .modal-box { background:linear-gradient(135deg,#16161f,#12121a); border:1px solid rgba(255,255,255,0.1); border-radius:24px; box-shadow:0 25px 60px rgba(0,0,0,0.7); max-width:380px; width:100%; overflow:hidden; }
+    .modal-loading-box { background:linear-gradient(135deg,#16161f,#12121a); border:1px solid rgba(192,24,42,0.3); border-radius:24px; box-shadow:0 0 40px rgba(192,24,42,0.15), 0 20px 50px rgba(0,0,0,0.6); max-width:300px; width:100%; text-align:center; padding:32px; }
+    .spinner { width:52px;height:52px;border:4px solid rgba(192,24,42,0.2);border-top-color:#c0182a;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto; }
+    @keyframes spin { to{transform:rotate(360deg);} }
+
+    /* ADMIN PANEL */
+    .admin-panel { background:linear-gradient(135deg,rgba(30,64,175,0.1),rgba(192,24,42,0.05)); border:1px solid rgba(30,64,175,0.25); border-radius:16px; padding:16px; }
+    input[type="file"]::file-selector-button { background:linear-gradient(135deg,#1e40af,#1e3a8a); color:#fff; border:none; padding:8px 14px; border-radius:8px; font-weight:700; font-size:11px; cursor:pointer; margin-right:10px; }
+
+    .inp-nilai:focus-visible { outline: 2px solid rgba(192,24,42,0.7); outline-offset: 1px; }
+    /* Highlight baris saat ada input aktif di dalamnya */
+    .tabel-nilai tbody tr:has(input:focus) { background: rgba(192,24,42,0.05) !important; }
+    /* Toast animasi */
+    #toastPaste { pointer-events: none; }
+
+    /* FOOTER */
+    .app-footer { background:#0a0a0f; border-top:1px solid rgba(192,24,42,0.2); padding:14px; text-align:center; font-size:11px; color:#334155; font-weight:700; }
+
+    /* TOGGLE SIDEBAR BUTTON */
+    #btnToggleSidebar {
+      background: linear-gradient(135deg, #c0182a, #8b0f1c);
+      border: 1px solid rgba(255,255,255,0.15);
+      box-shadow: 0 0 20px rgba(192,24,42,0.4);
+      transition: all 0.2s;
+    }
+    #btnToggleSidebar:hover { box-shadow: 0 0 30px rgba(192,24,42,0.6); transform: scale(1.05); }
+
+    /* DASHBOARD */
+    #panelDashboard { display:none; }
+    .dash-hero {
+      background: linear-gradient(135deg, #0e0e1a 0%, #120a14 40%, #0a0e1a 100%);
+      border: 1px solid rgba(192,24,42,0.2); border-radius: 20px; overflow: hidden; position: relative; margin-bottom: 20px;
+    }
+    .dash-hero-bg { position:absolute; inset:0; background: radial-gradient(ellipse at 80% 50%, rgba(192,24,42,0.12) 0%, transparent 60%), radial-gradient(ellipse at 20% 80%, rgba(30,64,175,0.1) 0%, transparent 50%); pointer-events:none; }
+    .dash-hero-grid { position:absolute; inset:0; background-image: linear-gradient(rgba(192,24,42,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(192,24,42,0.04) 1px,transparent 1px); background-size: 40px 40px; pointer-events:none; }
+    .stat-card { background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 18px; position: relative; overflow: hidden; cursor: default; transition: all 0.25s; }
+    .stat-card:hover { transform: translateY(-3px); border-color: rgba(192,24,42,0.3); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+    .stat-card-icon { width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:12px; }
+    .stat-card-value { font-size:28px;font-weight:900;color:#f1f5f9;letter-spacing:-0.02em;line-height:1; }
+    .stat-card-label { font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.08em;margin-top:4px; }
+    .stat-card-sub { font-size:10px;font-weight:600;color:#334155;margin-top:2px; }
+    .quick-btn { display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px 16px; cursor:pointer;transition:all 0.2s;text-align:left;width:100%; }
+    .quick-btn:hover { background:rgba(192,24,42,0.12); border-color:rgba(192,24,42,0.35); transform:translateX(3px); }
+    .quick-btn-icon { width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+    .nav-tab { display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px; font-size:11px;font-weight:800;cursor:pointer;border:1px solid transparent; transition:all 0.2s;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap; }
+    .nav-tab.aktif { background:linear-gradient(135deg,#c0182a,#8b0f1c); color:#fff; border-color:rgba(255,255,255,0.1); box-shadow:0 4px 15px rgba(192,24,42,0.35); }
+    .nav-tab:not(.aktif) { background:rgba(255,255,255,0.05); color:#64748b; border-color:rgba(255,255,255,0.07); }
+    .nav-tab:not(.aktif):hover { background:rgba(255,255,255,0.09); color:#94a3b8; }
+    .fade-in { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+
+    /* MODAL KONFIRMASI HAPUS */
+    .modal-konfirmasi-box {
+      background: linear-gradient(145deg, #16161f 0%, #0e0e1a 100%);
+      border-radius: 22px;
+      overflow: hidden;
+      max-width: 420px;
+      width: 100%;
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.06);
+      animation: popIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes popIn {
+      from { opacity:0; transform:scale(0.85) translateY(20px); }
+      to   { opacity:1; transform:scale(1) translateY(0); }
+    }
+    .konfirmasi-header-tp {
+      background: linear-gradient(135deg, #7f1d1d, #c0182a, #991b1b);
+      position: relative; overflow: hidden; padding: 18px 20px 14px;
+      flex-shrink: 0;
+    }
+    .konfirmasi-header-asas {
+      background: linear-gradient(135deg, #78350f, #d97706, #b45309);
+      position: relative; overflow: hidden; padding: 18px 20px 14px;
+      flex-shrink: 0;
+    }
+    .konfirmasi-header-glow {
+      position:absolute; inset:0;
+      background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.15) 0%, transparent 60%);
+      pointer-events:none;
+    }
+    .konfirmasi-header-grid {
+      position:absolute; inset:0;
+      background-image: linear-gradient(rgba(255,255,255,0.04) 1px,transparent 1px),
+                        linear-gradient(90deg,rgba(255,255,255,0.04) 1px,transparent 1px);
+      background-size: 24px 24px; pointer-events:none;
+    }
+    .konfirmasi-ikon-wrap {
+      width:48px; height:48px; border-radius:14px;
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.25);
+      display:flex; align-items:center; justify-content:center;
+      margin: 0 auto 10px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    }
+    .konfirmasi-body { padding: 14px 18px 18px; overflow-y: auto; flex: 1; min-height: 0; }
+    .konfirmasi-detail-row {
+      display:flex; align-items:center; gap:10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; padding: 8px 12px; margin-bottom: 6px;
+    }
+    .konfirmasi-detail-icon {
+      width:32px; height:32px; border-radius:8px;
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    }
+    .konfirmasi-warning-box {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 10px; padding: 10px 12px;
+      display:flex; align-items:flex-start; gap:8px; margin-bottom: 12px;
+    }
+    .konfirmasi-btn-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; position:sticky; bottom:0; background:linear-gradient(to top, #12121a 70%, transparent); padding-top:10px; margin-top:2px; }
+    .btn-konfirmasi-batal {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #94a3b8; font-size:11px; font-weight:800;
+      padding: 11px; border-radius:11px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; gap:6px;
+      transition: all 0.2s; text-transform:uppercase; letter-spacing:0.06em;
+    }
+    .btn-konfirmasi-batal:hover { background:rgba(255,255,255,0.1); color:#e2e8f0; }
+    .btn-konfirmasi-hapus-tp {
+      background: linear-gradient(135deg, #c0182a, #8b0f1c);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #fff; font-size:11px; font-weight:800;
+      padding: 11px; border-radius:11px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; gap:6px;
+      transition: all 0.2s; text-transform:uppercase; letter-spacing:0.06em;
+      box-shadow: 0 4px 16px rgba(192,24,42,0.4);
+    }
+    .btn-konfirmasi-hapus-tp:hover { background:linear-gradient(135deg,#e8203a,#c0182a); transform:translateY(-1px); box-shadow:0 8px 28px rgba(192,24,42,0.55); }
+    .btn-konfirmasi-hapus-asas {
+      background: linear-gradient(135deg, #d97706, #b45309);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #fff; font-size:11px; font-weight:800;
+      padding: 11px; border-radius:11px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; gap:6px;
+      transition: all 0.2s; text-transform:uppercase; letter-spacing:0.06em;
+      box-shadow: 0 4px 16px rgba(217,119,6,0.4);
+    }
+    .btn-konfirmasi-hapus-asas:hover { background:linear-gradient(135deg,#f59e0b,#d97706); transform:translateY(-1px); box-shadow:0 8px 28px rgba(217,119,6,0.55); }
+
+    /* Modal Reset Admin */
+    .modal-reset-admin-box {
+      background: linear-gradient(135deg, #0f0f1a 0%, #150505 100%);
+      border: 1px solid rgba(239,68,68,0.4);
+      border-radius: 20px;
+      width: 100%; max-width: 460px;
+      box-shadow: 0 0 60px rgba(239,68,68,0.2), 0 25px 50px rgba(0,0,0,0.7);
+      animation: slideUpModal 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      overflow: hidden;
+    }
+    .reset-admin-header {
+      background: linear-gradient(135deg, #7f1d1d, #450a0a);
+      padding: 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .reset-admin-header::before {
+      content:''; position:absolute; inset:0;
+      background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.02) 8px, rgba(255,255,255,0.02) 9px);
+    }
+    .reset-admin-header::after {
+      content:''; position:absolute; inset:0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(239,68,68,0.3) 0%, transparent 70%);
+    }
+    .reset-scope-btn {
+      padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04); color: #94a3b8; font-size: 11px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; text-align: left; width: 100%;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .reset-scope-btn:hover { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #fca5a5; }
+    .reset-scope-btn.aktif { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.5); color: #fca5a5; box-shadow: 0 0 12px rgba(239,68,68,0.2); }
+    .inp-konfirmasi-teks {
+      width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      color: #f1f5f9; border-radius: 10px; padding: 10px 14px; font-size: 13px; font-weight: 700;
+      font-family: 'Plus Jakarta Sans', sans-serif; outline: none; transition: all 0.2s;
+      letter-spacing: 0.05em;
+    }
+    .inp-konfirmasi-teks:focus { border-color: rgba(239,68,68,0.5); box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
+    .btn-eksekusi-reset {
+      background: linear-gradient(135deg, #dc2626, #991b1b); border: 1px solid rgba(239,68,68,0.4);
+      color: #fff; font-size: 12px; font-weight: 800; padding: 12px 20px; border-radius: 12px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: all 0.2s; opacity: 0.4; pointer-events: none; width: 100%;
+    }
+    .btn-eksekusi-reset.aktif { opacity: 1; pointer-events: auto; }
+    .btn-eksekusi-reset.aktif:hover { background: linear-gradient(135deg,#ef4444,#dc2626); transform:translateY(-1px); box-shadow:0 6px 24px rgba(239,68,68,0.45); }
+
+    /* ============================================================
+       RESPONSIVE MOBILE (≤768px)
+       Hanya menyesuaikan ukuran/posisi elemen yang sudah ada,
+       tidak mengubah struktur HTML maupun logic JS.
+       ============================================================ */
+    @media (max-width: 768px) {
+      html, body { overflow-x: hidden; }
+
+      .app-header {
+        padding: 8px 10px !important;
+        gap: 6px !important;
+      }
+      .app-header > div:first-child {
+        gap: 8px !important;
+      }
+      .app-header .logo-icon { width: 36px !important; height: 36px !important; }
+      .app-header #btnToggleSidebar { width: 38px !important; height: 38px !important; }
+
+      /* Judul aplikasi di header: kecilkan & sembunyikan subjudul jika sempit */
+      .app-header h1 { font-size: 14px !important; }
+      .app-header p { display: none !important; }
+      .app-header span[style*="d97706"] { display: none !important; } /* sembunyikan "By NOOR IRFAN" di HP */
+
+      /* Tombol navigasi: ciutkan jadi ikon-saja + scroll horizontal */
+      .app-header > div:last-child {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap !important;
+        justify-content: flex-start !important;
+        padding-bottom: 2px;
+      }
+      .nav-tab {
+        padding: 8px 10px !important;
+        font-size: 9.5px !important;
+        flex-shrink: 0;
+      }
+
+      /* Tombol Simpan ke Sheet: tetap full-lebar & menonjol di mobile */
+      #btnSimpanKeSheet {
+        padding: 8px 12px !important;
+        font-size: 10px !important;
+        flex-shrink: 0;
+      }
+
+      /* Sidebar: full width di HP supaya nyaman disentuh */
+      #sidebar { width: 86% !important; max-width: 320px; }
+
+      /* Tabel nilai & leger: pastikan scroll horizontal nyaman,
+         dan sel input cukup besar untuk disentuh jari (≥36px). */
+      .tabel-nilai, .tabel-leger { font-size: 11px !important; }
+      .inp-nilai {
+        min-width: 44px !important;
+        min-height: 36px !important;
+        font-size: 13px !important;
+        text-align: center;
+      }
+      .tabel-nilai th, .tabel-leger th { font-size: 9px !important; padding: 6px 4px !important; }
+      .tabel-nilai td, .tabel-leger td { padding: 2px !important; }
+
+      /* Hero dashboard: padding lebih kecil di HP */
+      .dash-hero > div { padding: 18px 16px 16px !important; }
+
+      /* Modal/dialog: lebih lebar mengisi layar, margin lebih kecil */
+      .modal-box { width: 92% !important; max-width: 380px !important; margin: 0 auto !important; }
+
+      /* Grid 2 kolom di dashboard (ringkasan, dsb): tetap 1 kolom di HP supaya tidak sempit */
+      #dashGridDua { grid-template-columns: 1fr !important; }
+
+      main#mainContent { padding: 12px !important; }
+    }
+
+    @media (max-width: 480px) {
+      .nav-tab span:not(.material-icons-round) { display: none; } /* sembunyikan label teks, sisakan ikon */
+      .nav-tab { padding: 8px !important; }
+      #labelBtnSimpan { display: none; } /* di HP sangat kecil, sisakan ikon+badge saja */
+      #btnSimpanKeSheet { padding: 8px 10px !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- =========== MODAL LOADING =========== -->
+<div id="modalLoadingSistem" class="modal-overlay">
+  <div class="modal-loading-box">
+    <div class="spinner mb-5"></div>
+    <h3 id="textJudulLoading" class="text-sm font-extrabold text-white tracking-wide mb-1">Mohon Tunggu...</h3>
+    <p id="textSubLoading" class="text-xs text-slate-400 leading-relaxed">Sedang berkomunikasi dengan database server.</p>
+  </div>
+</div>
+
+<!-- =========== MODAL NOTIF KUSTOM =========== -->
+<div id="modalDialogNotifKustom" class="modal-overlay">
+  <div class="modal-box p-6 text-center space-y-4">
+    <div id="wrapperIkonNotif" class="w-16 h-16 rounded-2xl flex justify-center items-center mx-auto">
+      <span id="ikonNotifKustom" class="material-icons-round text-4xl">info</span>
+    </div>
+    <div>
+      <h3 id="judulNotifKustom" class="text-base font-extrabold text-white tracking-wide">Pemberitahuan</h3>
+      <p id="pesanNotifKustom" class="text-xs text-slate-400 mt-2 leading-relaxed">Pesan notifikasi.</p>
+    </div>
+    <button onclick="tutupDialogNotifKustom()" class="btn-danger w-full justify-center py-3 text-xs uppercase tracking-widest">Ok, Mengerti</button>
+  </div>
+</div>
+
+<!-- =========== MODAL KONFIRMASI HAPUS =========== -->
+<div id="modalKonfirmasiHapus" class="modal-overlay">
+  <div class="modal-konfirmasi-box">
+
+    <!-- Header dinamis (TP = merah, ASAS = oranye) -->
+    <div id="konfirmasiHeader" class="konfirmasi-header-tp">
+      <div class="konfirmasi-header-glow"></div>
+      <div class="konfirmasi-header-grid"></div>
+      <div style="position:relative;z-index:1;text-align:center;">
+        <div class="konfirmasi-ikon-wrap">
+          <span id="konfirmasiIkon" class="material-icons-round" style="color:white;font-size:26px;">delete_sweep</span>
+        </div>
+        <h3 id="konfirmasiJudul" style="font-size:15px;font-weight:900;color:#fff;letter-spacing:0.02em;">Kosongkan Nilai</h3>
+        <p id="konfirmasiSubJudul" style="font-size:10px;color:rgba(255,255,255,0.65);margin-top:2px;">Tindakan ini tidak dapat dibatalkan</p>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="konfirmasi-body">
+
+      <!-- Detail info: Kelas & TP/ASAS -->
+      <div style="margin-bottom:14px;">
+        <div class="konfirmasi-detail-row">
+          <div class="konfirmasi-detail-icon" style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.25);">
+            <span class="material-icons-round" style="color:#60a5fa;font-size:16px;">groups</span>
+          </div>
+          <div>
+            <p style="font-size:9px;color:#475569;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">Rombel Kelas</p>
+            <p id="konfirmasiKelasText" style="font-size:13px;font-weight:900;color:#f1f5f9;">—</p>
+          </div>
+        </div>
+        <div class="konfirmasi-detail-row">
+          <div id="konfirmasiDetailIcon2" class="konfirmasi-detail-icon" style="background:rgba(192,24,42,0.15);border:1px solid rgba(192,24,42,0.25);">
+            <span class="material-icons-round" style="color:#f87171;font-size:16px;">assignment</span>
+          </div>
+          <div>
+            <p id="konfirmasiDetailLabel2" style="font-size:9px;color:#475569;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">Target Penghapusan</p>
+            <p id="konfirmasiTargetText" style="font-size:13px;font-weight:900;color:#f1f5f9;">—</p>
+          </div>
+        </div>
+        <div class="konfirmasi-detail-row">
+          <div class="konfirmasi-detail-icon" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.2);">
+            <span class="material-icons-round" style="color:#fca5a5;font-size:16px;">rule</span>
+          </div>
+          <div>
+            <p style="font-size:9px;color:#475569;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">Data yang Akan Dihapus</p>
+            <p id="konfirmasiDataText" style="font-size:12px;font-weight:800;color:#fca5a5;">—</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pilihan Kolom TP (hanya tampil saat mode TP) -->
+      <div id="pilihanKolomTP" style="display:none;margin-bottom:10px;">
+        <p style="font-size:9px;color:#475569;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Pilih Kolom yang Dikosongkan</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <label style="display:flex;align-items:center;gap:6px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.25);padding:6px 10px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:800;color:#fde68a;transition:all 0.2s;" id="lblPilihNH1">
+            <input type="checkbox" id="cbHapusNH1" checked style="accent-color:#eab308;width:14px;height:14px;"> NH 1
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.25);padding:6px 10px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:800;color:#fde68a;transition:all 0.2s;" id="lblPilihNH2">
+            <input type="checkbox" id="cbHapusNH2" checked style="accent-color:#eab308;width:14px;height:14px;"> NH 2
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.25);padding:6px 10px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:800;color:#fde68a;transition:all 0.2s;" id="lblPilihNH3">
+            <input type="checkbox" id="cbHapusNH3" checked style="accent-color:#eab308;width:14px;height:14px;"> NH 3
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.25);padding:6px 10px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:800;color:#fde68a;transition:all 0.2s;" id="lblPilihNH4">
+            <input type="checkbox" id="cbHapusNH4" checked style="accent-color:#eab308;width:14px;height:14px;"> NH 4
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);padding:6px 10px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:800;color:#fdba74;transition:all 0.2s;" id="lblPilihSH">
+            <input type="checkbox" id="cbHapusSH" checked style="accent-color:#f97316;width:14px;height:14px;"> Sumatif (SH)
+          </label>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button onclick="pilihanKolomTPSemuanya(true)" style="font-size:10px;font-weight:700;color:#60a5fa;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);padding:4px 10px;border-radius:6px;cursor:pointer;">✓ Pilih Semua</button>
+          <button onclick="pilihanKolomTPSemuanya(false)" style="font-size:10px;font-weight:700;color:#94a3b8;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);padding:4px 10px;border-radius:6px;cursor:pointer;">✗ Batal Semua</button>
+        </div>
+      </div>
+
+      <!-- Warning box -->
+      <div class="konfirmasi-warning-box">
+        <span class="material-icons-round" style="color:#f87171;font-size:18px;flex-shrink:0;margin-top:1px;">warning_amber</span>
+        <p style="font-size:11px;color:#fca5a5;font-weight:700;line-height:1.6;">
+          Semua nilai yang sudah diisi akan <strong style="color:#f87171;">dihapus permanen</strong> dari database. 
+          Pastikan sudah melakukan backup sebelum melanjutkan.
+        </p>
+      </div>
+
+      <!-- Tombol aksi -->
+      <div class="konfirmasi-btn-row">
+        <button onclick="tutupKonfirmasiHapus()" class="btn-konfirmasi-batal">
+          <span class="material-icons-round" style="font-size:16px;">close</span> Batal
+        </button>
+        <button id="btnKonfirmasiEksekusi" onclick="" class="btn-konfirmasi-hapus-tp">
+          <span class="material-icons-round" style="font-size:16px;">delete_forever</span> Ya, Hapus
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- =========== MODAL RESET NILAI ADMIN =========== -->
+<div id="modalResetAdmin" class="modal-overlay" style="z-index:10000;">
+  <div class="modal-reset-admin-box">
+    <div class="reset-admin-header">
+      <div style="position:relative;z-index:1;">
+        <div style="width:56px;height:56px;background:rgba(239,68,68,0.2);border:2px solid rgba(239,68,68,0.5);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+          <span class="material-icons-round" style="color:#fca5a5;font-size:28px;">restart_alt</span>
+        </div>
+        <h3 style="font-size:18px;font-weight:900;color:#fff;margin-bottom:4px;">Reset Nilai — Admin</h3>
+        <p style="font-size:11px;color:rgba(255,255,255,0.55);">Tindakan ini menghapus nilai permanen dari spreadsheet</p>
+      </div>
+    </div>
+
+    <div style="padding:20px 24px 24px;">
+
+      <!-- Pilih Lingkup Reset -->
+      <p style="font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">1. Pilih Lingkup Penghapusan</p>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;">
+        <button id="scopeSemuaMapel" class="reset-scope-btn aktif" onclick="pilihScopeReset('semua_mapel')">
+          <span class="material-icons-round" style="font-size:18px;color:#f87171;">layers_clear</span>
+          <div><p style="font-size:11px;font-weight:800;color:inherit;margin:0;">Semua Mapel — Semua Kelas</p><p style="font-size:9px;color:#64748b;margin:2px 0 0;">Reset SELURUH nilai NH, SH, ASAS semua guru</p></div>
+        </button>
+        <button id="scopePerMapel" class="reset-scope-btn" onclick="pilihScopeReset('per_mapel')">
+          <span class="material-icons-round" style="font-size:18px;color:#fbbf24;">person_remove</span>
+          <div><p style="font-size:11px;font-weight:800;color:inherit;margin:0;">Satu Guru / Mapel Saja</p><p style="font-size:9px;color:#64748b;margin:2px 0 0;">Reset semua nilai untuk satu mapel tertentu</p></div>
+        </button>
+        <button id="scopePerKelas" class="reset-scope-btn" onclick="pilihScopeReset('per_kelas')">
+          <span class="material-icons-round" style="font-size:18px;color:#60a5fa;">group_remove</span>
+          <div><p style="font-size:11px;font-weight:800;color:inherit;margin:0;">Satu Kelas — Semua Mapel</p><p style="font-size:9px;color:#64748b;margin:2px 0 0;">Reset semua nilai semua guru untuk satu kelas</p></div>
+        </button>
+      </div>
+
+      <!-- Pilihan tambahan (muncul kondisional) -->
+      <div id="extraScopeReset" style="margin-bottom:16px;display:none;">
+        <select id="selectScopeMapelReset" class="sel-dark" style="width:100%;display:none;margin-bottom:6px;"></select>
+        <select id="selectScopeKelasReset" class="sel-dark" style="width:100%;display:none;"></select>
+      </div>
+
+      <!-- Pilih TP (opsional) -->
+      <p style="font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">2. Pilih TP (kosongkan = hapus semua TP)</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;" id="groupTPReset">
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#94a3b8;cursor:pointer;"><input type="checkbox" id="chkTP1Reset" checked style="accent-color:#c0182a;"> TP 1</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#94a3b8;cursor:pointer;"><input type="checkbox" id="chkTP2Reset" checked style="accent-color:#c0182a;"> TP 2</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#94a3b8;cursor:pointer;"><input type="checkbox" id="chkTP3Reset" checked style="accent-color:#c0182a;"> TP 3</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#94a3b8;cursor:pointer;"><input type="checkbox" id="chkTP4Reset" checked style="accent-color:#c0182a;"> TP 4</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#94a3b8;cursor:pointer;"><input type="checkbox" id="chkASASReset" checked style="accent-color:#f59e0b;"> ASAS/ASAT</label>
+      </div>
+
+      <!-- Warning -->
+      <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:12px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start;">
+        <span class="material-icons-round" style="color:#f87171;font-size:18px;flex-shrink:0;margin-top:1px;">warning_amber</span>
+        <p style="font-size:11px;color:#fca5a5;font-weight:600;line-height:1.6;margin:0;">
+          Nilai yang dihapus akan menjadi <strong style="color:#f87171;">benar-benar kosong</strong> di spreadsheet (bukan 0). Tindakan ini <strong>tidak dapat dibatalkan</strong>. Pastikan sudah backup data.
+        </p>
+      </div>
+
+      <!-- Double-confirm ketik HAPUS -->
+      <p style="font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">3. Ketik <span style="color:#f87171;font-weight:900;">HAPUS</span> untuk konfirmasi</p>
+      <input type="text" id="inpKonfirmasiReset" class="inp-konfirmasi-teks" placeholder="Ketik HAPUS di sini..." oninput="cekKonfirmasiReset()" autocomplete="off">
+
+      <!-- Tombol aksi -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
+        <button onclick="tutupModalResetAdmin()" class="btn-konfirmasi-batal">
+          <span class="material-icons-round" style="font-size:16px;">close</span> Batal
+        </button>
+        <button id="btnEksekusiReset" class="btn-eksekusi-reset" onclick="eksekusiResetAdminNilai()">
+          <span class="material-icons-round" style="font-size:16px;">delete_forever</span> Reset Sekarang
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========== MODAL LOGIN BERHASIL =========== -->
+<div id="modalNotifLogin" class="modal-overlay">
+  <div class="modal-box overflow-hidden fade-in">
+    <div style="background:linear-gradient(135deg,#c0182a,#8b0f1c,#1e1b4b); padding:24px; text-align:center; position:relative;">
+      <div style="position:absolute;inset:0;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,0.1),transparent 60%);"></div>
+      <div style="width:64px;height:64px;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+        <span class="material-icons-round text-white" style="font-size:34px;">verified_user</span>
+      </div>
+      <h3 style="font-size:18px;font-weight:900;color:#fff;letter-spacing:0.03em;">Login Berhasil!</h3>
+      <p style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px;">Identitas Anda telah diverifikasi sistem</p>
+    </div>
+    <div style="padding:20px; space-y-3;">
+      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <div style="width:34px;height:34px;background:rgba(192,24,42,0.2);border:1px solid rgba(192,24,42,0.3);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <span class="material-icons-round" style="color:#f87171;font-size:16px;">person</span>
+          </div>
+          <div>
+            <p style="font-size:9px;color:#475569;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">Nama Pengguna</p>
+            <p id="textNotifNama" style="font-size:13px;font-weight:900;color:#f1f5f9;">—</p>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <div style="width:34px;height:34px;background:rgba(30,64,175,0.2);border:1px solid rgba(30,64,175,0.3);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <span class="material-icons-round" style="color:#93c5fd;font-size:16px;">badge</span>
+          </div>
+          <div>
+            <p style="font-size:9px;color:#475569;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">Role / Jabatan</p>
+            <p id="textNotifRole" style="font-size:13px;font-weight:900;color:#f1f5f9;">—</p>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:34px;height:34px;background:rgba(245,158,11,0.2);border:1px solid rgba(245,158,11,0.3);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <span class="material-icons-round" style="color:#fbbf24;font-size:16px;">menu_book</span>
+          </div>
+          <div>
+            <p style="font-size:9px;color:#475569;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">Mata Pelajaran</p>
+            <p id="textNotifMapel" style="font-size:13px;font-weight:900;color:#f1f5f9;">—</p>
+          </div>
+        </div>
+      </div>
+      <p style="text-align:center;font-size:10px;color:#334155;margin-bottom:12px;">Sesi aktif &bull; <span style="color:#c0182a;font-weight:800;">ABSENA SiDia</span> siap digunakan</p>
+      <button onclick="tutupNotifDanMasuk()" class="btn-danger" style="width:100%;justify-content:center;padding:13px;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;border-radius:12px;">
+        <span class="material-icons-round" style="font-size:16px;">rocket_launch</span> Masuk Workspace
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- =========== HALAMAN LOGIN =========== -->
+<div id="halamanLogin" class="login-bg fixed inset-0 flex justify-center items-center p-4 z-40 overflow-hidden" style="background:#080810;">
+  <div class="login-orb-1"></div>
+  <div class="login-orb-2"></div>
+  <div class="login-orb-3"></div>
+  <!-- Grid lines decoration -->
+  <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(192,24,42,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(192,24,42,0.04) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;"></div>
+
+  <div class="card-login" style="max-width:400px;width:100%;border-radius:28px;padding:40px 36px;position:relative;z-index:1;">
+    <!-- Logo area -->
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="width:70px;height:70px;background:linear-gradient(135deg,#c0182a,#8b0f1c);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 0 30px rgba(192,24,42,0.5);">
+        <span class="material-icons-round" style="color:white;font-size:38px;">analytics</span>
+      </div>
+      <h2 style="font-size:26px;font-weight:900;color:#f1f5f9;letter-spacing:-0.02em;">ABSENA SiDia</h2>
+      <p style="font-size:10px;font-weight:800;color:#c0182a;text-transform:uppercase;letter-spacing:0.15em;margin-top:4px;">Absen & Sumatif e-Rapor Helper</p>
+      <p style="font-size:11px;font-weight:700;color:#d97706;margin-top:3px;">By NOOR IRFAN</p>
+    </div>
+    <!-- Divider -->
+    <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(192,24,42,0.4),transparent);margin-bottom:24px;"></div>
+    <!-- Inputs — dibungkus form agar browser bisa menawarkan simpan password -->
+    <form id="formLogin" onsubmit="eksekusiLogin();return false;" autocomplete="on">
+    <div style="margin-bottom:14px;position:relative;">
+      <span class="material-icons-round" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.3);font-size:18px;">person</span>
+      <input type="text" id="logUser" name="username" class="input-login" style="width:100%;padding:14px 14px 14px 44px;border-radius:12px;font-size:13px;font-weight:600;" placeholder="Username" autocomplete="username" onkeydown="if(event.key==='Enter')eksekusiLogin()">
+    </div>
+    <div style="margin-bottom:24px;position:relative;z-index:2;">
+      <span class="material-icons-round" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.3);font-size:18px;pointer-events:none;">lock</span>
+      <input type="password" id="logPass" name="password" class="input-login" style="width:100%;padding:14px 48px 14px 44px;border-radius:12px;font-size:13px;font-weight:600;" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')eksekusiLogin()">
+      <button type="button" onclick="toggleLihatPassword()" id="btnTogglePass" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.35);padding:6px;z-index:10;line-height:1;" title="Tampilkan/Sembunyikan Password">
+        <span class="material-icons-round" id="ikonTogglePass" style="font-size:20px;display:block;">visibility</span>
+      </button>
+    </div>
+    <button type="submit" class="btn-login" style="width:100%;padding:15px;color:#fff;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;border-radius:14px;cursor:pointer;">
+      MASUK PORTAL
+    </button>
+    </form>
+    <p style="text-align:center;font-size:10px;color:rgba(255,255,255,0.15);margin-top:20px;font-weight:600;">SPENSEV &bull; PORTAL AKADEMIK DIGITAL</p>
+  </div>
+</div>
+
+<!-- =========== SIDEBAR OVERLAY =========== -->
+<div id="sidebarOverlay" onclick="tutupSidebar()"></div>
+
+<!-- =========== SIDEBAR =========== -->
+<div id="sidebar">
+  <div class="sidebar-header">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;background:linear-gradient(135deg,#c0182a,#8b0f1c);border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 15px rgba(192,24,42,0.4);">
+          <span class="material-icons-round" style="color:white;font-size:20px;">tune</span>
+        </div>
+        <div>
+          <p style="font-size:13px;font-weight:900;color:#f1f5f9;">Panel Kontrol</p>
+          <p style="font-size:10px;color:#475569;font-weight:600;">Pengaturan Filter & Kelas</p>
+        </div>
+      </div>
+      <button onclick="tutupSidebar()" style="width:32px;height:32px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#94a3b8;transition:all 0.2s;" onmouseover="this.style.background='rgba(192,24,42,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.07)'">
+        <span class="material-icons-round" style="font-size:18px;">close</span>
+      </button>
+    </div>
+    <!-- User info mini -->
+    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+      <div style="width:30px;height:30px;background:linear-gradient(135deg,#c0182a44,#1e40af44);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+        <span class="material-icons-round" style="color:#94a3b8;font-size:16px;">person</span>
+      </div>
+      <div style="min-width:0;">
+        <p id="sidebarNamaUser" style="font-size:11px;font-weight:800;color:#e2e8f0;truncate:true;">—</p>
+        <p id="sidebarMapelUser" style="font-size:10px;color:#c0182a;font-weight:700;">—</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEKSI TARGET TP -->
+  <div class="sidebar-section">
+    <div class="sidebar-label"><span class="material-icons-round" style="font-size:14px;">fact_check</span> Target Tujuan Pembelajaran</div>
+    <label class="cb-tp-label"><input type="checkbox" id="cbTP1" checked onchange="simpanMemoriTPAktif();pemicuGantiTPOptis();"><span class="material-icons-round" style="font-size:14px;color:#c0182a;">looks_one</span> SUMATIF 1 (TP 1)</label>
+    <label class="cb-tp-label"><input type="checkbox" id="cbTP2" checked onchange="simpanMemoriTPAktif();pemicuGantiTPOptis();"><span class="material-icons-round" style="font-size:14px;color:#d97706;">looks_two</span> SUMATIF 2 (TP 2)</label>
+    <label class="cb-tp-label"><input type="checkbox" id="cbTP3" checked onchange="simpanMemoriTPAktif();pemicuGantiTPOptis();"><span class="material-icons-round" style="font-size:14px;color:#059669;">looks_3</span> SUMATIF 3 (TP 3)</label>
+    <label class="cb-tp-label"><input type="checkbox" id="cbTP4" checked onchange="simpanMemoriTPAktif();pemicuGantiTPOptis();"><span class="material-icons-round" style="font-size:14px;color:#7c3aed;">looks_4</span> SUMATIF 4 (TP 4)</label>
+  </div>
+
+  <!-- SEKSI ROMBEL KELAS -->
+  <div class="sidebar-section" style="flex:1;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div class="sidebar-label" style="margin-bottom:0;"><span class="material-icons-round" style="font-size:14px;">groups</span> Rombel Kelas</div>
+      <span class="badge-kelas-aktif" id="labelJumlahKelasTerpilih">0 Aktif</span>
+    </div>
+    <div class="kelas-grid" id="containerCheckboxKelas"></div>
+  </div>
+
+  <!-- SEKSI BOBOT INTERNAL TP (PER GURU) -->
+  <div class="sidebar-section">
+    <div class="sidebar-label"><span class="material-icons-round" style="font-size:14px;">calculate</span> Bobot Internal TP</div>
+    <p id="labelBobotInternalKonteks" style="font-size:9px;color:#475569;font-weight:700;margin-bottom:8px;line-height:1.5;">Bobot khusus untuk mapel Anda sendiri</p>
+    <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px 12px;">
+      <span style="font-size:10px;font-weight:800;color:#64748b;white-space:nowrap;">NH:</span>
+      <input type="number" id="inpBMapelNH" step="0.01" min="0" max="1" class="inp-bobot" style="width:50px;" oninput="sinkronBobotSlider()">
+      <span style="font-size:10px;font-weight:800;color:#64748b;white-space:nowrap;">SH:</span>
+      <input type="number" id="inpBMapelSH" step="0.01" min="0" max="1" class="inp-bobot" style="width:50px;" oninput="sinkronBobotSlider()">
+      <button onclick="simpanBobotGuru()" class="btn-dark" style="padding:6px 10px;font-size:10px;">Set</button>
+    </div>
+    <div style="margin-top:8px;display:flex;align-items:center;gap:6px;">
+      <input type="range" id="sliderBobotNH" min="0" max="100" step="1" value="50"
+        oninput="sinkronBobotDariSlider(this.value)"
+        style="flex:1;accent-color:#c0182a;cursor:pointer;height:4px;">
+      <span id="labelSliderBobot" style="font-size:9px;font-weight:800;color:#94a3b8;white-space:nowrap;">NH 50% : SH 50%</span>
+    </div>
+    <div id="seksiAdminBobotInternal" style="display:none;margin-top:10px;padding:8px 10px;background:rgba(30,64,175,0.08);border:1px solid rgba(30,64,175,0.2);border-radius:8px;">
+      <p style="font-size:9px;color:#60a5fa;font-weight:800;margin-bottom:6px;">Override Bobot ke Guru:</p>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <select id="selectGuruBobotAdmin" class="sel-dark" style="font-size:10px;padding:5px 8px;flex:1;min-width:100px;"></select>
+        <button onclick="terapkanBobotAdminKeGuru()" class="btn-primary" style="padding:5px 8px;font-size:9px;white-space:nowrap;">Terapkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEKSI BOBOT RAPOR -->
+  <div class="sidebar-section">
+    <div class="sidebar-label"><span class="material-icons-round" style="font-size:14px;">percent</span> Setelan % Rapor</div>
+    <p id="labelBobotRaporKonteks" style="font-size:9px;color:#475569;font-weight:700;margin-bottom:8px;line-height:1.5;">Bobot % rapor untuk mapel Anda</p>
+    <div style="space-y:6px;">
+      <div class="bobot-row" style="margin-bottom:6px;">
+        <span class="bobot-label">Sumatif</span>
+        <input type="number" id="inpBGlobalSumatif" step="0.01" min="0" max="1" class="inp-bobot" oninput="updateTotalBobot()">
+      </div>
+      <div class="bobot-row" style="margin-bottom:6px;">
+        <span class="bobot-label">ASAS/ASAT</span>
+        <input type="number" id="inpBGlobalAsas" step="0.01" min="0" max="1" class="inp-bobot" oninput="updateTotalBobot()">
+      </div>
+      <div class="bobot-row" style="margin-bottom:8px;">
+        <span class="bobot-label">Hadir %</span>
+        <input type="number" id="inpBGlobalHadir" step="0.01" min="0" max="1" class="inp-bobot" oninput="updateTotalBobot()">
+      </div>
+      <div id="infoTotalBobot" style="font-size:9px;font-weight:800;text-align:center;margin-bottom:6px;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,0.03);">
+        Total: <span id="spanTotalBobot" style="color:#64748b;">—</span>
+      </div>
+      <button onclick="simpanBobotRaporWeb()" class="btn-primary" style="width:100%;justify-content:center;padding:9px;font-size:10px;">
+        <span class="material-icons-round" style="font-size:14px;">save</span> Simpan Bobot Rapor
+      </button>
+      <div id="seksiAdminBobotRapor" style="display:none;margin-top:6px;">
+        <button onclick="simpanBobotRaporGlobal()" class="btn-danger" style="width:100%;justify-content:center;padding:8px;font-size:10px;">
+          <span class="material-icons-round" style="font-size:13px;">public</span> Set Global (Override Semua)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOMBOL KONVERSI NILAI -->
+  <div class="sidebar-section">
+    <div class="sidebar-label"><span class="material-icons-round" style="font-size:14px;">swap_horiz</span> Konversi Nilai</div>
+    <a href="https://fansensei12.github.io/konversinilai/" target="_blank" rel="noopener noreferrer"
+       style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+              background:linear-gradient(135deg,#7c3aed,#5b21b6);
+              border:1px solid rgba(139,92,246,0.4);
+              color:#fff;font-size:11px;font-weight:800;
+              padding:11px 14px;border-radius:12px;cursor:pointer;
+              text-decoration:none;transition:all 0.2s;
+              box-shadow:0 0 18px rgba(124,58,237,0.25);"
+       onmouseover="this.style.background='linear-gradient(135deg,#8b5cf6,#7c3aed)';this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 24px rgba(124,58,237,0.45)'"
+       onmouseout="this.style.background='linear-gradient(135deg,#7c3aed,#5b21b6)';this.style.transform='translateY(0)';this.style.boxShadow='0 0 18px rgba(124,58,237,0.25)'">
+      <span class="material-icons-round" style="font-size:16px;">open_in_new</span>
+      Buka Konversi Nilai
+    </a>
+    <p style="font-size:9px;color:#475569;text-align:center;margin-top:7px;line-height:1.5;">Kalkulator konversi nilai e-Rapor</p>
+  </div>
+
+  <!-- LOGOUT dari sidebar -->
+  <div style="padding:16px 20px;margin-top:auto;border-top:1px solid rgba(255,255,255,0.05);">
+    <button onclick="eksekusiLogoutBersih()" class="btn-danger" style="width:100%;justify-content:center;padding:10px;">
+      <span class="material-icons-round" style="font-size:16px;">power_settings_new</span> Logout
+    </button>
+  </div>
+</div>
+
+<!-- =========== HALAMAN UTAMA =========== -->
+<div id="halamanUtama" style="display:none;flex-direction:column;min-height:100vh;">
+  <!-- HEADER -->
+  <header class="app-header" style="padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <!-- Tombol buka sidebar -->
+      <button id="btnToggleSidebar" onclick="toggleSidebar()" style="width:42px;height:42px;border-radius:12px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;">
+        <span class="material-icons-round" style="font-size:22px;">menu</span>
+      </button>
+      <div class="logo-icon" style="width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;">
+        <span class="material-icons-round" style="color:white;font-size:24px;">analytics</span>
+      </div>
+      <div>
+        <div style="display:flex;align-items:baseline;gap:8px;">
+          <h1 style="font-size:18px;font-weight:900;color:#f1f5f9;letter-spacing:-0.02em;">ABSENA SiDia</h1>
+          <span style="font-size:10px;font-weight:800;color:#d97706;letter-spacing:0.05em;">By NOOR IRFAN</span>
+        </div>
+        <p style="font-size:11px;color:#475569;">Profil: <span id="labelNamaUser" style="font-weight:800;color:#e2e8f0;">—</span> &bull; <span id="labelMapelProfil" style="font-weight:800;color:#c0182a;">—</span></p>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+      <!-- ====== TOMBOL SIMPAN KE SHEET (mode draft lokal) ====== -->
+      <button onclick="eksekusiSimpanKeSheet()" id="btnSimpanKeSheet"
+        style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:10px;border:1px solid rgba(245,158,11,0.4);background:linear-gradient(135deg,#d97706,#92400e);color:#fff;font-size:11px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;cursor:pointer;box-shadow:0 2px 12px rgba(217,119,6,0.4);">
+        <span class="material-icons-round" style="font-size:16px;">cloud_upload</span>
+        <span id="labelBtnSimpan">Simpan Data</span>
+        <span id="badgeJumlahDraft" style="display:none;background:rgba(255,255,255,0.25);border-radius:20px;padding:1px 7px;font-size:10px;">0</span>
+      </button>
+      <button onclick="navigasiKe('dashboard')" id="tabDashboard" class="nav-tab aktif"><span class="material-icons-round" style="font-size:15px;">dashboard</span> Dashboard</button>
+      <button onclick="navigasiKe('input')" id="tabInput" class="nav-tab"><span class="material-icons-round" style="font-size:15px;">edit_note</span> Input Nilai</button>
+      <button onclick="navigasiKe('leger')" id="tabLeger" class="nav-tab"><span class="material-icons-round" style="font-size:15px;">grid_view</span> Rekap e-Rapor</button>
+      <button onclick="navigasiKe('adminSemua')" id="tabAdminSemua" class="nav-tab" style="display:none;"><span class="material-icons-round" style="font-size:15px;">table_view</span> Semua Nilai</button>
+      <button onclick="navigasiKe('adminLog')" id="tabAdminLog" class="nav-tab" style="display:none;"><span class="material-icons-round" style="font-size:15px;">manage_accounts</span> Log Pengguna</button>
+      <button id="btnKembaliKerja" onclick="navigasiKe('input')" class="nav-tab" style="display:none;"><span class="material-icons-round" style="font-size:15px;">edit</span> Kembali</button>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main id="mainContent">
+
+    <!-- ======= PANEL DASHBOARD ======= -->
+    <div id="panelDashboard">
+      <!-- HERO BANNER -->
+      <div class="dash-hero">
+        <div class="dash-hero-bg"></div>
+        <div class="dash-hero-grid"></div>
+        <div style="position:relative;z-index:1;padding:32px 32px 28px;">
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+            <div style="width:64px;height:64px;background:linear-gradient(135deg,#c0182a,#8b0f1c);border-radius:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 30px rgba(192,24,42,0.5);flex-shrink:0;">
+              <span class="material-icons-round" style="color:white;font-size:36px;">analytics</span>
+            </div>
+            <div>
+              <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+                <h2 style="font-size:28px;font-weight:900;color:#f1f5f9;letter-spacing:-0.03em;">ABSENA SiDia</h2>
+                <span style="font-size:11px;font-weight:800;background:linear-gradient(135deg,#c0182a,#8b0f1c);color:#fff;padding:3px 10px;border-radius:20px;letter-spacing:0.05em;">v2.0</span>
+              </div>
+              <p style="font-size:13px;font-weight:700;color:#64748b;margin-top:2px;">
+                <span style="color:#c0182a;font-weight:900;">A</span>plikasi <span style="color:#c0182a;font-weight:900;">B</span>asis <span style="color:#c0182a;font-weight:900;">S</span>istem <span style="color:#c0182a;font-weight:900;">E</span>valuasi <span style="color:#c0182a;font-weight:900;">N</span>ilai <span style="color:#c0182a;font-weight:900;">A</span>khir
+              </p>
+              <p style="font-size:11px;font-weight:700;color:#475569;margin-top:1px;">melalui <span style="color:#3b82f6;font-weight:800;">Si</span>stem <span style="color:#3b82f6;font-weight:800;">Di</span>gital Informasi <span style="color:#3b82f6;font-weight:800;">A</span>kademik</p>
+            </div>
+          </div>
+          <!-- Divider tipis -->
+          <div style="height:1px;background:linear-gradient(90deg,rgba(192,24,42,0.4),rgba(30,64,175,0.3),transparent);margin-bottom:20px;"></div>
+          <!-- Sambutan + info user -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;">
+            <div>
+              <p style="font-size:15px;font-weight:800;color:#e2e8f0;">Selamat Datang, <span id="dashNamaUser" style="color:#c0182a;">—</span> 👋</p>
+              <p style="font-size:11px;color:#475569;margin-top:2px;">Portal Akademik Digital &bull; SPENSEV &bull; <span id="dashTanggal" style="color:#3b82f6;"></span></p>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 16px;text-align:center;">
+                <p style="font-size:9px;color:#475569;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">Mata Pelajaran</p>
+                <p id="dashMapelUser" style="font-size:13px;font-weight:900;color:#fbbf24;">—</p>
+              </div>
+              <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 16px;text-align:center;">
+                <p style="font-size:9px;color:#475569;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">Role</p>
+                <p id="dashRoleUser" style="font-size:13px;font-weight:900;color:#60a5fa;">—</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STAT CARDS -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:20px;">
+        <div class="stat-card">
+          <div class="stat-card-icon" style="background:rgba(192,24,42,0.15);border:1px solid rgba(192,24,42,0.25);">
+            <span class="material-icons-round" style="color:#f87171;font-size:22px;">groups</span>
+          </div>
+          <div class="stat-card-value" id="statJumlahSiswa">0</div>
+          <div class="stat-card-label">Total Siswa</div>
+          <div class="stat-card-sub" id="statSubSiswa">0 rombel kelas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon" style="background:rgba(234,179,8,0.12);border:1px solid rgba(234,179,8,0.2);">
+            <span class="material-icons-round" style="color:#fbbf24;font-size:22px;">assignment</span>
+          </div>
+          <div class="stat-card-value" id="statTP1">0</div>
+          <div class="stat-card-label">Sumatif TP 1</div>
+          <div class="stat-card-sub">NH 1–4 + Sumatif Harian</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon" style="background:rgba(5,150,105,0.12);border:1px solid rgba(5,150,105,0.2);">
+            <span class="material-icons-round" style="color:#34d399;font-size:22px;">check_circle</span>
+          </div>
+          <div class="stat-card-value" id="statNilaiTercapai" style="color:#34d399;">0%</div>
+          <div class="stat-card-label">Ketercapaian</div>
+          <div class="stat-card-sub">Siswa nilai ≥ 91 (Tercapai)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon" style="background:rgba(30,64,175,0.15);border:1px solid rgba(30,64,175,0.25);">
+            <span class="material-icons-round" style="color:#60a5fa;font-size:22px;">school</span>
+          </div>
+          <div class="stat-card-value" id="statRataRapor" style="color:#60a5fa;">—</div>
+          <div class="stat-card-label">Rata-rata Rapor</div>
+          <div class="stat-card-sub">Semua kelas aktif</div>
+        </div>
+      </div>
+
+      <!-- 2 KOLOM: AKSES CEPAT + INFO SISTEM -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;" id="dashGridDua">
+        <!-- AKSES CEPAT -->
+        <div class="card">
+          <div class="card-header">
+            <span class="material-icons-round" style="color:#c0182a;font-size:18px;">bolt</span>
+            <span class="card-title">Akses Cepat</span>
+          </div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:8px;">
+            <button class="quick-btn" onclick="navigasiKe('input')">
+              <div class="quick-btn-icon" style="background:rgba(192,24,42,0.15);border:1px solid rgba(192,24,42,0.25);">
+                <span class="material-icons-round" style="color:#f87171;font-size:18px;">edit_note</span>
+              </div>
+              <div><p style="font-size:12px;font-weight:800;color:#e2e8f0;">Input Nilai Siswa</p><p style="font-size:10px;color:#475569;">NH, Sumatif Harian, ASAS/ASAT</p></div>
+              <span class="material-icons-round" style="color:#334155;font-size:16px;margin-left:auto;">chevron_right</span>
+            </button>
+            <button class="quick-btn" onclick="navigasiKe('leger')">
+              <div class="quick-btn-icon" style="background:rgba(30,64,175,0.15);border:1px solid rgba(30,64,175,0.25);">
+                <span class="material-icons-round" style="color:#60a5fa;font-size:18px;">grid_view</span>
+              </div>
+              <div><p style="font-size:12px;font-weight:800;color:#e2e8f0;">Rekap e-Rapor Leger</p><p style="font-size:10px;color:#475569;">Lihat & unduh nilai rapor akhir</p></div>
+              <span class="material-icons-round" style="color:#334155;font-size:16px;margin-left:auto;">chevron_right</span>
+            </button>
+            <button class="quick-btn" onclick="unduhSemuaNilaiLengkap()">
+              <div class="quick-btn-icon" style="background:rgba(5,150,105,0.15);border:1px solid rgba(5,150,105,0.25);">
+                <span class="material-icons-round" style="color:#34d399;font-size:18px;">table_chart</span>
+              </div>
+              <div><p style="font-size:12px;font-weight:800;color:#e2e8f0;">Unduh Semua Nilai</p><p style="font-size:10px;color:#475569;">Excel lengkap NH, SH, ASAS, Rapor</p></div>
+              <span class="material-icons-round" style="color:#334155;font-size:16px;margin-left:auto;">chevron_right</span>
+            </button>
+            <div id="btnAdminLihatSemua" style="display:none;">
+              <button class="quick-btn" onclick="navigasiKe('adminSemua')">
+                <div class="quick-btn-icon" style="background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.25);">
+                  <span class="material-icons-round" style="color:#c4b5fd;font-size:18px;">admin_panel_settings</span>
+                </div>
+                <div><p style="font-size:12px;font-weight:800;color:#e2e8f0;">Semua Nilai Guru</p><p style="font-size:10px;color:#475569;">Admin: lihat & unduh semua mapel</p></div>
+                <span class="material-icons-round" style="color:#334155;font-size:16px;margin-left:auto;">chevron_right</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- INFO SISTEM -->
+        <div class="card">
+          <div class="card-header">
+            <span class="material-icons-round" style="color:#3b82f6;font-size:18px;">info</span>
+            <span class="card-title">Panduan Singkat</span>
+          </div>
+          <div style="padding:16px;space-y:10px;">
+            <div style="display:flex;gap:10px;margin-bottom:10px;padding:10px;background:rgba(192,24,42,0.07);border:1px solid rgba(192,24,42,0.15);border-radius:10px;">
+              <span class="material-icons-round" style="color:#f87171;font-size:18px;flex-shrink:0;margin-top:1px;">looks_one</span>
+              <div><p style="font-size:11px;font-weight:800;color:#e2e8f0;">Pilih TP & Rombel di Sidebar</p><p style="font-size:10px;color:#64748b;margin-top:2px;">Klik tombol ☰ untuk membuka panel kontrol filter kelas dan TP aktif</p></div>
+            </div>
+            <div style="display:flex;gap:10px;margin-bottom:10px;padding:10px;background:rgba(234,179,8,0.07);border:1px solid rgba(234,179,8,0.12);border-radius:10px;">
+              <span class="material-icons-round" style="color:#fbbf24;font-size:18px;flex-shrink:0;margin-top:1px;">looks_two</span>
+              <div><p style="font-size:11px;font-weight:800;color:#e2e8f0;">Input Nilai di Tab "Input Nilai"</p><p style="font-size:10px;color:#64748b;margin-top:2px;">Ketik nilai & tekan Enter/↓↑←→ untuk navigasi antar sel. Paste Excel langsung dari clipboard</p></div>
+            </div>
+            <div style="display:flex;gap:10px;margin-bottom:10px;padding:10px;background:rgba(30,64,175,0.08);border:1px solid rgba(30,64,175,0.15);border-radius:10px;">
+              <span class="material-icons-round" style="color:#60a5fa;font-size:18px;flex-shrink:0;margin-top:1px;">looks_3</span>
+              <div><p style="font-size:11px;font-weight:800;color:#e2e8f0;">Rekap Rapor & Unduh Excel</p><p style="font-size:10px;color:#64748b;margin-top:2px;">Buka tab Rekap e-Rapor untuk lihat leger & unduh format e-Rapor / nilai lengkap</p></div>
+            </div>
+            <div style="display:flex;gap:10px;padding:10px;background:rgba(5,150,105,0.07);border:1px solid rgba(5,150,105,0.12);border-radius:10px;">
+              <span class="material-icons-round" style="color:#34d399;font-size:18px;flex-shrink:0;margin-top:1px;">looks_4</span>
+              <div><p style="font-size:11px;font-weight:800;color:#e2e8f0;">Warna Nilai Otomatis</p><p style="font-size:10px;color:#64748b;margin-top:2px;"><span style="color:#f87171;">Merah</span> &lt;75 &bull; <span style="color:#fbbf24;">Kuning</span> 75–84 &bull; <span style="color:#34d399;">Hijau</span> ≥85</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL ADMIN UPLOAD -->
+      <div id="panelAdminDash" style="display:none;margin-bottom:16px;">
+        <div class="admin-panel">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <span class="material-icons-round" style="color:#60a5fa;font-size:18px;">admin_panel_settings</span>
+            <span style="font-size:11px;font-weight:800;color:#60a5fa;text-transform:uppercase;letter-spacing:0.08em;">Upload Master Database</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;">
+            <input type="file" id="fileMasterCsv" accept=".csv" style="font-size:11px;color:#64748b;flex:1;min-width:200px;">
+            <button onclick="unggahDatabaseMasterMassal()" class="btn-primary"><span class="material-icons-round" style="font-size:15px;">cloud_upload</span> Upload Database</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======= PANEL KERJA GURU ======= -->
+    <div id="panelKerjaGuru" class="card" style="display:none;margin-bottom:0;flex:1;display:flex;flex-direction:column;min-height:0;">
+      <!-- TOOLBAR -->
+      <div class="toolbar" style="flex-shrink:0;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button onclick="pemicuHapusNilaiTPAktif()" class="btn-danger"><span class="material-icons-round" style="font-size:15px;">clear_all</span> Kosongkan TP</button>
+          <button onclick="pemicuHapusNilaiAsasKelas()" class="btn-warning"><span class="material-icons-round" style="font-size:15px;">backspace</span> Kosongkan ASAS</button>
+          <button onclick="unduhSemuaNilaiLengkap()" class="btn-success"><span class="material-icons-round" style="font-size:15px;">table_chart</span> Unduh Semua Nilai</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <select id="selectKelas" onchange="simpanMemoriDropdownKelas();pemicuGantiKelasOptis();" class="sel-dark"></select>
+          <select id="selectTP" onchange="pemicuGantiTPOptis()" class="sel-dark" style="background:linear-gradient(135deg,#1e40af,#0f1f6b);color:#93c5fd;border:1px solid rgba(59,130,246,0.5);font-weight:800;font-size:11px;padding:8px 14px;border-radius:10px;cursor:pointer;outline:none;box-shadow:0 0 14px rgba(30,64,175,0.3);">
+            <option value="tp1" style="background:#1a0a14;color:#fca5a5;font-weight:800;">🔴 SUMATIF 1 — TP 1</option>
+            <option value="tp2" style="background:#1a1205;color:#fde68a;font-weight:800;">🟡 SUMATIF 2 — TP 2</option>
+            <option value="tp3" style="background:#05140a;color:#6ee7b7;font-weight:800;">🟢 SUMATIF 3 — TP 3</option>
+            <option value="tp4" style="background:#0e0a1a;color:#c4b5fd;font-weight:800;">🟣 SUMATIF 4 — TP 4</option>
+          </select>
+          <!-- PENCARIAN NAMA SISWA -->
+          <div style="position:relative;display:flex;align-items:center;">
+            <span class="material-icons-round" style="position:absolute;left:9px;font-size:15px;color:#475569;pointer-events:none;">search</span>
+            <input type="text" id="inputCariSiswa"
+              placeholder="Cari nama siswa..."
+              oninput="filterCariSiswa()"
+              onkeydown="if(event.key==='Escape'){this.value='';filterCariSiswa();}"
+              style="background:#1a1a26;border:1px solid rgba(255,255,255,0.12);color:#e2e8f0;font-size:11px;font-weight:700;padding:8px 32px 8px 30px;border-radius:10px;outline:none;width:190px;transition:all 0.2s;"
+              onfocus="this.style.borderColor='#c0182a';this.style.boxShadow='0 0 0 3px rgba(192,24,42,0.2)';"
+              onblur="this.style.borderColor='rgba(255,255,255,0.12)';this.style.boxShadow='none';">
+            <span id="btnHapusCari" onclick="document.getElementById('inputCariSiswa').value='';filterCariSiswa();"
+              style="position:absolute;right:8px;cursor:pointer;display:none;">
+              <span class="material-icons-round" style="font-size:14px;color:#475569;">close</span>
+            </span>
+          </div>
+          <span id="infoCariSiswa" style="font-size:10px;font-weight:800;color:#475569;display:none;white-space:nowrap;"></span>
+        </div>
+      </div>
+      <!-- TABEL SISWA -->
+      <div style="overflow-x:auto;overflow-y:auto;flex:1;min-height:0;">
+        <table class="tabel-nilai" style="border-collapse:collapse;">
+          <thead style="position:sticky;top:0;z-index:6;">
+            <tr>
+              <th>No</th><th>Kls</th><th style="text-align:left;padding:12px 8px;">Nama Lengkap Siswa</th>
+              <th class="th-nh">NH 1</th><th class="th-nh">NH 2</th><th class="th-nh">NH 3</th><th class="th-nh">NH 4</th>
+              <th style="background:#0d1a0d;color:#4ade80;white-space:nowrap;">Rata NH</th>
+              <th class="th-sh">Sumatif SH</th>
+              <th class="th-tp">Nilai TP</th><th class="th-tp">KET</th>
+              <th class="th-asas">ASAS/ASAT</th>
+              <th style="background:#051a14;color:#34d399;">Hadir %</th>
+              <th class="th-rapor">Nilai Rapor</th>
+            </tr>
+          </thead>
+          <tbody id="badanTabelSiswa"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ======= PANEL LEGER ======= -->
+    <div id="panelLegerCetak" class="card" style="display:none;margin-bottom:16px;">
+      <div class="card-header" style="justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span class="material-icons-round" style="color:#c0182a;font-size:20px;">grid_view</span>
+          <span class="card-title">Rekap Leger e-Rapor</span>
+          <select id="selectKelasLeger" onchange="pemicuGantiKelasLegerOptis()" class="sel-dark"></select>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="unduhLegerFormatSamaPersisERapor()" class="btn-danger"><span class="material-icons-round" style="font-size:15px;">download</span> Unduh e-Rapor</button>
+          <button onclick="unduhLegerLengkap()" class="btn-success"><span class="material-icons-round" style="font-size:15px;">table_chart</span> Unduh Leger Lengkap</button>
+          <button onclick="window.print()" class="btn-dark"><span class="material-icons-round" style="font-size:15px;">print</span> Cetak PDF</button>
+        </div>
+      </div>
+      <div style="overflow:auto;">
+        <table class="tabel-leger" id="tabelLegerUtama"></table>
+      </div>
+    </div>
+
+    <!-- ======= PANEL ADMIN SEMUA MAPEL ======= -->
+    <div id="panelAdminSemuaMapel" class="card" style="display:none;margin-bottom:16px;">
+      <div class="card-header" style="justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span class="material-icons-round" style="color:#c4b5fd;font-size:20px;">admin_panel_settings</span>
+          <span class="card-title">Semua Nilai Per Guru (Admin)</span>
+          <select id="selectKelasAdmin" onchange="muatTabelAdminSemuaMapel()" class="sel-dark"></select>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <span style="font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Guru:</span>
+          <select id="selectGuruAdmin" onchange="renderTabelAdminGuruTerpilih()" class="sel-dark" style="background:linear-gradient(135deg,#1e40af,#0f1f6b);color:#93c5fd;border:1px solid rgba(59,130,246,0.4);min-width:160px;"></select>
+          <button onclick="unduhAdminPerGuru()" class="btn-primary"><span class="material-icons-round" style="font-size:15px;">file_download</span> Unduh Nilai Guru Ini</button>
+          <button onclick="unduhAdminSemuaMapel()" class="btn-success"><span class="material-icons-round" style="font-size:15px;">download</span> Unduh Semua</button>
+          <button onclick="bukaModalResetAdmin()" class="btn-danger" style="background:linear-gradient(135deg,#7f1d1d,#991b1b);border:1px solid rgba(239,68,68,0.4);box-shadow:0 0 14px rgba(239,68,68,0.25);">
+            <span class="material-icons-round" style="font-size:15px;">restart_alt</span> Reset Nilai
+          </button>
+        </div>
+      </div>
+      <!-- Info guru terpilih -->
+      <div id="infoGuruTerpilih" style="display:none;padding:10px 16px;background:rgba(30,64,175,0.08);border-bottom:1px solid rgba(30,64,175,0.15);">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="width:32px;height:32px;background:linear-gradient(135deg,#1e40af,#1e3a8a);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <span class="material-icons-round" style="color:#93c5fd;font-size:16px;">school</span>
+          </div>
+          <div>
+            <p id="infoNamaGuru" style="font-size:12px;font-weight:900;color:#e2e8f0;">—</p>
+            <p id="infoMapelGuru" style="font-size:10px;color:#c0182a;font-weight:700;">—</p>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;" id="infoStatGuru"></div>
+        </div>
+      </div>
+      <div style="overflow:auto;">
+        <table class="tabel-leger" id="tabelAdminSemuaMapel"></table>
+      </div>
+    </div>
+
+    <!-- ======= PANEL LOG AKTIVITAS ADMIN ======= -->
+    <div id="panelAdminLog" class="card" style="display:none;margin-bottom:16px;">
+      <div class="card-header" style="justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="material-icons-round" style="color:#fbbf24;font-size:20px;">manage_accounts</span>
+          <span class="card-title">Log Aktivitas Login Pengguna</span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="refreshLogAktivitas()" class="btn-primary"><span class="material-icons-round" style="font-size:15px;">refresh</span> Refresh</button>
+          <button onclick="unduhLogAktivitas()" class="btn-dark"><span class="material-icons-round" style="font-size:15px;">download</span> Unduh Log</button>
+        </div>
+      </div>
+      <div id="isiPanelLog" style="padding:16px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;" id="gridKartuPengguna"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="app-footer">
+    ABSENA SiDia &copy; 2026 &bull; Portal Spensev &bull; <span style="color:#c0182a;">By NOOR IRFAN</span>
+  </footer>
+</div>
+
+<script>
+  let userAktif = null, dataMasterSiswa = [], databaseRawSistem = null;
+  let daftarSemuaKelasSekolah = [], listKelasPilihanGuru = [];
+  let daftarGuruSistem = [];
+  let bSistem = { globalSumatif:0.5, globalAsas:0.4, globalKehadiran:0.1, mapelNH:0.5, mapelSH:0.5 };
+  let dataAdminSemuaMapelCache = null;
+  const AMBANG_BATAS_TERCAPAI = 91.0;
+  let rekapObjekLegerTerakhir = [];
+
+  // ===== RESTORE SESI: jika guru refresh tab, langsung masuk tanpa login ulang =====
+  (function cekSesiTersimpan() {
+    try {
+      const sesiRaw = sessionStorage.getItem('absena_sesi');
+      if(!sesiRaw) return;
+      const sesi = JSON.parse(sesiRaw);
+      if(!sesi || !sesi.nama) return;
+      userAktif = sesi;
+      // Tunggu DOM siap lalu langsung masuk ke halaman utama
+      window.addEventListener('DOMContentLoaded', function() {
+        tutupNotifDanMasuk();
+      });
+    } catch(e) { sessionStorage.removeItem('absena_sesi'); }
+  })();
+
+  // ===== SIDEBAR =====
+  function toggleSidebar() {
+    const sb = document.getElementById('sidebar');
+    const ov = document.getElementById('sidebarOverlay');
+    sb.classList.toggle('open');
+    ov.classList.toggle('open');
+  }
+  function tutupSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('open');
+  }
+
+  // ===== LOADING & NOTIF =====
+  function bukaLoadingSistem(judul, sub) {
+    document.getElementById('textJudulLoading').innerText = judul || "Mohon Tunggu...";
+    document.getElementById('textSubLoading').innerText = sub || "Sedang berkomunikasi dengan database server.";
+    document.getElementById('modalLoadingSistem').classList.add('tampil');
+  }
+  function tutupLoadingSistem() {
+    document.getElementById('modalLoadingSistem').classList.remove('tampil');
+  }
+  function bukaDialogNotifKustom(judul, pesan, jenis) {
+    document.getElementById('judulNotifKustom').innerText = judul;
+    document.getElementById('pesanNotifKustom').innerText = pesan;
+    const wrapper = document.getElementById('wrapperIkonNotif');
+    const ikon = document.getElementById('ikonNotifKustom');
+    if(jenis==="sukses") { wrapper.style.cssText="width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto;background:rgba(5,150,105,0.15);border:1px solid rgba(5,150,105,0.3);"; ikon.innerText="check_circle"; ikon.style.color="#34d399"; }
+    else if(jenis==="peringatan") { wrapper.style.cssText="width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);"; ikon.innerText="warning"; ikon.style.color="#fbbf24"; }
+    else { wrapper.style.cssText="width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto;background:rgba(192,24,42,0.15);border:1px solid rgba(192,24,42,0.3);"; ikon.innerText="error"; ikon.style.color="#f87171"; }
+    document.getElementById('modalDialogNotifKustom').classList.add('tampil');
+  }
+  function tutupDialogNotifKustom() { document.getElementById('modalDialogNotifKustom').classList.remove('tampil'); }
+
+  // ===== MEMORY =====
+  function simpanMemoriTPAktif() {
+    if(!userAktif) return;
+    localStorage.setItem('absena_tp_'+userAktif.nama, JSON.stringify({tp1:document.getElementById('cbTP1').checked,tp2:document.getElementById('cbTP2').checked,tp3:document.getElementById('cbTP3').checked,tp4:document.getElementById('cbTP4').checked}));
+  }
+  function muatMemoriTPAktif() {
+    if(!userAktif) return;
+    const s = localStorage.getItem('absena_tp_'+userAktif.nama);
+    if(s) { const d=JSON.parse(s); document.getElementById('cbTP1').checked=d.tp1; document.getElementById('cbTP2').checked=d.tp2; document.getElementById('cbTP3').checked=d.tp3; document.getElementById('cbTP4').checked=d.tp4; }
+  }
+  function simpanMemoriKelasPilihan() { if(!userAktif) return; localStorage.setItem('absena_kelas_pilihan_'+userAktif.nama, JSON.stringify(listKelasPilihanGuru)); }
+  function simpanMemoriDropdownKelas() { if(!userAktif) return; localStorage.setItem('absena_dropdown_kelas_'+userAktif.nama, document.getElementById('selectKelas').value); }
+
+  // ===== NORMALISASI MAPEL =====
+  const PETA_MAPEL = {
+    "PENDIDIKAN PANCASILA":"PKN","PKN":"PKN","BAHASA INGGRIS":"BING",
+    "BAHASA INDONESIA":"BINDO","PJOK":"PJOK","MATEMATIKA":"MTK",
+    "IPA":"IPA","IPS":"IPS","SENI BUDAYA":"SENI","PRAKARYA":"PKR",
+    "INFORMATIKA":"INFO","ALL":"PKN"
+  };
+  function normalisasiMapel(mapelRaw) {
+    const key = (mapelRaw||"").toString().toUpperCase().trim();
+    return PETA_MAPEL[key] || key.replace(/\s+/g,"_").substring(0,10);
+  }
+
+  // ===== LOGIN =====
+  function eksekusiLogin() {
+    const u = document.getElementById('logUser').value, p = document.getElementById('logPass').value;
+    if(!u||!p) { bukaDialogNotifKustom("Gagal Masuk","Kolom Username dan Password wajib diisi!","peringatan"); return; }
+    bukaLoadingSistem("Memverifikasi Akun...","Sedang mengecek data kredensial Anda ke server.");
+    google.script.run.withSuccessHandler(function(res) {
+      tutupLoadingSistem();
+      if(res.status==="SUKSES") {
+        userAktif = res;
+        // Simpan sesi ke sessionStorage agar tidak logout saat refresh tab
+        try { sessionStorage.setItem('absena_sesi', JSON.stringify(res)); } catch(e){}
+        document.getElementById('textNotifNama').innerText = res.nama||"-";
+        document.getElementById('textNotifRole').innerText = res.role==="ADMIN"?"Administrator Sistem":"Guru Mata Pelajaran";
+        document.getElementById('textNotifMapel').innerText = res.mapel||"-";
+        document.getElementById('modalNotifLogin').classList.add('tampil');
+      } else { bukaDialogNotifKustom("Akses Ditolak","Kombinasi Username atau Password salah!","gagal"); }
+    }).withFailureHandler(function() {
+      tutupLoadingSistem(); bukaDialogNotifKustom("Koneksi Error","Gagal menghubungi server Google Apps Script.","gagal");
+    }).verifikasiLoginPengguna(u, p);
+  }
+
+  function tutupNotifDanMasuk() {
+    document.getElementById('modalNotifLogin').classList.remove('tampil');
+    document.getElementById('halamanLogin').style.display = 'none';
+    const hu = document.getElementById('halamanUtama');
+    hu.style.display = 'flex';
+    hu.style.flexDirection = 'column';
+    document.getElementById('labelNamaUser').innerText = userAktif.nama;
+    document.getElementById('labelMapelProfil').innerText = userAktif.mapel;
+    document.getElementById('sidebarNamaUser').innerText = userAktif.nama;
+    document.getElementById('sidebarMapelUser').innerText = userAktif.mapel;
+    // Dashboard info
+    document.getElementById('dashNamaUser').innerText = userAktif.nama;
+    document.getElementById('dashMapelUser').innerText = userAktif.mapel;
+    document.getElementById('dashRoleUser').innerText = userAktif.role==='ADMIN'?'Administrator':'Guru Mapel';
+    document.getElementById('dashTanggal').innerText = new Date().toLocaleDateString('id-ID',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    if(userAktif.role==="ADMIN") {
+      document.getElementById('panelAdminDash').style.display='block';
+      document.getElementById('btnAdminLihatSemua').style.display='block';
+      document.getElementById('tabAdminSemua').style.display='flex';
+      document.getElementById('tabAdminLog').style.display='flex';
+      document.getElementById('tabInput').style.display='none';
+    }
+    // Catat aktivitas login (hanya untuk Admin)
+    if(userAktif.role==="ADMIN") catatAktivitasLogin(userAktif);
+    // Muat bobot sidebar per-user sebelum data dimuat
+    muatBobotSidebar();
+    bukaLoadingSistem("Menyiapkan Workspace...","Sedang mengunduh data siswa dan sinkronisasi.");
+    muatMemoriTPAktif();
+    muatAwalSistem();
+  }
+
+  // ===== NAVIGASI TAB =====
+  function navigasiKe(tujuan) {
+    const panels = ['panelDashboard','panelKerjaGuru','panelLegerCetak','panelAdminSemuaMapel','panelAdminLog'];
+    const tabs = ['tabDashboard','tabInput','tabLeger','tabAdminSemua','tabAdminLog'];
+    panels.forEach(p => { const el=document.getElementById(p); if(el) el.style.display='none'; });
+    tabs.forEach(t => { const el=document.getElementById(t); if(el) el.classList.remove('aktif'); });
+    // Admin: sembunyikan tab Input Nilai
+    if(userAktif&&userAktif.role==='ADMIN') document.getElementById('tabInput').style.display='none';
+
+    // Mode input nilai: kunci halaman agar hanya tabel yang scroll
+    if(tujuan === 'input') {
+      document.body.classList.add('mode-input-nilai');
+    } else {
+      document.body.classList.remove('mode-input-nilai');
+    }
+
+    if(tujuan==='dashboard') {
+      document.getElementById('panelDashboard').style.display='block';
+      document.getElementById('tabDashboard').classList.add('aktif');
+      updateStatDashboard();
+    } else if(tujuan==='input') {
+      if(userAktif&&userAktif.role==='ADMIN'){navigasiKe('dashboard');return;}
+      document.getElementById('panelKerjaGuru').style.display='flex';
+      document.getElementById('tabInput').classList.add('aktif');
+      filterTabelSiswa();
+    } else if(tujuan==='leger') {
+      document.getElementById('panelLegerCetak').style.display='block';
+      document.getElementById('tabLeger').classList.add('aktif');
+      pemicuGantiKelasLegerOptis();
+    } else if(tujuan==='adminSemua') {
+      document.getElementById('panelAdminSemuaMapel').style.display='block';
+      document.getElementById('tabAdminSemua').classList.add('aktif');
+      const sel = document.getElementById('selectKelasAdmin');
+      sel.innerHTML = '';
+      daftarSemuaKelasSekolah.forEach(k=>{ sel.innerHTML+=`<option value="${k}">${k}</option>`; });
+      // Reset cache guru agar di-refresh dari server
+      daftarGuruSistem = [];
+      muatTabelAdminSemuaMapel();
+    } else if(tujuan==='adminLog') {
+      if(!userAktif||userAktif.role!=='ADMIN'){navigasiKe('dashboard');return;}
+      document.getElementById('panelAdminLog').style.display='block';
+      document.getElementById('tabAdminLog').classList.add('aktif');
+      refreshLogAktivitas();
+    }
+  }
+
+  function updateStatDashboard() {
+    const tpAktif = dapatkanInformasiTPAktif();
+    const totalSiswa = dataMasterSiswa.filter(s=>listKelasPilihanGuru.includes(s.kelas)).length;
+    const totalKelas = new Set(dataMasterSiswa.filter(s=>listKelasPilihanGuru.includes(s.kelas)).map(s=>s.kelas)).size;
+    document.getElementById('statJumlahSiswa').innerText = totalSiswa;
+    document.getElementById('statSubSiswa').innerText = totalKelas + ' rombel kelas';
+    // Hitung siswa TP1
+    const punya = dataMasterSiswa.filter(s=>listKelasPilihanGuru.includes(s.kelas)&&(s.nilaiDetailTP.tp1.nh1!==""||s.nilaiDetailTP.tp1.sh!=="")).length;
+    document.getElementById('statTP1').innerText = punya;
+    // Hitung ketercapaian
+    let tercapai=0, total=0;
+    dataMasterSiswa.filter(s=>listKelasPilihanGuru.includes(s.kelas)).forEach(s=>{
+      let sumTP=0,jml=0;
+      for(let i=1;i<=4;i++) { if(tpAktif['tp'+i]){ const d=s.nilaiDetailTP['tp'+i]; const rNH=hitungRataRataNHDinamis(d.nh1,d.nh2,d.nh3,d.nh4); const sH=d.sh===""?""  :parseFloat(d.sh); if(rNH!==null||sH!==""){sumTP+=(rNH!==null?(rNH*bSistem.mapelNH):0)+(sH!==""?(sH*bSistem.mapelSH):0);jml++;} } }
+      if(jml>0){total++;if((sumTP/jml)>=AMBANG_BATAS_TERCAPAI)tercapai++;}
+    });
+    document.getElementById('statNilaiTercapai').innerText = total>0?Math.round(tercapai/total*100)+'%':'—';
+    // Rata rapor
+    let sumRapor=0, jmlRapor=0;
+    dataMasterSiswa.filter(s=>listKelasPilihanGuru.includes(s.kelas)).forEach(s=>{
+      let sumTP=0,jml=0;
+      for(let i=1;i<=4;i++){if(tpAktif['tp'+i]){const d=s.nilaiDetailTP['tp'+i];const rNH=hitungRataRataNHDinamis(d.nh1,d.nh2,d.nh3,d.nh4);const sH=d.sh===""?""  :parseFloat(d.sh);if(rNH!==null||sH!==""){sumTP+=(rNH!==null?(rNH*bSistem.mapelNH):0)+(sH!==""?(sH*bSistem.mapelSH):0);jml++;}}}
+      if(jml>0||s.nilaiAsas!==""){const r=jml>0?(sumTP/jml):0;const nA=s.nilaiAsas===""?0:parseFloat(s.nilaiAsas);const nH=s.kehadiran===""?100:parseFloat(s.kehadiran);sumRapor+=Math.round((r*bSistem.globalSumatif)+(nA*bSistem.globalAsas)+(nH*bSistem.globalKehadiran));jmlRapor++;}
+    });
+    document.getElementById('statRataRapor').innerText = jmlRapor>0?Math.round(sumRapor/jmlRapor):'—';
+  }
+
+  function eksekusiLogoutBersih() {
+    userAktif=null; dataMasterSiswa=[]; listKelasPilihanGuru=[]; daftarGuruSistem=[];
+    try { sessionStorage.removeItem('absena_sesi'); } catch(e){}
+    document.getElementById('logUser').value=""; document.getElementById('logPass').value="";
+    document.getElementById('halamanUtama').style.display='none';
+    document.getElementById('halamanLogin').style.display='flex';
+    tutupSidebar();
+  }
+
+  // ===== MUAT DATA =====
+  function muatAwalSistem() {
+    const mpl = normalisasiMapel(userAktif.role==="ADMIN"?"PKN":userAktif.mapel);
+    google.script.run
+      .withSuccessHandler(function(hasil) {
+        const k = hasil.bobot;
+        // Set bSistem dari server sebagai fallback/default
+        bSistem = k;
+        document.getElementById('inpBGlobalSumatif').value = k.globalSumatif;
+        document.getElementById('inpBGlobalAsas').value    = k.globalAsas;
+        document.getElementById('inpBGlobalHadir').value   = k.globalKehadiran;
+        document.getElementById('inpBMapelNH').value       = k.mapelNH;
+        document.getElementById('inpBMapelSH').value       = k.mapelSH;
+        // Terapkan bobot lokal per-user jika ada (override server default)
+        muatBobotSidebar();
+        dataMasterSiswa = hasil.siswa;
+        const setKelas = new Set(); hasil.siswa.forEach(s=>setKelas.add(s.kelas));
+        daftarSemuaKelasSekolah = Array.from(setKelas).sort();
+        buatElemenCheckboxKelas();
+        // Isi dropdown guru untuk admin
+        if(userAktif.role==='ADMIN' && hasil.daftarGuru) {
+          daftarGuruSistem = hasil.daftarGuru;
+          isiDropdownGuruBobot();
+        }
+        tutupLoadingSistem();
+        navigasiKe('dashboard');
+      })
+      .withFailureHandler(function() {
+        tutupLoadingSistem(); bukaDialogNotifKustom("Error Server","Gagal memuat data. Coba refresh halaman.","gagal");
+      })
+      .muatSemuaDataAwal(mpl);
+  }
+
+  function buatElemenCheckboxKelas() {
+    const container = document.getElementById('containerCheckboxKelas');
+    container.innerHTML = "";
+    const memoriKelas = localStorage.getItem('absena_kelas_pilihan_'+userAktif.nama);
+    const kelasTersimpan = memoriKelas ? JSON.parse(memoriKelas) : [];
+    daftarSemuaKelasSekolah.forEach(kelas => {
+      const label = document.createElement('label');
+      label.className = "cb-kelas-label";
+      const isChecked = (kelasTersimpan.length>0) ? (kelasTersimpan.includes(kelas)?'checked':'') : 'checked';
+      label.innerHTML = `<input type="checkbox" value="${kelas}" ${isChecked} onchange="pemicuUpdateFilterCheckbox()"><span>${kelas}</span>`;
+      container.appendChild(label);
+    });
+    pemicuUpdateFilterCheckbox();
+  }
+
+  function pemicuUpdateFilterCheckbox() {
+    let checkboxes = document.querySelectorAll('#containerCheckboxKelas input[type="checkbox"]');
+    listKelasPilihanGuru = [];
+    checkboxes.forEach(cb => { if(cb.checked) listKelasPilihanGuru.push(cb.value); });
+    document.getElementById('labelJumlahKelasTerpilih').innerText = listKelasPilihanGuru.length+" Aktif";
+    simpanMemoriKelasPilihan();
+    const selKelas = document.getElementById('selectKelas');
+    const selLeger = document.getElementById('selectKelasLeger');
+    selKelas.innerHTML = '<option value="Semua">Semua Kelas</option>';
+    selLeger.innerHTML = '';
+    listKelasPilihanGuru.forEach(k => {
+      selKelas.innerHTML += `<option value="${k}">Kelas ${k}</option>`;
+      selLeger.innerHTML += `<option value="${k}">Kelas ${k}</option>`;
+    });
+    const tersimpan = localStorage.getItem('absena_dropdown_kelas_'+userAktif.nama);
+    if(tersimpan && listKelasPilihanGuru.includes(tersimpan)) selKelas.value = tersimpan;
+    filterTabelSiswa();
+  }
+
+  function pemicuGantiKelasOptis() { bukaLoadingSistem("Mengganti Rombel...","Mengumpulkan daftar siswa kelas terpilih."); setTimeout(()=>{filterTabelSiswa();tutupLoadingSistem();},250); }
+  function pemicuGantiTPOptis()    { bukaLoadingSistem("Menyelaras TP...","Menghitung ketercapaian sumatif."); setTimeout(()=>{filterTabelSiswa();tutupLoadingSistem();},250); }
+  function pemicuGantiKelasLegerOptis() { bukaLoadingSistem("Merangkum Leger...","Menyusun leger e-Rapor kelas."); setTimeout(()=>{prosesMuatTabelLeger();},200); }
+
+  function dapatkanInformasiTPAktif() {
+    return { tp1:document.getElementById('cbTP1').checked, tp2:document.getElementById('cbTP2').checked, tp3:document.getElementById('cbTP3').checked, tp4:document.getElementById('cbTP4').checked };
+  }
+
+  function hitungRataRataNHDinamis(nh1,nh2,nh3,nh4) {
+    let total=0, counter=0;
+    [nh1,nh2,nh3,nh4].forEach(v => {
+      // String kosong / null / undefined → belum diisi, skip
+      if(v===''||v===null||v===undefined) return;
+      const n = parseFloat(v);
+      // NaN (bukan angka) → skip
+      if(isNaN(n)) return;
+      // Angka 0 yang benar-benar diisi guru → tetap dihitung
+      total += n;
+      counter++;
+    });
+    return counter > 0 ? (total / counter) : null;
+  }
+
+  // ===== FILTER PENCARIAN NAMA SISWA =====
+  function filterCariSiswa() {
+    const q = document.getElementById('inputCariSiswa').value.trim();
+    const btnHapus = document.getElementById('btnHapusCari');
+    const info     = document.getElementById('infoCariSiswa');
+    btnHapus.style.display = q ? 'block' : 'none';
+
+    const rows = document.querySelectorAll('#badanTabelSiswa tr');
+    let tampil = 0, total = 0;
+    rows.forEach(tr => {
+      total++;
+      const nama = tr.querySelector('.td-nama');
+      if (!nama) return;
+      const cocok = !q || nama.getAttribute('data-nama-asli') && nama.getAttribute('data-nama-asli').toLowerCase().includes(q.toLowerCase()) || nama.textContent.toLowerCase().includes(q.toLowerCase());
+      tr.style.display = cocok ? '' : 'none';
+      if (cocok) tampil++;
+      if (q && nama) {
+        const teks = nama.getAttribute('data-nama-asli') || nama.textContent;
+        nama.setAttribute('data-nama-asli', teks);
+        const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+        nama.innerHTML = teks.replace(re, '<mark style="background:rgba(192,24,42,0.35);color:#fca5a5;border-radius:3px;padding:0 2px;">$1</mark>');
+      } else if (nama && nama.getAttribute('data-nama-asli')) {
+        nama.textContent = nama.getAttribute('data-nama-asli');
+      }
+    });
+    if (q) {
+      info.style.display = 'inline';
+      info.textContent = tampil + ' dari ' + total + ' siswa';
+      info.style.color = tampil === 0 ? '#f87171' : '#34d399';
+    } else {
+      info.style.display = 'none';
+    }
+  }
+
+  function filterTabelSiswa() {
+    const fKls=document.getElementById('selectKelas').value, fTp=document.getElementById('selectTP').value;
+    const tbody=document.getElementById('badanTabelSiswa');
+    // Reset kotak pencarian saat ganti kelas/TP
+    const inputCari = document.getElementById('inputCariSiswa');
+    if (inputCari) { inputCari.value=''; document.getElementById('btnHapusCari').style.display='none'; document.getElementById('infoCariSiswa').style.display='none'; }
+    tbody.innerHTML=""; let no=1; const tpAktif=dapatkanInformasiTPAktif();
+
+    dataMasterSiswa.forEach(s => {
+      if(!listKelasPilihanGuru.includes(s.kelas)) return;
+      if(fKls!=="Semua" && s.kelas!==fKls) return;
+      const tpData=s.nilaiDetailTP[fTp];
+      const rataNH=hitungRataRataNHDinamis(tpData.nh1,tpData.nh2,tpData.nh3,tpData.nh4);
+      const sHNyata=tpData.sh===""?""  :parseFloat(tpData.sh);
+      let nilaiTPMurni="",kodeKet="-",badgeCls="badge-nil";
+      if(rataNH!==null||sHNyata!=="") {
+        nilaiTPMurni=Math.round((rataNH!==null?(rataNH*bSistem.mapelNH):0)+(sHNyata!==""?(sHNyata*bSistem.mapelSH):0));
+        kodeKet=nilaiTPMurni>=AMBANG_BATAS_TERCAPAI?"T":"R";
+        badgeCls=nilaiTPMurni>=AMBANG_BATAS_TERCAPAI?"badge-t":"badge-r";
+      }
+      let totalTP=0,jmlTP=0;
+      for(let i=1;i<=4;i++) {
+        if(tpAktif["tp"+i]) {
+          const d=s.nilaiDetailTP["tp"+i];
+          const rNH=hitungRataRataNHDinamis(d.nh1,d.nh2,d.nh3,d.nh4);
+          const nSh=d.sh===""?""  :parseFloat(d.sh);
+          if(rNH!==null||nSh!=="") { totalTP+=(rNH!==null?(rNH*bSistem.mapelNH):0)+(nSh!==""?(nSh*bSistem.mapelSH):0); jmlTP++; }
+        }
+      }
+      let nRapor="";
+      if(jmlTP>0||s.nilaiAsas!=="") {
+        const rataTP=jmlTP>0?(totalTP/jmlTP):0;
+        const nA=s.nilaiAsas===""?0:parseFloat(s.nilaiAsas);
+        const nH=s.kehadiran===""?100:parseFloat(s.kehadiran);
+        nRapor=Math.round((rataTP*bSistem.globalSumatif)+(nA*bSistem.globalAsas)+(nH*bSistem.globalKehadiran));
+      }
+      // Kolom input: 0=nh1,1=nh2,2=nh3,3=nh4,4=sh,5=nilaiAsas,6=kehadiran
+      const rowIdx = no - 1;
+      const mkInp = (val, sub, cls, col) =>
+        `<td style="padding:3px;"><input type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" value="${val||''}"
+          data-id="${s.id}" data-tp="${fTp}" data-sub="${sub}" data-row="${rowIdx}" data-col="${col}"
+          onchange="updateNilai(${s.id},'${fTp}','${sub}',this.value);warnaiInputNilai(this)"
+          onkeydown="handleNilaiKeydown(event,this)"
+          onpaste="handleNilaiPaste(event,this)"
+          class="inp-nilai ${cls}"></td>`;
+
+      const tr=document.createElement('tr');
+      tr.setAttribute('data-row', rowIdx);
+
+      // Hitung tampilan Rata NH
+      const rNHAwal = hitungRataRataNHDinamis(tpData.nh1, tpData.nh2, tpData.nh3, tpData.nh4);
+      const rNHLabel = rNHAwal !== null ? Math.round(rNHAwal) : '—';
+      const rNHCls   = rNHAwal === null ? 'rata-nh-kosong'
+                     : rNHAwal >= 91    ? 'rata-nh-bagus'
+                     : rNHAwal >= 80    ? 'rata-nh-cukup'
+                     : 'rata-nh-kurang';
+
+      tr.innerHTML=`
+        <td class="td-no">${no}</td>
+        <td class="td-kelas">${s.kelas}</td>
+        <td class="td-nama">${s.nama}</td>
+        ${mkInp(tpData.nh1,'nh1','inp-nh',0)}
+        ${mkInp(tpData.nh2,'nh2','inp-nh',1)}
+        ${mkInp(tpData.nh3,'nh3','inp-nh',2)}
+        ${mkInp(tpData.nh4,'nh4','inp-nh',3)}
+        <td class="td-rata-nh ${rNHCls}" id="cRataNH-${s.id}">${rNHLabel}</td>
+        ${mkInp(tpData.sh,'sh','inp-sh',4)}
+        <td class="td-nilai-tp" id="cTP-${s.id}">${nilaiTPMurni}</td>
+        <td style="text-align:center;" id="cKet-${s.id}"><span class="${badgeCls}">${kodeKet}</span></td>
+        ${mkInp(s.nilaiAsas,'nilaiAsas','inp-asas',5)}
+        ${mkInp(s.kehadiran,'kehadiran','inp-hadir',6)}
+        <td class="td-rapor" id="cRap-${s.id}">${nRapor}</td>
+      `;
+      tbody.appendChild(tr); no++;
+    });
+    // ★ Warnai semua input setelah tabel selesai dirender
+    setTimeout(warnaiSemuaInputTabel, 0);
+  }
+
+  // ===== PEWARNAAN OTOMATIS INPUT NILAI =====
+  // Merah < 75 | Kuning 75–84 | Hijau ≥ 85
+  function warnaiInputNilai(inp) {
+    const v = parseFloat(inp.value);
+    inp.classList.remove('nilai-merah','nilai-kuning','nilai-hijau');
+    if (inp.value.trim() === '' || isNaN(v)) return;
+    if (v < 80)       inp.classList.add('nilai-merah');
+    else if (v < 91)  inp.classList.add('nilai-kuning');
+    else              inp.classList.add('nilai-hijau');
+  }
+
+  function warnaiSemuaInputTabel() {
+    document.querySelectorAll('#badanTabelSiswa .inp-nilai').forEach(warnaiInputNilai);
+  }
+
+  // ===== NAVIGASI KEYBOARD: ENTER / ARROW KEYS / TAB =====
+  // Enter & ↓ → pindah ke bawah
+  // ↑         → pindah ke atas
+  // → / Tab   → pindah ke kanan
+  // ←         → pindah ke kiri
+  function handleNilaiKeydown(e, inp) {
+    const ARROW_KEYS = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter'];
+    if (!ARROW_KEYS.includes(e.key)) return;
+
+    const row = parseInt(inp.dataset.row);
+    const col = parseInt(inp.dataset.col);
+    const MAX_COL = 6; // 0=nh1 … 6=kehadiran
+
+    // Hitung jumlah baris yang sedang tampil (tidak hidden oleh filter cari)
+    const allRows = Array.from(document.querySelectorAll('#badanTabelSiswa tr'))
+      .filter(tr => tr.style.display !== 'none');
+    const MAX_ROW = allRows.length - 1;
+
+    let targetRow = row, targetCol = col;
+
+    if (e.key === 'ArrowDown' || e.key === 'Enter') {
+      e.preventDefault();
+      targetRow = row < MAX_ROW ? row + 1 : 0; // wrap ke baris pertama
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      targetRow = row > 0 ? row - 1 : MAX_ROW; // wrap ke baris terakhir
+    } else if (e.key === 'ArrowRight') {
+      // Izinkan ArrowRight hanya jika kursor di ujung kanan teks (tidak di tengah)
+      const atEnd = inp.selectionStart === inp.value.length;
+      if (!atEnd) return; // biarkan browser gerakkan kursor teks
+      e.preventDefault();
+      if (col < MAX_COL) { targetCol = col + 1; }
+      else { targetCol = 0; targetRow = row < MAX_ROW ? row + 1 : 0; }
+    } else if (e.key === 'ArrowLeft') {
+      // Izinkan ArrowLeft hanya jika kursor di posisi paling kiri
+      const atStart = inp.selectionStart === 0;
+      if (!atStart) return; // biarkan browser gerakkan kursor teks
+      e.preventDefault();
+      if (col > 0) { targetCol = col - 1; }
+      else { targetCol = MAX_COL; targetRow = row > 0 ? row - 1 : MAX_ROW; }
+    }
+
+    // Cari input target berdasarkan data-row/data-col di baris yang tampil saja
+    // Mapping visual row → data-row dari baris yang tampil
+    const visibleDataRows = allRows.map(tr => parseInt(tr.dataset.row));
+    const currentVisIdx  = visibleDataRows.indexOf(row);
+
+    let nextVisIdx = currentVisIdx;
+    if (e.key === 'ArrowDown' || e.key === 'Enter') {
+      nextVisIdx = currentVisIdx < allRows.length - 1 ? currentVisIdx + 1 : 0;
+    } else if (e.key === 'ArrowUp') {
+      nextVisIdx = currentVisIdx > 0 ? currentVisIdx - 1 : allRows.length - 1;
+    } else {
+      // kiri/kanan: baris bisa bergeser
+      nextVisIdx = currentVisIdx; // default sama
+      if (e.key === 'ArrowRight' && targetRow !== row) {
+        nextVisIdx = currentVisIdx < allRows.length - 1 ? currentVisIdx + 1 : 0;
+      } else if (e.key === 'ArrowLeft' && targetRow !== row) {
+        nextVisIdx = currentVisIdx > 0 ? currentVisIdx - 1 : allRows.length - 1;
+      }
+    }
+
+    const nextDataRow = visibleDataRows[nextVisIdx];
+    const target = document.querySelector(
+      `#badanTabelSiswa input[data-row="${nextDataRow}"][data-col="${targetCol}"]`
+    );
+    if (target) {
+      target.focus();
+      target.select();
+      // Scroll halus agar sel target terlihat
+      target.closest('tr').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+
+  // ===== PASTE DARI EXCEL =====
+  // Format paste Excel: kolom dipisah TAB, baris dipisah newline
+  // Paste bisa mulai dari sel mana saja dan menyebar ke bawah & kanan
+  function handleNilaiPaste(e, inp) {
+    e.preventDefault();
+    const raw = (e.clipboardData || window.clipboardData).getData('text');
+    if (!raw) return;
+
+    const startRow = parseInt(inp.dataset.row);
+    const startCol = parseInt(inp.dataset.col);
+
+    // Parse data paste — pisahkan baris & kolom
+    const barisPaste = raw.trim().split(/\r?\n/).map(b => b.split('\t'));
+
+    let totalSimpan = 0;
+    const subMap = ['nh1','nh2','nh3','nh4','sh','nilaiAsas','kehadiran'];
+
+    barisPaste.forEach((koloms, ri) => {
+      koloms.forEach((val, ci) => {
+        const targetRow = startRow + ri;
+        const targetCol = startCol + ci;
+        if (targetCol > 6) return; // Batas kolom input
+        const sub = subMap[targetCol];
+        const targetInp = document.querySelector(
+          `#badanTabelSiswa input[data-row="${targetRow}"][data-col="${targetCol}"]`
+        );
+        if (!targetInp) return;
+        // Normalisasi nilai — ganti koma desimal ke titik
+        const nilaiStr = val.trim().replace(',', '.');
+        targetInp.value = nilaiStr;
+        // Trigger update
+        const id  = parseInt(targetInp.dataset.id);
+        const tp  = targetInp.dataset.tp;
+        updateNilai(id, tp, sub, nilaiStr);
+        totalSimpan++;
+      });
+    });
+
+    // Toast konfirmasi paste
+    tampilToastPaste(totalSimpan);
+    // ★ Warnai ulang semua input setelah paste selesai
+    setTimeout(warnaiSemuaInputTabel, 50);
+  }
+
+  // Toast ringan notifikasi paste berhasil
+  function tampilToastPaste(jumlah) {
+    let toast = document.getElementById('toastPaste');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'toastPaste';
+      toast.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);
+        background:linear-gradient(135deg,#1e40af,#1e3a8a);color:#fff;font-size:12px;font-weight:800;
+        padding:10px 22px;border-radius:40px;border:1px solid rgba(59,130,246,0.4);
+        box-shadow:0 8px 30px rgba(0,0,0,0.5);z-index:9999;transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+        display:flex;align-items:center;gap:8px;white-space:nowrap;opacity:0;`;
+      toast.innerHTML = `<span class="material-icons-round" style="font-size:16px;">content_paste_go</span><span id="toastPasteMsg"></span>`;
+      document.body.appendChild(toast);
+    }
+    document.getElementById('toastPasteMsg').innerText = `${jumlah} sel berhasil di-paste dari Excel`;
+    // Animasi masuk
+    setTimeout(() => { toast.style.opacity='1'; toast.style.transform='translateX(-50%) translateY(0)'; }, 10);
+    // Animasi keluar
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => {
+      toast.style.opacity='0'; toast.style.transform='translateX(-50%) translateY(60px)';
+    }, 3000);
+  }
+
+  function updateNilai(id,tp,sub,val) {
+    const idx=dataMasterSiswa.findIndex(x=>x.id===id); if(idx===-1) return;
+    const v=val.trim()===""?""  :parseFloat(val);
+    if(sub==="nilaiAsas") dataMasterSiswa[idx].nilaiAsas=v;
+    else if(sub==="kehadiran") dataMasterSiswa[idx].kehadiran=v;
+    else dataMasterSiswa[idx].nilaiDetailTP[tp][sub]=v;
+    const s=dataMasterSiswa[idx], tD=s.nilaiDetailTP[tp];
+    const rataNH=hitungRataRataNHDinamis(tD.nh1,tD.nh2,tD.nh3,tD.nh4);
+    const sHNyata=tD.sh===""?""  :parseFloat(tD.sh);
+    let nilaiTPMurni="",kodeKet="-",badgeCls="badge-nil";
+    if(rataNH!==null||sHNyata!=="") {
+      nilaiTPMurni=Math.round((rataNH!==null?(rataNH*bSistem.mapelNH):0)+(sHNyata!==""?(sHNyata*bSistem.mapelSH):0));
+      kodeKet=nilaiTPMurni>=AMBANG_BATAS_TERCAPAI?"T":"R";
+      badgeCls=nilaiTPMurni>=AMBANG_BATAS_TERCAPAI?"badge-t":"badge-r";
+    }
+    document.getElementById(`cTP-${id}`).innerText=nilaiTPMurni;
+    document.getElementById(`cKet-${id}`).innerHTML=`<span class="${badgeCls}">${kodeKet}</span>`;
+    // Update kolom Rata NH live
+    const cellRataNH = document.getElementById(`cRataNH-${id}`);
+    if(cellRataNH) {
+      const rNHLive = hitungRataRataNHDinamis(tD.nh1,tD.nh2,tD.nh3,tD.nh4);
+      cellRataNH.innerText = rNHLive !== null ? Math.round(rNHLive) : '—';
+      cellRataNH.className = 'td-rata-nh ' + (
+        rNHLive === null ? 'rata-nh-kosong'
+        : rNHLive >= 91  ? 'rata-nh-bagus'
+        : rNHLive >= 80  ? 'rata-nh-cukup'
+        : 'rata-nh-kurang'
+      );
+    }
+    const tpAktif=dapatkanInformasiTPAktif(); let totalTP=0,jmlTP=0;
+    for(let i=1;i<=4;i++) {
+      if(tpAktif["tp"+i]) {
+        const d=s.nilaiDetailTP["tp"+i];
+        const rNH=hitungRataRataNHDinamis(d.nh1,d.nh2,d.nh3,d.nh4);
+        const nSh=d.sh===""?""  :parseFloat(d.sh);
+        if(rNH!==null||nSh!=="") { totalTP+=(rNH!==null?(rNH*bSistem.mapelNH):0)+(nSh!==""?(nSh*bSistem.mapelSH):0); jmlTP++; }
+      }
+    }
+    let nRapor="";
+    if(jmlTP>0||s.nilaiAsas!=="") {
+      const rataTP=jmlTP>0?(totalTP/jmlTP):0;
+      const nA=s.nilaiAsas===""?0:s.nilaiAsas;
+      const nH=s.kehadiran===""?100:parseFloat(s.kehadiran);
+      nRapor=Math.round((rataTP*bSistem.globalSumatif)+(nA*bSistem.globalAsas)+(nH*bSistem.globalKehadiran));
+    }
+    document.getElementById(`cRap-${id}`).innerText=nRapor;
+    // ====== PERUBAHAN MODE PENYIMPANAN ======
+    // Sebelumnya baris ini langsung memanggil server tiap kali user
+    // mengetik 1 nilai (google.script.run.simpanNilaiMultiMapel(...)).
+    // Sekarang: nilai HANYA disimpan ke antrian lokal (draft) di memori
+    // + localStorage. Data baru benar-benar dikirim ke Google Sheet
+    // saat user menekan tombol "Simpan ke Sheet".
+    catatPerubahanDraft(id, normalisasiMapel(userAktif.role==="ADMIN"?"PKN":userAktif.mapel), tp, sub, val);
+  }
+
+  // ===== MODAL KONFIRMASI HAPUS =====
+  function bukaKonfirmasiHapusTP() {
+    const kls     = document.getElementById('selectKelas').value;
+    const tpKode  = document.getElementById('selectTP').value;
+    const namaTP  = document.getElementById('selectTP').options[document.getElementById('selectTP').selectedIndex].text;
+    if(kls==="Semua") { bukaDialogNotifKustom("Pilih Kelas","Pilih rombel kelas terlebih dahulu!","peringatan"); return; }
+
+    // Set konten modal — warna merah untuk TP
+    const hdr = document.getElementById('konfirmasiHeader');
+    hdr.className = 'konfirmasi-header-tp';
+    document.getElementById('konfirmasiIkon').innerText        = 'delete_sweep';
+    document.getElementById('konfirmasiJudul').innerText       = 'Kosongkan Nilai TP';
+    document.getElementById('konfirmasiSubJudul').innerText    = 'Pilih kolom yang ingin dikosongkan';
+    document.getElementById('konfirmasiKelasText').innerText   = 'Kelas ' + kls;
+    document.getElementById('konfirmasiTargetText').innerText  = namaTP;
+    // Icon & warna detail baris 2 — merah
+    document.getElementById('konfirmasiDetailIcon2').style.cssText = 'width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(192,24,42,0.15);border:1px solid rgba(192,24,42,0.25);';
+    document.getElementById('konfirmasiDetailIcon2').innerHTML = '<span class="material-icons-round" style="color:#f87171;font-size:16px;">assignment</span>';
+    document.getElementById('konfirmasiDetailLabel2').innerText = 'Target Penghapusan';
+    // Tampilkan pilihan kolom, centang semua by default
+    document.getElementById('pilihanKolomTP').style.display = 'block';
+    ['cbHapusNH1','cbHapusNH2','cbHapusNH3','cbHapusNH4','cbHapusSH'].forEach(id => { document.getElementById(id).checked = true; });
+    updateLabelDataHapusTP();
+    // Pasang listener agar label update saat checkbox berubah
+    ['cbHapusNH1','cbHapusNH2','cbHapusNH3','cbHapusNH4','cbHapusSH'].forEach(id => {
+      document.getElementById(id).onchange = updateLabelDataHapusTP;
+    });
+    // Tombol eksekusi — merah
+    const btn = document.getElementById('btnKonfirmasiEksekusi');
+    btn.className = 'btn-konfirmasi-hapus-tp';
+    btn.onclick = function(){ eksekusiHapusNilaiTPPilihan(kls, tpKode, namaTP); };
+
+    document.getElementById('modalKonfirmasiHapus').classList.add('tampil');
+  }
+
+  function updateLabelDataHapusTP() {
+    const labels = [];
+    if(document.getElementById('cbHapusNH1').checked) labels.push('NH 1');
+    if(document.getElementById('cbHapusNH2').checked) labels.push('NH 2');
+    if(document.getElementById('cbHapusNH3').checked) labels.push('NH 3');
+    if(document.getElementById('cbHapusNH4').checked) labels.push('NH 4');
+    if(document.getElementById('cbHapusSH').checked)  labels.push('Sumatif (SH)');
+    const txt = labels.length > 0 ? labels.join(', ') : '— Belum ada yang dipilih';
+    document.getElementById('konfirmasiDataText').innerText = txt;
+    // Nonaktifkan tombol eksekusi jika tidak ada yang dipilih
+    document.getElementById('btnKonfirmasiEksekusi').disabled = labels.length === 0;
+    document.getElementById('btnKonfirmasiEksekusi').style.opacity = labels.length === 0 ? '0.4' : '1';
+  }
+
+  function pilihanKolomTPSemuanya(pilih) {
+    ['cbHapusNH1','cbHapusNH2','cbHapusNH3','cbHapusNH4','cbHapusSH'].forEach(id => {
+      document.getElementById(id).checked = pilih;
+    });
+    updateLabelDataHapusTP();
+  }
+
+  function bukaKonfirmasiHapusASAS() {
+    const kls = document.getElementById('selectKelas').value;
+    if(kls==="Semua") { bukaDialogNotifKustom("Pilih Kelas","Pilih rombel kelas terlebih dahulu!","peringatan"); return; }
+
+    // Set konten modal — warna oranye untuk ASAS
+    const hdr = document.getElementById('konfirmasiHeader');
+    hdr.className = 'konfirmasi-header-asas';
+    document.getElementById('konfirmasiIkon').innerText        = 'backspace';
+    document.getElementById('konfirmasiJudul').innerText       = 'Kosongkan Nilai ASAS/ASAT';
+    document.getElementById('konfirmasiSubJudul').innerText    = 'Nilai ujian akhir semua siswa akan dihapus';
+    document.getElementById('konfirmasiKelasText').innerText   = 'Kelas ' + kls;
+    document.getElementById('konfirmasiTargetText').innerText  = 'ASAS / ASAT (Ujian Akhir)';
+    document.getElementById('konfirmasiDataText').innerText    = 'Kolom ASAS/ASAT seluruh siswa kelas ' + kls;
+    // Icon & warna detail baris 2 — oranye
+    document.getElementById('konfirmasiDetailIcon2').style.cssText = 'width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(217,119,6,0.15);border:1px solid rgba(217,119,6,0.3);';
+    document.getElementById('konfirmasiDetailIcon2').innerHTML = '<span class="material-icons-round" style="color:#fbbf24;font-size:16px;">quiz</span>';
+    document.getElementById('konfirmasiDetailLabel2').innerText = 'Target Penghapusan';
+    // Tombol eksekusi — oranye
+    const btn = document.getElementById('btnKonfirmasiEksekusi');
+    btn.className = 'btn-konfirmasi-hapus-asas';
+    btn.onclick = function(){ tutupKonfirmasiHapus(); eksekusiHapusASAS(kls); };
+
+    document.getElementById('modalKonfirmasiHapus').classList.add('tampil');
+  }
+
+  function tutupKonfirmasiHapus() {
+    document.getElementById('modalKonfirmasiHapus').classList.remove('tampil');
+    // Sembunyikan kembali pilihan kolom TP
+    document.getElementById('pilihanKolomTP').style.display = 'none';
+  }
+
+  // Eksekusi setelah konfirmasi ditekan — versi lama (alias)
+  function eksekusiHapusNilaiTP(kls, tpKode, namaTPText) {
+    eksekusiHapusNilaiTPPilihan(kls, tpKode, namaTPText);
+  }
+
+  // Eksekusi berdasarkan checkbox yang dipilih
+  function eksekusiHapusNilaiTPPilihan(kls, tpKode, namaTPText) {
+    const hapusNH1 = document.getElementById('cbHapusNH1').checked;
+    const hapusNH2 = document.getElementById('cbHapusNH2').checked;
+    const hapusNH3 = document.getElementById('cbHapusNH3').checked;
+    const hapusNH4 = document.getElementById('cbHapusNH4').checked;
+    const hapusSH  = document.getElementById('cbHapusSH').checked;
+    const koloms   = [hapusNH1,hapusNH2,hapusNH3,hapusNH4,hapusSH];
+    if(!koloms.some(Boolean)) { bukaDialogNotifKustom("Peringatan","Pilih minimal satu kolom yang ingin dikosongkan.","peringatan"); return; }
+
+    tutupKonfirmasiHapus();
+    const labelKolom = [];
+    if(hapusNH1) labelKolom.push('NH 1');
+    if(hapusNH2) labelKolom.push('NH 2');
+    if(hapusNH3) labelKolom.push('NH 3');
+    if(hapusNH4) labelKolom.push('NH 4');
+    if(hapusSH)  labelKolom.push('SH');
+    bukaLoadingSistem("Membersihkan Nilai...","Sedang meriset kolom terpilih di server.");
+
+    const mapelKode = normalisasiMapel(userAktif.role==="ADMIN"?"PKN":userAktif.mapel);
+    // Update data lokal (frontend) sesuai pilihan
+    dataMasterSiswa.forEach((s,idx) => {
+      if(s.kelas !== kls) return;
+      if(hapusNH1) dataMasterSiswa[idx].nilaiDetailTP[tpKode].nh1 = "";
+      if(hapusNH2) dataMasterSiswa[idx].nilaiDetailTP[tpKode].nh2 = "";
+      if(hapusNH3) dataMasterSiswa[idx].nilaiDetailTP[tpKode].nh3 = "";
+      if(hapusNH4) dataMasterSiswa[idx].nilaiDetailTP[tpKode].nh4 = "";
+      if(hapusSH)  dataMasterSiswa[idx].nilaiDetailTP[tpKode].sh  = "";
+    });
+
+    // Kirim ke server dengan daftar subKomp yang perlu dikosongkan
+    const subKompList = [];
+    if(hapusNH1) subKompList.push('nh1');
+    if(hapusNH2) subKompList.push('nh2');
+    if(hapusNH3) subKompList.push('nh3');
+    if(hapusNH4) subKompList.push('nh4');
+    if(hapusSH)  subKompList.push('sh');
+
+    google.script.run
+      .withSuccessHandler(function(ok){
+        tutupLoadingSistem();
+        if(ok) {
+          bukaDialogNotifKustom("Sukses",`Kolom [${labelKolom.join(', ')}] pada ${namaTPText} kelas ${kls} berhasil dikosongkan.`,"sukses");
+          filterTabelSiswa();
+        }
+      })
+      .serverHapusKolomTPPilihan(mapelKode, kls, tpKode, subKompList);
+  }
+
+  function eksekusiHapusASAS(kls) {
+    bukaLoadingSistem("Membersihkan ASAS...","Sedang meriset kolom ujian akhir.");
+    const mapelKode=normalisasiMapel(userAktif.role==="ADMIN"?"PKN":userAktif.mapel);
+    dataMasterSiswa.forEach((s,idx)=>{ if(s.kelas===kls) dataMasterSiswa[idx].nilaiAsas=""; });
+    google.script.run.withSuccessHandler(function(ok){ tutupLoadingSistem(); if(ok){bukaDialogNotifKustom("Sukses",`ASAS/ASAT kelas ${kls} berhasil dibersihkan.`,"sukses"); filterTabelSiswa();} }).serverPembersihanNilaiAsasAja(mapelKode,kls);
+  }
+
+  // Alias lama → arahkan ke modal baru
+  function pemicuHapusNilaiTPAktif()  { bukaKonfirmasiHapusTP(); }
+  function pemicuHapusNilaiAsasKelas(){ bukaKonfirmasiHapusASAS(); }
+
+  // ===== RESET NILAI ADMIN =====
+  let scopeResetAktif = 'semua_mapel';
+
+  function bukaModalResetAdmin() {
+    if(!userAktif || userAktif.role !== 'ADMIN') return;
+    // Reset state modal
+    scopeResetAktif = 'semua_mapel';
+    document.getElementById('inpKonfirmasiReset').value = '';
+    document.getElementById('btnEksekusiReset').classList.remove('aktif');
+    ['chkTP1Reset','chkTP2Reset','chkTP3Reset','chkTP4Reset','chkASASReset'].forEach(id => {
+      document.getElementById(id).checked = true;
+    });
+    pilihScopeReset('semua_mapel');
+
+    // Isi dropdown mapel dari daftarGuruSistem
+    const selMapel = document.getElementById('selectScopeMapelReset');
+    selMapel.innerHTML = '';
+    const mapelUnik = [...new Set(daftarGuruSistem.map(g => g.mapel))];
+    mapelUnik.forEach(m => { selMapel.innerHTML += `<option value="${normalisasiMapel(m)}">${m}</option>`; });
+
+    // Isi dropdown kelas
+    const selKelas = document.getElementById('selectScopeKelasReset');
+    selKelas.innerHTML = '';
+    daftarSemuaKelasSekolah.forEach(k => { selKelas.innerHTML += `<option value="${k}">${k}</option>`; });
+
+    document.getElementById('modalResetAdmin').classList.add('tampil');
+  }
+
+  function tutupModalResetAdmin() {
+    document.getElementById('modalResetAdmin').classList.remove('tampil');
+  }
+
+  function pilihScopeReset(scope) {
+    scopeResetAktif = scope;
+    ['scopeSemuaMapel','scopePerMapel','scopePerKelas'].forEach(id => {
+      document.getElementById(id).classList.remove('aktif');
+    });
+    const mapelEl = document.getElementById('selectScopeMapelReset');
+    const kelasEl = document.getElementById('selectScopeKelasReset');
+    const extraEl = document.getElementById('extraScopeReset');
+
+    if(scope === 'semua_mapel') {
+      document.getElementById('scopeSemuaMapel').classList.add('aktif');
+      extraEl.style.display = 'none';
+      mapelEl.style.display = 'none';
+      kelasEl.style.display = 'none';
+    } else if(scope === 'per_mapel') {
+      document.getElementById('scopePerMapel').classList.add('aktif');
+      extraEl.style.display = 'block';
+      mapelEl.style.display = 'block';
+      kelasEl.style.display = 'none';
+    } else if(scope === 'per_kelas') {
+      document.getElementById('scopePerKelas').classList.add('aktif');
+      extraEl.style.display = 'block';
+      mapelEl.style.display = 'none';
+      kelasEl.style.display = 'block';
+    }
+    // Reset input konfirmasi saat scope berubah
+    document.getElementById('inpKonfirmasiReset').value = '';
+    cekKonfirmasiReset();
+  }
+
+  function cekKonfirmasiReset() {
+    const val = document.getElementById('inpKonfirmasiReset').value.trim().toUpperCase();
+    const btn = document.getElementById('btnEksekusiReset');
+    if(val === 'HAPUS') btn.classList.add('aktif');
+    else btn.classList.remove('aktif');
+  }
+
+  function eksekusiResetAdminNilai() {
+    if(document.getElementById('inpKonfirmasiReset').value.trim().toUpperCase() !== 'HAPUS') return;
+
+    const tpList = [];
+    if(document.getElementById('chkTP1Reset').checked) tpList.push('tp1');
+    if(document.getElementById('chkTP2Reset').checked) tpList.push('tp2');
+    if(document.getElementById('chkTP3Reset').checked) tpList.push('tp3');
+    if(document.getElementById('chkTP4Reset').checked) tpList.push('tp4');
+    const hapusAsas = document.getElementById('chkASASReset').checked;
+
+    if(tpList.length === 0 && !hapusAsas) {
+      bukaDialogNotifKustom("Tidak Ada Pilihan","Pilih minimal satu TP atau ASAS untuk direset.","peringatan");
+      return;
+    }
+
+    let mapelTarget = null, kelasTarget = null;
+    if(scopeResetAktif === 'per_mapel') {
+      mapelTarget = document.getElementById('selectScopeMapelReset').value;
+      if(!mapelTarget) { bukaDialogNotifKustom("Pilih Mapel","Pilih mapel yang akan direset.","peringatan"); return; }
+    } else if(scopeResetAktif === 'per_kelas') {
+      kelasTarget = document.getElementById('selectScopeKelasReset').value;
+      if(!kelasTarget) { bukaDialogNotifKustom("Pilih Kelas","Pilih kelas yang akan direset.","peringatan"); return; }
+    }
+
+    tutupModalResetAdmin();
+    bukaLoadingSistem("Mereset Nilai...","Menghapus nilai dari spreadsheet, harap tunggu...");
+
+    // Reset data lokal juga agar tampilan langsung bersih
+    dataMasterSiswa.forEach((s, idx) => {
+      const cocok = scopeResetAktif === 'semua_mapel' ? true
+                  : scopeResetAktif === 'per_kelas'   ? s.kelas === kelasTarget
+                  : true; // per_mapel: reset data server saja
+      if(!cocok) return;
+      tpList.forEach(tp => {
+        dataMasterSiswa[idx].nilaiDetailTP[tp].nh1 = "";
+        dataMasterSiswa[idx].nilaiDetailTP[tp].nh2 = "";
+        dataMasterSiswa[idx].nilaiDetailTP[tp].nh3 = "";
+        dataMasterSiswa[idx].nilaiDetailTP[tp].nh4 = "";
+        dataMasterSiswa[idx].nilaiDetailTP[tp].sh  = "";
+      });
+      if(hapusAsas) dataMasterSiswa[idx].nilaiAsas = "";
+    });
+    filterTabelSiswa();
+
+    google.script.run
+      .withSuccessHandler(function(hasil) {
+        tutupLoadingSistem();
+        if(hasil.ok) {
+          bukaDialogNotifKustom(
+            "Reset Berhasil",
+            `${hasil.jumlahSel} sel nilai berhasil dikosongkan dari spreadsheet.`,
+            "sukses"
+          );
+        } else {
+          bukaDialogNotifKustom("Gagal","Terjadi kesalahan saat reset. Coba lagi.","gagal");
+        }
+      })
+      .withFailureHandler(function() {
+        tutupLoadingSistem();
+        bukaDialogNotifKustom("Error Server","Gagal menghubungi server.","gagal");
+      })
+      .adminResetNilaiSemua(scopeResetAktif, mapelTarget, kelasTarget, tpList, hapusAsas);
+  }
+
+  // ===== SISTEM BOBOT PER-GURU (localStorage) =====
+  // Key: 'absena_bobot_<namaUser>' → {nh, sh, sumatif, asas, hadir}
+  function kunciBobotUser(namaUser) { return 'absena_bobot_' + namaUser; }
+
+  function simpanBobotLokal(namaUser, data) {
+    try { localStorage.setItem(kunciBobotUser(namaUser), JSON.stringify(data)); } catch(e){}
+  }
+  function ambilBobotLokal(namaUser) {
+    try {
+      const raw = localStorage.getItem(kunciBobotUser(namaUser));
+      if(raw) return JSON.parse(raw);
+    } catch(e){}
+    return null;
+  }
+
+  function updateTotalBobot() {
+    const s = parseFloat(document.getElementById('inpBGlobalSumatif').value)||0;
+    const a = parseFloat(document.getElementById('inpBGlobalAsas').value)||0;
+    const k = parseFloat(document.getElementById('inpBGlobalHadir').value)||0;
+    const total = Math.round((s+a+k)*100)/100;
+    const span = document.getElementById('spanTotalBobot');
+    span.innerText = total.toFixed(2);
+    span.style.color = Math.abs(total-1.0)<=0.01 ? '#34d399' : '#f87171';
+  }
+
+  function sinkronBobotSlider() {
+    const nh = parseFloat(document.getElementById('inpBMapelNH').value)||0;
+    const sh = parseFloat(document.getElementById('inpBMapelSH').value)||0;
+    const pctNH = Math.round(nh/(nh+sh||1)*100);
+    document.getElementById('sliderBobotNH').value = pctNH;
+    document.getElementById('labelSliderBobot').innerText = 'NH '+pctNH+'% : SH '+(100-pctNH)+'%';
+  }
+
+  function sinkronBobotDariSlider(val) {
+    const pct = parseInt(val);
+    const nh = (pct/100).toFixed(2);
+    const sh = ((100-pct)/100).toFixed(2);
+    document.getElementById('inpBMapelNH').value = nh;
+    document.getElementById('inpBMapelSH').value = sh;
+    document.getElementById('labelSliderBobot').innerText = 'NH '+pct+'% : SH '+(100-pct)+'%';
+  }
+
+  function muatBobotSidebar() {
+    if(!userAktif) return;
+    // Prioritas: bobot lokal user → bobot dari server
+    const lokal = ambilBobotLokal(userAktif.nama);
+    if(lokal) {
+      if(lokal.nh !== undefined) document.getElementById('inpBMapelNH').value = lokal.nh;
+      if(lokal.sh !== undefined) document.getElementById('inpBMapelSH').value = lokal.sh;
+      if(lokal.sumatif !== undefined) document.getElementById('inpBGlobalSumatif').value = lokal.sumatif;
+      if(lokal.asas !== undefined) document.getElementById('inpBGlobalAsas').value = lokal.asas;
+      if(lokal.hadir !== undefined) document.getElementById('inpBGlobalHadir').value = lokal.hadir;
+      // Update bSistem sesuai bobot user
+      bSistem.mapelNH = parseFloat(lokal.nh) || bSistem.mapelNH;
+      bSistem.mapelSH = parseFloat(lokal.sh) || bSistem.mapelSH;
+      bSistem.globalSumatif  = parseFloat(lokal.sumatif) || bSistem.globalSumatif;
+      bSistem.globalAsas     = parseFloat(lokal.asas)    || bSistem.globalAsas;
+      bSistem.globalKehadiran= parseFloat(lokal.hadir)   || bSistem.globalKehadiran;
+    }
+    sinkronBobotSlider();
+    updateTotalBobot();
+
+    // Tampilkan/sembunyikan fitur admin
+    const isAdmin = userAktif.role==='ADMIN';
+    document.getElementById('seksiAdminBobotInternal').style.display = isAdmin ? 'block' : 'none';
+    document.getElementById('seksiAdminBobotRapor').style.display    = isAdmin ? 'block' : 'none';
+    document.getElementById('labelBobotInternalKonteks').innerText   = isAdmin
+      ? 'Setel bobot NH:SH global atau per guru' : 'Bobot NH:SH khusus mapel Anda';
+    document.getElementById('labelBobotRaporKonteks').innerText      = isAdmin
+      ? 'Set % rapor global atau khusus mapel ini' : 'Bobot % rapor khusus untuk mapel Anda';
+
+    // Isi dropdown guru untuk admin
+    if(isAdmin) isiDropdownGuruBobot();
+  }
+
+  function isiDropdownGuruBobot() {
+    const sel = document.getElementById('selectGuruBobotAdmin');
+    if(!sel) return;
+    sel.innerHTML = '<option value="__SEMUA__">— Semua Guru —</option>';
+    if(typeof daftarGuruSistem !== 'undefined' && daftarGuruSistem.length > 0) {
+      daftarGuruSistem.forEach(g => {
+        sel.innerHTML += `<option value="${g.nama}||${normalisasiMapel(g.mapel)}">${g.nama} (${g.mapel})</option>`;
+      });
+    }
+  }
+
+  // Simpan bobot internal TP untuk user yang sedang login
+  function simpanBobotGuru() {
+    const nh = parseFloat(document.getElementById('inpBMapelNH').value);
+    const sh = parseFloat(document.getElementById('inpBMapelSH').value);
+    if(isNaN(nh)||isNaN(sh)||nh<0||sh<0) { bukaDialogNotifKustom("Bobot Tidak Valid","Masukkan angka yang benar!","peringatan"); return; }
+    const mapelKode = normalisasiMapel(userAktif.role==="ADMIN"?"PKN":userAktif.mapel);
+    bukaLoadingSistem("Menyimpan Bobot...","Memperbarui bobot internal TP.");
+    // Simpan lokal per user
+    const lokal = ambilBobotLokal(userAktif.nama) || {};
+    lokal.nh = nh; lokal.sh = sh;
+    simpanBobotLokal(userAktif.nama, lokal);
+    bSistem.mapelNH = nh; bSistem.mapelSH = sh;
+    sinkronBobotSlider();
+    // Simpan ke server (per mapel)
+    google.script.run.withSuccessHandler(function(){
+      tutupLoadingSistem();
+      bukaDialogNotifKustom("Tersimpan","Bobot NH:SH berhasil diperbarui untuk "+userAktif.nama+"!","sukses");
+    }).simpanBobotInternalMapelPerUser(mapelKode, userAktif.nama, nh, sh);
+  }
+
+  // Simpan bobot rapor untuk user yang sedang login
+  function simpanBobotRaporWeb() {
+    const s = parseFloat(document.getElementById('inpBGlobalSumatif').value);
+    const a = parseFloat(document.getElementById('inpBGlobalAsas').value);
+    const k = parseFloat(document.getElementById('inpBGlobalHadir').value);
+    if(Math.abs((s+a+k)-1.0)>0.01) { bukaDialogNotifKustom("Bobot Tidak Pas","Total Sumatif+ASAS+Hadir harus = 1.0!","peringatan"); return; }
+    bukaLoadingSistem("Menyimpan Bobot...","Memperbarui persentase nilai e-Rapor.");
+    // Simpan lokal per user
+    const lokal = ambilBobotLokal(userAktif.nama) || {};
+    lokal.sumatif = s; lokal.asas = a; lokal.hadir = k;
+    simpanBobotLokal(userAktif.nama, lokal);
+    bSistem.globalSumatif = s; bSistem.globalAsas = a; bSistem.globalKehadiran = k;
+    updateTotalBobot();
+    // Simpan ke server per user
+    const mapelKode = normalisasiMapel(userAktif.role==="ADMIN"?"PKN":userAktif.mapel);
+    google.script.run.withSuccessHandler(function(){
+      tutupLoadingSistem();
+      bukaDialogNotifKustom("Tersimpan","Bobot rapor disimpan untuk "+userAktif.nama+"!","sukses");
+    }).simpanBobotRaporPerUser(mapelKode, userAktif.nama, s, a, k);
+  }
+
+  // Admin: set bobot rapor GLOBAL (override semua, simpan ke PropertiesService utama)
+  function simpanBobotRaporGlobal() {
+    if(!userAktif||userAktif.role!=='ADMIN') return;
+    const s = parseFloat(document.getElementById('inpBGlobalSumatif').value);
+    const a = parseFloat(document.getElementById('inpBGlobalAsas').value);
+    const k = parseFloat(document.getElementById('inpBGlobalHadir').value);
+    if(Math.abs((s+a+k)-1.0)>0.01) { bukaDialogNotifKustom("Bobot Tidak Pas","Total harus = 1.0!","peringatan"); return; }
+    bukaLoadingSistem("Menyimpan Bobot Global...","Menerapkan ke seluruh sistem.");
+    google.script.run.withSuccessHandler(function(){
+      tutupLoadingSistem();
+      bSistem.globalSumatif = s; bSistem.globalAsas = a; bSistem.globalKehadiran = k;
+      bukaDialogNotifKustom("Sukses","Bobot global berhasil diperbarui untuk semua guru!","sukses");
+    }).simpanBobotGlobalSistem(s, a, k);
+  }
+
+  // Admin: terapkan bobot NH/SH saat ini ke guru tertentu atau semua guru
+  function terapkanBobotAdminKeGuru() {
+    if(!userAktif||userAktif.role!=='ADMIN') return;
+    const nh = parseFloat(document.getElementById('inpBMapelNH').value);
+    const sh = parseFloat(document.getElementById('inpBMapelSH').value);
+    const selVal = document.getElementById('selectGuruBobotAdmin').value;
+    if(isNaN(nh)||isNaN(sh)) { bukaDialogNotifKustom("Bobot Kosong","Isi NH dan SH terlebih dahulu!","peringatan"); return; }
+    bukaLoadingSistem("Menerapkan Bobot...","Menyimpan ke server.");
+    if(selVal === '__SEMUA__') {
+      // Override ke semua guru via server
+      google.script.run.withSuccessHandler(function(){
+        tutupLoadingSistem();
+        bukaDialogNotifKustom("Sukses","Bobot NH:SH global diperbarui untuk semua mapel!","sukses");
+      }).simpanBobotInternalGlobal(nh, sh);
+    } else {
+      const parts = selVal.split('||');
+      const mapelKode = parts[1];
+      const namaGuru  = parts[0];
+      google.script.run.withSuccessHandler(function(){
+        tutupLoadingSistem();
+        bukaDialogNotifKustom("Sukses","Bobot NH:SH untuk "+namaGuru+" diperbarui!","sukses");
+      }).simpanBobotInternalMapelPerUser(mapelKode, namaGuru, nh, sh);
+    }
+  }
+
+  // Alias lama agar tidak error jika masih dipanggil
+  function simpanBobotGlobalWeb() { simpanBobotRaporWeb(); }
+
+  // ===== TOGGLE LIHAT PASSWORD =====
+  function toggleLihatPassword() {
+    const inp = document.getElementById('logPass');
+    const ikon = document.getElementById('ikonTogglePass');
+    const btn = document.getElementById('btnTogglePass');
+    if(inp.type==='password') {
+      inp.type='text'; ikon.innerText='visibility_off';
+      btn.style.color='rgba(192,24,42,0.7)';
+    } else {
+      inp.type='password'; ikon.innerText='visibility';
+      btn.style.color='rgba(255,255,255,0.3)';
+    }
+  }
+
+  function tampilkanMenuLeger() { navigasiKe('leger'); }
+  function kembaliKeWorkspace() { navigasiKe('input'); }
+
+  // ===== LOG AKTIVITAS LOGIN (disimpan di localStorage) =====
+  function catatAktivitasLogin(user) {
+    try {
+      const key = 'absena_log_aktivitas';
+      const log = JSON.parse(localStorage.getItem(key)||'[]');
+      log.unshift({
+        nama: user.nama, role: user.role, mapel: user.mapel,
+        waktu: new Date().toLocaleString('id-ID'),
+        ts: Date.now()
+      });
+      // Simpan maksimal 200 entri
+      if(log.length > 200) log.splice(200);
+      localStorage.setItem(key, JSON.stringify(log));
+    } catch(e) {}
+  }
+
+  function refreshLogAktivitas() {
+    const log = JSON.parse(localStorage.getItem('absena_log_aktivitas')||'[]');
+    const grid = document.getElementById('gridKartuPengguna');
+    if(log.length===0) {
+      grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:#475569;font-size:12px;font-weight:700;">Belum ada riwayat login tercatat.</div>`;
+      return;
+    }
+    // Kelompokkan per user
+    const perUser = {};
+    log.forEach(e=>{
+      if(!perUser[e.nama]) perUser[e.nama]={nama:e.nama,role:e.role,mapel:e.mapel,jumlah:0,terakhir:'',riwayat:[]};
+      perUser[e.nama].jumlah++;
+      if(!perUser[e.nama].terakhir) perUser[e.nama].terakhir=e.waktu;
+      perUser[e.nama].riwayat.push(e.waktu);
+    });
+    let html='';
+    Object.values(perUser).forEach(u=>{
+      const warna = u.role==='ADMIN'?'rgba(124,58,237,0.15)':'rgba(30,64,175,0.12)';
+      const warnaB = u.role==='ADMIN'?'rgba(124,58,237,0.35)':'rgba(30,64,175,0.3)';
+      const clrRole = u.role==='ADMIN'?'#c4b5fd':'#60a5fa';
+      html+=`<div style="background:${warna};border:1px solid ${warnaB};border-radius:14px;padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:38px;height:38px;border-radius:10px;background:${warnaB};display:flex;align-items:center;justify-content:center;">
+              <span class="material-icons-round" style="color:${clrRole};font-size:20px;">${u.role==='ADMIN'?'shield':'school'}</span>
+            </div>
+            <div>
+              <p style="font-size:12px;font-weight:900;color:#f1f5f9;">${u.nama}</p>
+              <p style="font-size:10px;color:${clrRole};font-weight:700;">${u.role} &bull; ${u.mapel}</p>
+            </div>
+          </div>
+          <div style="background:rgba(255,255,255,0.08);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:800;color:#94a3b8;">${u.jumlah}x login</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:8px 10px;">
+          <p style="font-size:9px;color:#475569;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px;">Login Terakhir</p>
+          <p style="font-size:11px;font-weight:700;color:#cbd5e1;">${u.terakhir}</p>
+        </div>
+        <details style="margin-top:8px;">
+          <summary style="font-size:10px;color:#475569;cursor:pointer;font-weight:700;">Lihat Riwayat (${u.riwayat.length})</summary>
+          <div style="max-height:80px;overflow-y:auto;margin-top:6px;">
+            ${u.riwayat.map((r,i)=>`<p style="font-size:10px;color:#64748b;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.04);">${i+1}. ${r}</p>`).join('')}
+          </div>
+        </details>
+      </div>`;
+    });
+    grid.innerHTML = html;
+  }
+
+  function unduhLogAktivitas() {
+    const log = JSON.parse(localStorage.getItem('absena_log_aktivitas')||'[]');
+    if(log.length===0){bukaDialogNotifKustom("Kosong","Belum ada data log login.","peringatan");return;}
+    const header = [["NO","NAMA","ROLE","MAPEL","WAKTU LOGIN"]];
+    const rows = log.map((e,i)=>[i+1, e.nama, e.role, e.mapel, e.waktu]);
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([...header,...rows]);
+    ws['!cols']=[{wch:5},{wch:30},{wch:15},{wch:25},{wch:25}];
+    XLSX.utils.book_append_sheet(wb,ws,"Log Aktivitas");
+    XLSX.writeFile(wb,"log_aktivitas_absena_"+new Date().toISOString().slice(0,10)+".xlsx");
+  }
+
+  // ===== DOWNLOAD SEMUA NILAI LENGKAP (per mapel guru) =====
+  function unduhSemuaNilaiLengkap() {
+    if(dataMasterSiswa.length===0){bukaDialogNotifKustom("Data Kosong","Data siswa belum dimuat.","peringatan");return;}
+    const mapelKode = normalisasiMapel(userAktif.role==="ADMIN"?"PKN":userAktif.mapel);
+    const tpAktif = dapatkanInformasiTPAktif();
+    const kls = (document.getElementById('selectKelas')&&document.getElementById('selectKelas').value!=="Semua")
+      ? document.getElementById('selectKelas').value : null;
+
+    const header = ["No","Kelas","NIS","Nama Siswa",
+      "TP1-NH1","TP1-NH2","TP1-NH3","TP1-NH4","TP1-SH","Nilai TP1","Ket TP1",
+      "TP2-NH1","TP2-NH2","TP2-NH3","TP2-NH4","TP2-SH","Nilai TP2","Ket TP2",
+      "TP3-NH1","TP3-NH2","TP3-NH3","TP3-NH4","TP3-SH","Nilai TP3","Ket TP3",
+      "TP4-NH1","TP4-NH2","TP4-NH3","TP4-NH4","TP4-SH","Nilai TP4","Ket TP4",
+      "ASAS/ASAT","Kehadiran %","Nilai Rapor"
+    ];
+    const rows = [];
+    let no=1;
+    dataMasterSiswa.forEach(s=>{
+      if(kls && s.kelas!==kls) return;
+      if(!listKelasPilihanGuru.includes(s.kelas)) return;
+      const row=[no++, s.kelas, s.nis||'', s.nama];
+      let sumTP=0,jmlTP=0;
+      for(let i=1;i<=4;i++){
+        const d=s.nilaiDetailTP['tp'+i];
+        const rNH=hitungRataRataNHDinamis(d.nh1,d.nh2,d.nh3,d.nh4);
+        const sH=d.sh===""?""  :parseFloat(d.sh);
+        let vTP="",ket="-";
+        if(rNH!==null||sH!==""){vTP=Math.round((rNH!==null?(rNH*bSistem.mapelNH):0)+(sH!==""?(sH*bSistem.mapelSH):0));ket=vTP>=AMBANG_BATAS_TERCAPAI?"T":"R";}
+        if(tpAktif['tp'+i]&&vTP!==""){sumTP+=vTP;jmlTP++;}
+        row.push(d.nh1||"",d.nh2||"",d.nh3||"",d.nh4||"",d.sh||"",vTP,ket);
+      }
+      const nA=s.nilaiAsas===""?""  :parseFloat(s.nilaiAsas);
+      const nH=s.kehadiran===""?100:parseFloat(s.kehadiran);
+      let nRapor="";
+      if(jmlTP>0||nA!==""){const rTP=jmlTP>0?(sumTP/jmlTP):0;const nAN=nA===""?0:nA;nRapor=Math.round((rTP*bSistem.globalSumatif)+(nAN*bSistem.globalAsas)+(nH*bSistem.globalKehadiran));}
+      row.push(nA,nH,nRapor);
+      rows.push(row);
+    });
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet([header,...rows]);
+    ws['!cols']=[{wch:4},{wch:8},{wch:14},{wch:30},...Array(31).fill({wch:8})];
+    XLSX.utils.book_append_sheet(wb,ws,mapelKode);
+    XLSX.writeFile(wb,"semua_nilai_"+mapelKode+(kls?'_'+kls:'_semua')+"_"+new Date().toISOString().slice(0,10)+".xlsx");
+  }
+
+  // ===== DOWNLOAD LEGER LENGKAP =====
+  function unduhLegerLengkap() {
+    if(!rekapObjekLegerTerakhir||rekapObjekLegerTerakhir.length===0){
+      bukaDialogNotifKustom("Data Kosong","Muat data leger terlebih dahulu!","peringatan"); return;
+    }
+    const kls = document.getElementById('selectKelasLeger').value;
+    const mapelList = Object.keys(rekapObjekLegerTerakhir[0].paketNilaiMapel);
+    // Header baris 1
+    const h1 = ["No","NIS","Abs","Nama Siswa"];
+    mapelList.forEach(m=>{ h1.push(m+" TP1",m+" K1",m+" TP2",m+" K2",m+" TP3",m+" K3",m+" TP4",m+" K4",m+" RAPOR"); });
+    h1.push("Hadir %");
+    const rows = rekapObjekLegerTerakhir.map((row,idx)=>{
+      const r = [idx+1, row.nis||'', row.noAbsen, row.nama];
+      mapelList.forEach(m=>{
+        const p=row.paketNilaiMapel[m]||{tp1_nilai:"",tp1_ket:"-",tp2_nilai:"",tp2_ket:"-",tp3_nilai:"",tp3_ket:"-",tp4_nilai:"",tp4_ket:"-",nilai_rapor_akhir:""};
+        r.push(p.tp1_nilai,p.tp1_ket,p.tp2_nilai,p.tp2_ket,p.tp3_nilai,p.tp3_ket,p.tp4_nilai,p.tp4_ket,p.nilai_rapor_akhir!==''?parseInt(p.nilai_rapor_akhir):'');
+      });
+      r.push(row.kehadiran);
+      return r;
+    });
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet([h1,...rows]);
+    // Format kolom RAPOR sebagai numerik
+    rows.forEach((_,ri)=>{
+      mapelList.forEach((m,mi)=>{
+        const raporCol = 4 + mi*9 + 8; // indeks kolom rapor tiap mapel
+        const cell = XLSX.utils.encode_cell({r:ri+1, c:raporCol});
+        if(ws[cell] && ws[cell].v!=='') ws[cell].t='n';
+      });
+    });
+    XLSX.utils.book_append_sheet(wb,ws,"Leger "+kls);
+    XLSX.writeFile(wb,"leger_lengkap_"+kls+"_"+new Date().toISOString().slice(0,10)+".xlsx");
+  }
+
+  // ===== ADMIN: TABEL & DOWNLOAD SEMUA MAPEL =====
+  // ===== ADMIN: DATA GURU & TABEL PER GURU =====
+
+  // Muat daftar guru dari GAS (sheet USERS) saat masuk panel Admin Semua
+  function muatDaftarGuruAdmin(callback) {
+    if(daftarGuruSistem.length > 0) { if(callback) callback(); return; }
+    google.script.run.withSuccessHandler(function(res){
+      daftarGuruSistem = res || [];
+      isiDropdownGuruBobot();
+      if(callback) callback();
+    }).withFailureHandler(()=>{ if(callback) callback(); })
+    .ambilDaftarGuruAdmin();
+  }
+
+  function muatTabelAdminSemuaMapel() {
+    const kls = document.getElementById('selectKelasAdmin').value;
+    if(!kls) return;
+    bukaLoadingSistem("Memuat Data Admin...","Mengambil nilai semua mapel dari database.");
+    const tpAktif = dapatkanInformasiTPAktif();
+
+    // Muat daftar guru dulu (cached setelah pertama kali), lalu ambil data kelas
+    muatDaftarGuruAdmin(function(){
+      google.script.run.withSuccessHandler(function(res){
+        databaseRawSistem = res;
+        const header = res.headerRaw;
+        const daftarMapel = res.daftarMapel;
+        let dataSiswa = [];
+        for(let j=1;j<res.dataRaw.length;j++){
+          if(!res.dataRaw[j][4]||res.dataRaw[j][4].toString().trim()!==kls) continue;
+          const row = res.dataRaw[j];
+          let paket={};
+          daftarMapel.forEach(m=>{
+            let pack={},totalM=0,jmlM=0;
+            for(let t=1;t<=4;t++){
+              if(tpAktif['tp'+t]){
+                const idx1=header.indexOf(m+'_TP'+t+'_NH1'),idx2=header.indexOf(m+'_TP'+t+'_NH2');
+                const idx3=header.indexOf(m+'_TP'+t+'_NH3'),idx4=header.indexOf(m+'_TP'+t+'_NH4');
+                const idxS=header.indexOf(m+'_TP'+t+'_SH');
+                const rNH=hitungRataRataNHDinamis(idx1>-1?row[idx1]:'',idx2>-1?row[idx2]:'',idx3>-1?row[idx3]:'',idx4>-1?row[idx4]:'');
+                const sH=idxS>-1&&row[idxS]!==''?parseFloat(row[idxS]):'';
+                if(rNH!==null||sH!==''){const mTP=(rNH!==null?(rNH*bSistem.mapelNH):0)+(sH!==''?(sH*bSistem.mapelSH):0);pack['tp'+t+'_nilai']=Math.round(mTP);pack['tp'+t+'_ket']=mTP>=AMBANG_BATAS_TERCAPAI?'T':'R';totalM+=mTP;jmlM++;}
+                else{pack['tp'+t+'_nilai']='';pack['tp'+t+'_ket']='-';}
+              }else{pack['tp'+t+'_nilai']='-';pack['tp'+t+'_ket']='-';}
+            }
+            const idxA=header.indexOf(m+'_ASAS');
+            const nA=idxA>-1&&row[idxA]!==''?parseFloat(row[idxA]):'';
+            let nRapor='';
+            if(jmlM>0||nA!==''){const rM=jmlM>0?(totalM/jmlM):0;const nAN=nA===''?0:nA;const idxH=header.indexOf(m+'_KEHADIRAN');const had=idxH>-1&&row[idxH]!==''?parseFloat(row[idxH]):100;nRapor=Math.round((rM*bSistem.globalSumatif)+(nAN*bSistem.globalAsas)+(had*bSistem.globalKehadiran));}
+            pack['nilai_rapor_akhir']=nRapor; pack['asas']=nA; paket[m]=pack;
+          });
+          // Kehadiran per siswa: ambil rata-rata dari semua mapel yang punya nilai kehadiran
+          let hadirSum=0,hadirCount=0;
+          daftarMapel.forEach(mp=>{const ih=header.indexOf(mp+'_KEHADIRAN');if(ih>-1&&row[ih]!==''){hadirSum+=parseFloat(row[ih]);hadirCount++;}});
+          const hadirSiswa=hadirCount>0?Math.round(hadirSum/hadirCount):100;
+          dataSiswa.push({noAbsen:row[2],nis:row[1],nama:row[3],kehadiran:hadirSiswa,paket:paket});
+        }
+        dataSiswa.sort((a,b)=>a.noAbsen-b.noAbsen);
+        dataAdminSemuaMapelCache = {dataSiswa,daftarMapel,kls};
+
+        // Isi dropdown GURU (bukan mapel)
+        const selGuru = document.getElementById('selectGuruAdmin');
+        if(selGuru){
+          selGuru.innerHTML = '';
+          // Opsi "Semua Guru / Semua Mapel"
+          selGuru.innerHTML += `<option value="__SEMUA__">— Semua Guru —</option>`;
+          // Kelompokkan guru per mapel yang tersedia di data
+          daftarMapel.forEach(mKode=>{
+            // Cari guru yang memiliki mapel ini (bisa lebih dari 1)
+            const guruMapelIni = daftarGuruSistem.filter(g => normalisasiMapel(g.mapel) === mKode);
+            if(guruMapelIni.length > 0){
+              guruMapelIni.forEach(g=>{
+                selGuru.innerHTML += `<option value="${g.nama}||${mKode}">${g.nama} (${mKode})</option>`;
+              });
+            } else {
+              // Mapel ada di data tapi tidak ada guru terdaftar — tampilkan saja mapelnya
+              selGuru.innerHTML += `<option value="__MAPEL__||${mKode}">${mKode} (Guru tidak ditemukan)</option>`;
+            }
+          });
+        }
+
+        renderTabelAdminGuruTerpilih();
+        tutupLoadingSistem();
+      }).withFailureHandler(()=>{tutupLoadingSistem();bukaDialogNotifKustom("Error","Gagal memuat data admin.","gagal");})
+      .ambilDataLegerKelas(kls);
+    });
+  }
+
+  // Render tabel berdasarkan guru yang dipilih di dropdown
+  function renderTabelAdminGuruTerpilih() {
+    if(!dataAdminSemuaMapelCache) return;
+    const {dataSiswa, daftarMapel, kls} = dataAdminSemuaMapelCache;
+    const selVal = document.getElementById('selectGuruAdmin').value;
+
+    let mapelList = [];
+    let namaGuruTampil = '';
+    let mapelGuruTampil = '';
+
+    if(!selVal || selVal === '__SEMUA__'){
+      // Semua guru — tampilkan semua mapel
+      mapelList = daftarMapel;
+      namaGuruTampil = 'Semua Guru';
+      mapelGuruTampil = daftarMapel.join(', ');
+      document.getElementById('infoGuruTerpilih').style.display='none';
+    } else {
+      const parts = selVal.split('||');
+      const namaGuru = parts[0];
+      const mapelKode = parts[1];
+      mapelList = [mapelKode];
+      if(namaGuru === '__MAPEL__'){
+        namaGuruTampil = '(Guru tidak terdaftar)';
+      } else {
+        namaGuruTampil = namaGuru;
+        const guruData = daftarGuruSistem.find(g=>g.nama===namaGuru);
+        mapelGuruTampil = guruData ? guruData.mapel : mapelKode;
+      }
+      // Update info panel guru
+      document.getElementById('infoNamaGuru').innerText = namaGuruTampil;
+      document.getElementById('infoMapelGuru').innerText = 'Mata Pelajaran: ' + mapelGuruTampil + '  •  Kelas: ' + kls;
+      // Hitung statistik guru ini
+      let jmlSiswa=0, jmlRapor=0, sumRapor=0, jmlTercapai=0;
+      dataSiswa.forEach(s=>{
+        const p = s.paket[mapelKode];
+        if(!p) return;
+        jmlSiswa++;
+        if(p.nilai_rapor_akhir!==''){
+          jmlRapor++;
+          sumRapor += parseInt(p.nilai_rapor_akhir);
+          if(parseInt(p.nilai_rapor_akhir) >= AMBANG_BATAS_TERCAPAI) jmlTercapai++;
+        }
+      });
+      const rataRapor = jmlRapor>0 ? Math.round(sumRapor/jmlRapor) : '—';
+      const pctTercapai = jmlRapor>0 ? Math.round(jmlTercapai/jmlRapor*100)+'%' : '—';
+      document.getElementById('infoStatGuru').innerHTML =
+        `<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:6px 12px;text-align:center;">
+          <p style="font-size:9px;color:#475569;font-weight:800;text-transform:uppercase;">Siswa</p>
+          <p style="font-size:14px;font-weight:900;color:#e2e8f0;">${jmlSiswa}</p>
+        </div>
+        <div style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);border-radius:10px;padding:6px 12px;text-align:center;">
+          <p style="font-size:9px;color:#7c3aed;font-weight:800;text-transform:uppercase;">Rata Rapor</p>
+          <p style="font-size:14px;font-weight:900;color:#c4b5fd;">${rataRapor}</p>
+        </div>
+        <div style="background:rgba(5,150,105,0.1);border:1px solid rgba(5,150,105,0.25);border-radius:10px;padding:6px 12px;text-align:center;">
+          <p style="font-size:9px;color:#059669;font-weight:800;text-transform:uppercase;">Tercapai</p>
+          <p style="font-size:14px;font-weight:900;color:#34d399;">${pctTercapai}</p>
+        </div>`;
+      document.getElementById('infoGuruTerpilih').style.display='block';
+    }
+
+    // Render tabel
+    const tabel = document.getElementById('tabelAdminSemuaMapel');
+    let html=`<thead><tr style="background:#0a0a14;">
+      <th rowspan="2">No</th><th rowspan="2">Abs</th><th rowspan="2" style="text-align:left;min-width:180px;">Nama Siswa</th>`;
+    mapelList.forEach(m=>{
+      // Cari nama guru untuk mapel ini
+      const guruM = daftarGuruSistem.filter(g=>normalisasiMapel(g.mapel)===m);
+      const labelGuru = guruM.length>0 ? guruM.map(g=>g.nama).join(' / ') : '';
+      const labelHeader = labelGuru ? `${m} <span style="display:block;font-size:8px;color:#60a5fa;font-weight:700;margin-top:2px;">👤 ${labelGuru}</span>` : m;
+      html+=`<th colspan="6" style="background:#0f0a14;color:#c0182a;font-size:10px;letter-spacing:0.1em;">${labelHeader}</th>`;
+    });
+    html+=`<th rowspan="2" style="color:#34d399;">Hadir%</th></tr><tr style="background:#0d0d1a;">`;
+    mapelList.forEach(()=>{ html+=`<th style="color:#fbbf24;">TP1</th><th style="color:#fbbf24;">TP2</th><th style="color:#fbbf24;">TP3</th><th style="color:#fbbf24;">TP4</th><th style="color:#6366f1;">ASAS</th><th style="color:#c4b5fd;">RAPOR</th>`; });
+    html+=`</tr></thead><tbody>`;
+    dataSiswa.forEach((s,idx)=>{
+      html+=`<tr><td>${idx+1}</td><td style="font-weight:800;color:#e2e8f0;">${s.noAbsen}</td><td style="text-align:left;font-weight:700;color:#e2e8f0;">${s.nama}</td>`;
+      mapelList.forEach(m=>{
+        const p=s.paket[m]||{tp1_nilai:'',tp2_nilai:'',tp3_nilai:'',tp4_nilai:'',asas:'',nilai_rapor_akhir:''};
+        html+=`<td style="color:#fbbf24;font-weight:800;">${p.tp1_nilai}</td><td style="color:#fbbf24;font-weight:800;">${p.tp2_nilai}</td><td style="color:#fbbf24;font-weight:800;">${p.tp3_nilai}</td><td style="color:#fbbf24;font-weight:800;">${p.tp4_nilai}</td>`;
+        html+=`<td style="color:#a5b4fc;">${p.asas}</td><td style="background:rgba(124,58,237,0.12);color:#c4b5fd;font-weight:900;">${p.nilai_rapor_akhir!==''?parseInt(p.nilai_rapor_akhir):''}</td>`;
+      });
+      html+=`<td style="color:#34d399;font-weight:800;">${s.kehadiran}%</td></tr>`;
+    });
+    html+='</tbody>'; tabel.innerHTML=html;
+  }
+
+  // Tetap ada alias untuk kompatibilitas (tidak error jika masih dipanggil)
+  function renderTabelAdminMapelTerpilih() { renderTabelAdminGuruTerpilih(); }
+
+  function unduhAdminSemuaMapel() {
+    if(!dataAdminSemuaMapelCache){bukaDialogNotifKustom("Kosong","Muat data terlebih dahulu.","peringatan");return;}
+    const {dataSiswa,daftarMapel,kls} = dataAdminSemuaMapelCache;
+    const h1 = ["No","Abs","Nama Siswa"];
+    daftarMapel.forEach(m=>{
+      const guruM = daftarGuruSistem.filter(g=>normalisasiMapel(g.mapel)===m);
+      const namaG = guruM.length>0 ? ' ['+guruM.map(g=>g.nama).join('/')+']' : '';
+      h1.push(m+namaG+" TP1",m+namaG+" TP2",m+namaG+" TP3",m+namaG+" TP4",m+namaG+" ASAS",m+namaG+" RAPOR");
+    });
+    h1.push("Hadir %");
+    const rows = dataSiswa.map((s,idx)=>{
+      const r=[idx+1,s.noAbsen,s.nama];
+      daftarMapel.forEach(m=>{
+        const p=s.paket[m]||{tp1_nilai:'',tp2_nilai:'',tp3_nilai:'',tp4_nilai:'',asas:'',nilai_rapor_akhir:''};
+        r.push(p.tp1_nilai,p.tp2_nilai,p.tp3_nilai,p.tp4_nilai,p.asas,p.nilai_rapor_akhir!==''?parseInt(p.nilai_rapor_akhir):'');
+      });
+      r.push(s.kehadiran); return r;
+    });
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet([h1,...rows]);
+    XLSX.utils.book_append_sheet(wb,ws,"Semua Mapel "+kls);
+    XLSX.writeFile(wb,"admin_semua_mapel_"+kls+"_"+new Date().toISOString().slice(0,10)+".xlsx");
+  }
+
+  // ===== DOWNLOAD PER GURU (ADMIN) =====
+  function unduhAdminPerGuru() {
+    if(!dataAdminSemuaMapelCache){bukaDialogNotifKustom("Kosong","Muat data terlebih dahulu.","peringatan");return;}
+    const {dataSiswa,kls} = dataAdminSemuaMapelCache;
+    const selVal = document.getElementById('selectGuruAdmin').value;
+    if(!selVal||selVal==='__SEMUA__'){unduhAdminSemuaMapel();return;}
+    const parts = selVal.split('||');
+    const namaGuru = parts[0]==='__MAPEL__'?'(Tidak Diketahui)':parts[0];
+    const mapelKode = parts[1];
+    const h1=["No","Abs","Nama Siswa","TP1","TP2","TP3","TP4","ASAS","RAPOR","Hadir %"];
+    const rows=dataSiswa.map((s,idx)=>{
+      const p=s.paket[mapelKode]||{tp1_nilai:'',tp2_nilai:'',tp3_nilai:'',tp4_nilai:'',asas:'',nilai_rapor_akhir:''};
+      return [idx+1,s.noAbsen,s.nama,p.tp1_nilai,p.tp2_nilai,p.tp3_nilai,p.tp4_nilai,p.asas,p.nilai_rapor_akhir!==''?parseInt(p.nilai_rapor_akhir):'',s.kehadiran];
+    });
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet([h1,...rows]);
+    ws['!cols']=[{wch:4},{wch:6},{wch:30},...Array(7).fill({wch:10})];
+    XLSX.utils.book_append_sheet(wb,ws,mapelKode);
+    XLSX.writeFile(wb,"nilai_"+mapelKode+"_guru_"+namaGuru.replace(/\s+/g,'_')+"_"+kls+"_"+new Date().toISOString().slice(0,10)+".xlsx");
+  }
+
+  // Alias lama tetap ada agar tidak error
+  function unduhAdminPerMapel(mapel) { unduhAdminPerGuru(); }
+
+  function unggahDatabaseMasterMassal() {
+    const f=document.getElementById('fileMasterCsv').files[0]; if(!f) return;
+    const r=new FileReader();
+    bukaLoadingSistem("Mengunggah CSV Master...","Mendaftarkan basis data massal baru.");
+    r.onload=function(e){ google.script.run.withSuccessHandler(function(m){ tutupLoadingSistem(); bukaDialogNotifKustom("Berhasil",m,"sukses"); muatAwalSistem(); }).adminProsesUploadMasterCSV(e.target.result); };
+    r.readAsText(f);
+  }
+
+  function prosesMuatTabelLeger() {
+    const tabel=document.getElementById('tabelLegerUtama');
+    const kls=document.getElementById('selectKelasLeger').value;
+    if(!kls){tabel.innerHTML="<tr><td style='padding:20px;text-align:center;color:#475569;'>Pilih kelas terlebih dahulu.</td></tr>"; tutupLoadingSistem(); return;}
+    const tpAktif=dapatkanInformasiTPAktif(); let daftarMapelTampil=[];
+    google.script.run.withSuccessHandler(function(res) {
+      databaseRawSistem=res; let dataSiswaSesuai=[]; const header=res.headerRaw;
+      if(userAktif.role==="ADMIN"){daftarMapelTampil=res.daftarMapel;}
+      else {
+        const mapelGuru=normalisasiMapel(userAktif.mapel);
+        daftarMapelTampil=res.daftarMapel.filter(m=>m.toUpperCase()===mapelGuru.toUpperCase());
+        if(daftarMapelTampil.length===0) daftarMapelTampil=[mapelGuru];
+      }
+      for(let j=1;j<res.dataRaw.length;j++) {
+        if(res.dataRaw[j][4]&&res.dataRaw[j][4].toString().trim()===kls) {
+          let paketNilaiMapel={};
+          daftarMapelTampil.forEach(m=>{
+            let pack={},totalM=0,jmlM=0;
+            for(let t=1;t<=4;t++) {
+              if(tpAktif["tp"+t]) {
+                const nh1=res.dataRaw[j][header.indexOf(m+"_TP"+t+"_NH1")];
+                const nh2=res.dataRaw[j][header.indexOf(m+"_TP"+t+"_NH2")];
+                const nh3=res.dataRaw[j][header.indexOf(m+"_TP"+t+"_NH3")];
+                const nh4=res.dataRaw[j][header.indexOf(m+"_TP"+t+"_NH4")];
+                const sh =res.dataRaw[j][header.indexOf(m+"_TP"+t+"_SH")];
+                const rNH=hitungRataRataNHDinamis(nh1,nh2,nh3,nh4);
+                const sHN=sh===""?""  :parseFloat(sh);
+                if(rNH!==null||sHN!==""){const mTP=(rNH!==null?(rNH*bSistem.mapelNH):0)+(sHN!==""?(sHN*bSistem.mapelSH):0);pack["tp"+t+"_nilai"]=Math.round(mTP);pack["tp"+t+"_ket"]=mTP>=AMBANG_BATAS_TERCAPAI?"T":"R";totalM+=mTP;jmlM++;}
+                else{pack["tp"+t+"_nilai"]="";pack["tp"+t+"_ket"]="-";}
+              } else {pack["tp"+t+"_nilai"]="-";pack["tp"+t+"_ket"]="-";}
+            }
+            // Sumatif Akhir = rata-rata dari nilai TP yang sudah dihitung
+            const rataTP = jmlM > 0 ? totalM / jmlM : null;
+            pack["sumatif_akhir"] = rataTP !== null ? Math.round(rataTP) : "";
+            const colA=header.indexOf(m+"_ASAS"); const nA=colA!==-1&&res.dataRaw[j][colA]!==""?parseFloat(res.dataRaw[j][colA]):"";
+            pack["asas"] = nA;
+            let nRaporM="";
+            if(jmlM>0||nA!==""){const nAN=nA===""?0:nA;const colH=header.indexOf(m+"_KEHADIRAN");const had=colH!==-1&&res.dataRaw[j][colH]!==""?parseFloat(res.dataRaw[j][colH]):100;nRaporM=Math.round((rataTP!==null?(rataTP*bSistem.globalSumatif):0)+(nAN*bSistem.globalAsas)+(had*bSistem.globalKehadiran));}
+            pack["nilai_rapor_akhir"]=nRaporM; paketNilaiMapel[m]=pack;
+          });
+          // Kehadiran per siswa: rata dari semua mapel yang punya nilai
+          let hSum=0,hCnt=0;
+          daftarMapelTampil.forEach(mp=>{const ch=header.indexOf(mp+"_KEHADIRAN");if(ch!==-1&&res.dataRaw[j][ch]!==""){hSum+=parseFloat(res.dataRaw[j][ch]);hCnt++;}});
+          const hadir=hCnt>0?Math.round(hSum/hCnt):100;
+          dataSiswaSesuai.push({noAbsen:res.dataRaw[j][2],nis:res.dataRaw[j][1],nama:res.dataRaw[j][3],kehadiran:hadir,paketNilaiMapel:paketNilaiMapel});
+        }
+      }
+      dataSiswaSesuai.sort((a,b)=>a.noAbsen-b.noAbsen); rekapObjekLegerTerakhir=dataSiswaSesuai;
+      let html=`<thead><tr style="background:#0a0a14;">
+        <th rowspan="2">No</th><th rowspan="2">NIS</th><th rowspan="2">Abs</th><th rowspan="2" style="text-align:left;min-width:180px;">Nama Siswa</th>`;
+      daftarMapelTampil.forEach(m=>{html+=`<th colspan="11" style="background:#0f0a14;color:#c0182a;font-size:10px;letter-spacing:0.1em;">${m.toUpperCase()}</th>`;});
+      html+=`<th rowspan="2" style="color:#34d399;">Hadir %</th></tr><tr style="background:#0d0d1a;">`;
+      daftarMapelTampil.forEach(()=>{
+        html+=`<th style="color:#a16207;background:#1a1405;">TP1</th><th style="color:#475569;font-size:9px;">K</th>`;
+        html+=`<th style="color:#a16207;background:#1a1405;">TP2</th><th style="color:#475569;font-size:9px;">K</th>`;
+        html+=`<th style="color:#a16207;background:#1a1405;">TP3</th><th style="color:#475569;font-size:9px;">K</th>`;
+        html+=`<th style="color:#a16207;background:#1a1405;">TP4</th><th style="color:#475569;font-size:9px;">K</th>`;
+        html+=`<th style="color:#fb923c;background:#1a0c02;white-space:nowrap;">Sum. Akhir</th>`;
+        html+=`<th style="color:#818cf8;background:#080b1a;white-space:nowrap;">ASAS/ASAT</th>`;
+        html+=`<th style="color:#c4b5fd;background:#0e0a1a;">RAPOR</th>`;
+      });
+      html+=`</tr></thead><tbody>`;
+      dataSiswaSesuai.forEach((row,idx)=>{
+        html+=`<tr><td>${idx+1}</td><td style="color:#64748b;">${row.nis||'-'}</td><td style="font-weight:800;color:#e2e8f0;">${row.noAbsen}</td><td style="text-align:left;font-weight:700;color:#e2e8f0;">${row.nama}</td>`;
+        daftarMapelTampil.forEach(m=>{
+          const p=row.paketNilaiMapel[m]||{tp1_nilai:"",tp1_ket:"-",tp2_nilai:"",tp2_ket:"-",tp3_nilai:"",tp3_ket:"-",tp4_nilai:"",tp4_ket:"-",sumatif_akhir:"",asas:"",nilai_rapor_akhir:""};
+          const warnaSum = p.sumatif_akhir===""?"#334155":p.sumatif_akhir>=91?"#4ade80":p.sumatif_akhir>=80?"#fbbf24":"#f87171";
+          const warnaAsas= p.asas===""?"#334155":p.asas>=91?"#4ade80":p.asas>=80?"#fbbf24":"#f87171";
+          html+=`<td style="color:#fbbf24;font-weight:800;">${p.tp1_nilai}</td><td style="color:#475569;">${p.tp1_ket}</td>`;
+          html+=`<td style="color:#fbbf24;font-weight:800;">${p.tp2_nilai}</td><td style="color:#475569;">${p.tp2_ket}</td>`;
+          html+=`<td style="color:#fbbf24;font-weight:800;">${p.tp3_nilai}</td><td style="color:#475569;">${p.tp3_ket}</td>`;
+          html+=`<td style="color:#fbbf24;font-weight:800;">${p.tp4_nilai}</td><td style="color:#475569;">${p.tp4_ket}</td>`;
+          html+=`<td style="color:${warnaSum};font-weight:800;">${p.sumatif_akhir}</td>`;
+          html+=`<td style="color:${warnaAsas};font-weight:800;">${p.asas}</td>`;
+          html+=`<td class="td-rapor-leger">${p.nilai_rapor_akhir}</td>`;
+        });
+        html+=`<td style="color:#34d399;font-weight:800;">${row.kehadiran}%</td></tr>`;
+      });
+      html+="</tbody>"; tabel.innerHTML=html; tutupLoadingSistem();
+    }).ambilDataLegerKelas(kls);
+  }
+
+  function unduhLegerFormatSamaPersisERapor() {
+    if(!rekapObjekLegerTerakhir||rekapObjekLegerTerakhir.length===0){bukaDialogNotifKustom("Data Kosong","Muat data rombel kelas terlebih dahulu!","peringatan");return;}
+    const kls=document.getElementById('selectKelasLeger').value;
+    const tpAktif=dapatkanInformasiTPAktif();
+    const mapelTarget=Object.keys(rekapObjekLegerTerakhir[0].paketNilaiMapel)[0];
+    const mplText=mapelTarget.replace(/_/g," ").toUpperCase();
+    const row1=[`FORMAT IMPORT NILAI RAPOR ${mplText}, KELAS ${kls}`,"13","","","","","","","","","","",""];
+    const row2=["","38","eec68ee5-1498-4106-a5b5-842c95e6a4a9","200010300","","","","","","","","",""];
+    const row3=["NO","NILRPT","NILRPT","NILRPT","NISN","NAMA SISWA","NILAI RAPOR","TINGKAT KETERAPEAN TP","","","VALIDASI","",""];
+    const row4=["","","","","","","","cc52d930-d530-48d7-9ed4-f2868ba3dad4","fcae513f-2bcd-4fa2-9704-0b08aebb9087","a4065350-a869-41bd-a725-9f8b6e23f4b5","","",""];
+    const row5=["","","","","","","","Murid menjelaskan materi esensi sumatif 1","Murid memahami materi esensi sumatif 2","Murid mempraktikkan kompetensi sumatif 3","","",""];
+    const row6=["","","","","","","","TP.1","TP.2","TP.3","TR","OP","NILAI"];
+    let excelData=[row1,row2,row3,row4,row5,row6];
+    rekapObjekLegerTerakhir.forEach((row,idx)=>{
+      const p=row.paketNilaiMapel[mapelTarget]||{tp1_ket:"",tp2_ket:"",tp3_ket:"",nilai_rapor_akhir:""};
+      // ★ FIX: pastikan nilai rapor adalah angka, bukan string kosong
+      const nilaiRapor = (p.nilai_rapor_akhir !== "" && p.nilai_rapor_akhir !== null && p.nilai_rapor_akhir !== undefined)
+        ? parseInt(p.nilai_rapor_akhir) : 0;
+      excelData.push([
+        idx+1,
+        "2a0123fe-bb7c-4495-8cbe-b6c5b65281be",
+        "9921e284-ca3e-44f4-8be1-f1d5b6e0f4f0",
+        "1",
+        row.nis||"0000000000",
+        row.nama,
+        nilaiRapor,           // ← angka integer, bukan string
+        tpAktif.tp1?p.tp1_ket:"",
+        tpAktif.tp2?p.tp2_ket:"",
+        tpAktif.tp3?p.tp3_ket:"",
+        "1","2","Valid"
+      ]);
+    });
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet(excelData);
+    // ★ Paksa kolom G (indeks 6, mulai baris data ke-7) sebagai tipe numerik
+    rekapObjekLegerTerakhir.forEach((_,idx)=>{
+      const cellAddr = XLSX.utils.encode_cell({r: idx+6, c: 6});
+      if(ws[cellAddr]) { ws[cellAddr].t = 'n'; }
+    });
+    XLSX.utils.book_append_sheet(wb,ws,"Worksheet");
+    XLSX.writeFile(wb,"f_nilai_"+kls+"_"+mplText.replace(/ /g,"_")+".xlsx");
+  }
+
+  function unggahDatabaseMasterMassal() {
+    const f=document.getElementById('fileMasterCsv').files[0]; if(!f) return;
+    const r=new FileReader();
+    bukaLoadingSistem("Mengunggah CSV Master...","Mendaftarkan basis data massal baru.");
+    r.onload=function(e){ google.script.run.withSuccessHandler(function(m){ tutupLoadingSistem(); bukaDialogNotifKustom("Berhasil",m,"sukses"); muatAwalSistem(); }).adminProsesUploadMasterCSV(e.target.result); };
+    r.readAsText(f);
+  }
+</script>
+</body>
+</html>
