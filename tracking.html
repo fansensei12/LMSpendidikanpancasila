@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruang Tracking dan Asesmen</title>
+  <script>
+    // Terapkan tema tersimpan (default: gelap) sebelum halaman tampil
+    (function () {
+      var t = 'dark';
+      try { t = localStorage.getItem('tema-tracking') || 'dark'; } catch (e) {}
+      if (t === 'light') document.documentElement.classList.add('light');
+    })();
+  </script>
+  <link rel="icon" type="image/png" href="logo1.png">
+  
+  <!-- Tailwind CSS & Font Awesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Tema kalem: semua class warna Tailwind yang dulu neon dipetakan ke warna lembut
+    tailwind.config = { theme: { extend: { colors: {
+      cyan:    { 200:'#cfe0ee', 300:'#a9c7e0', 400:'#82aed2', 500:'#5f93bf', 600:'#4a79a3', 700:'#3b6082', 800:'#2d4a65', 900:'#233a4f', 950:'#172635' },
+      pink:    { 300:'#bcc4ea', 400:'#9aa6dc', 500:'#7d8bcc', 600:'#6370b4', 700:'#4f5a94', 900:'#2b3158', 950:'#1c2040' },
+      purple:  { 300:'#c3bde0', 400:'#a8a1d0', 500:'#8e88bd', 600:'#7570a5', 700:'#5e5a88', 900:'#2f2d4a', 950:'#201f35' },
+      emerald: { 300:'#9ad3b5', 400:'#6fbf98', 500:'#4da57d', 600:'#3b8664', 900:'#163b2c', 950:'#10261d' },
+      teal:    { 300:'#8fd0c8', 400:'#62b9ae', 500:'#46a094', 600:'#378077' },
+      red:     { 300:'#f0b0aa', 400:'#e48b84', 500:'#d46a63', 600:'#b9524c', 950:'#2a1413' },
+      rose:    { 300:'#efb3bf', 400:'#e28a9b', 500:'#cf6a7f', 600:'#b5546a', 950:'#2a131a' },
+      amber:   { 200:'#f8e7a6', 300:'#f2d56b', 400:'#e6bf3a', 500:'#d4a417', 600:'#b8860b', 900:'#5a4508', 950:'#33280a' },
+      yellow:  { 950:'#33280a' },
+    } } } };
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --accent: #82aed2;
+      --accent-soft: #a9c7e0;
+      --bg-base: #0f1623;
+      --bg-card: #172033;
+      --line: #2b3a52;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-base);
+      background-image: linear-gradient(180deg, #131c2c 0%, #0f1623 55%, #0d1320 100%);
+      background-attachment: fixed;
+      color: #e8edf4;
+      min-height: 100vh;
+    }
+
+    @keyframes loadingSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+    .loading-bar-fill { animation: loadingSlide 1.4s ease-in-out infinite; }
+    .font-cyber, .font-tech { font-family: 'Inter', sans-serif; }
+
+    /* Bingkai kartu: garis tipis lembut (sebelumnya border pelangi menyala) */
+    .rainbow-border-box {
+      position: relative;
+      background: var(--bg-card);
+      border-radius: 1.5rem;
+      z-index: 1;
+    }
+    .rainbow-border-box::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      background: linear-gradient(135deg, rgba(130,174,210,.45), rgba(43,58,82,.6) 50%, rgba(125,139,204,.35));
+      border-radius: calc(1.5rem + 1px);
+      z-index: -1;
+    }
+
+    @keyframes scaleUp {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .animate-scaleUp { animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+    /* Efek glow diganti bayangan halus tanpa cahaya warna */
+    .glow-cyan, .glow-pink, .glow-amber, .glow-green, .glow-red { box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28); }
+
+    .text-glow-rainbow {
+      background: linear-gradient(90deg, #a9c7e0, #bcc4ea);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .glass-inner {
+      background: rgba(23, 32, 51, 0.96);
+      backdrop-filter: blur(8px);
+    }
+
+    .option-card {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+    .option-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+      transform: translateY(-2px);
+    }
+    .option-card.selected {
+      border-color: var(--accent);
+      background: rgba(130, 174, 210, 0.14);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    optgroup { background-color: #131c2c; color: #a9c7e0; font-weight: 700; }
+    option { background-color: #172033; color: #e8edf4; font-weight: 400; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0f1623; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+  
+    /* Lampu sirine merah untuk siswa yang belum mengerjakan */
+    .sirine{position:relative;width:26px;height:26px;flex-shrink:0}
+    .sirine .beam{position:absolute;left:50%;top:9px;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;pointer-events:none;
+      background:conic-gradient(from 0deg,rgba(224,96,90,.35),transparent 22%,transparent 50%,rgba(224,96,90,.35) 50%,transparent 72%);
+      filter:blur(2px);animation:sirineSpin 1.1s linear infinite}
+    .sirine .dome{position:absolute;left:3px;top:0;width:20px;height:17px;border-radius:10px 10px 2px 2px;
+      background:radial-gradient(circle at 50% 75%,#f6c4c0,#e0605a 55%,#8a2f2b);animation:sirineBlink .7s ease-in-out infinite}
+    .sirine .base{position:absolute;left:0;bottom:1px;width:26px;height:8px;border-radius:2px;background:linear-gradient(#475569,#1e293b)}
+    @keyframes sirineSpin{to{transform:rotate(360deg)}}
+    @keyframes sirineBlink{0%,100%{filter:brightness(.8)}50%{filter:brightness(1.2)}}
+    @media (prefers-reduced-motion:reduce){.sirine .beam,.sirine .dome{animation:none}}
+
+    /* ===================== MODE TERANG ===================== */
+    html { color-scheme: dark; }
+    html.light { color-scheme: light; }
+    body, .glass-inner, .rainbow-border-box { transition: background-color .25s ease, color .25s ease; }
+
+    html.light body { background-color: #f3f6fb; background-image: linear-gradient(180deg, #f8fafd 0%, #eef2f8 60%, #e8edf5 100%); color: #1e293b; }
+    html.light .glass-inner { background: rgba(255,255,255,.97); }
+    html.light .rainbow-border-box { background: #ffffff; }
+    html.light .rainbow-border-box::before { background: linear-gradient(135deg, rgba(95,147,191,.55), rgba(203,213,225,.9) 50%, rgba(125,139,204,.45)); }
+    html.light .glow-cyan, html.light .glow-pink, html.light .glow-amber, html.light .glow-green, html.light .glow-red { box-shadow: 0 4px 16px rgba(15,23,42,.10); }
+    html.light .text-glow-rainbow { background: linear-gradient(90deg, #3b6082, #5a6bb0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    html.light .option-card:hover { box-shadow: 0 4px 14px rgba(15,23,42,.14); }
+    html.light .option-card.selected { background: rgba(95,147,191,.14); box-shadow: 0 4px 16px rgba(15,23,42,.14); }
+    html.light optgroup { background-color: #f1f5f9; color: #3b6082; }
+    html.light option { background-color: #ffffff; color: #1e293b; }
+    html.light ::-webkit-scrollbar-track { background: #e8edf5; }
+    html.light ::-webkit-scrollbar-thumb { background: #b6c2d3; }
+
+    /* Teks netral */
+    html.light .text-white { color: #0f172a; }
+    html.light .hover\:text-white:hover { color: #0f172a; }
+    html.light .text-slate-100 { color: #1e293b; }
+    html.light .text-slate-200 { color: #334155; }
+    html.light .text-slate-300 { color: #475569; }
+    html.light .text-slate-400 { color: #5b6679; }
+    html.light .text-slate-500 { color: #6b7789; }
+    /* Tetap putih di atas tombol berwarna */
+    html.light [class*="bg-gradient"].text-white,
+    html.light .bg-emerald-600\/90.text-white { color: #ffffff; }
+    html.light [class*="bg-gradient"] .text-amber-300 { color: #f2d56b; }
+
+    /* Latar & garis netral */
+    html.light .bg-slate-950\/70 { background-color: rgba(241,245,249,.9); }
+    html.light .bg-slate-900, html.light .bg-slate-900\/90, html.light .bg-slate-900\/80, html.light .bg-slate-900\/60 { background-color: #f1f5f9; }
+    html.light .bg-slate-800 { background-color: #e2e8f0; }
+    html.light .bg-slate-700, html.light .hover\:bg-slate-700:hover { background-color: #cbd5e1; }
+    html.light .border-slate-800, html.light .border-slate-800\/80 { border-color: #dbe3ee; }
+    html.light .border-slate-700, html.light .border-slate-700\/60, html.light .border-slate-700\/80 { border-color: #cbd5e1; }
+    html.light .border-slate-600, html.light .hover\:border-slate-600:hover { border-color: #b6c2d3; }
+    html.light .bg-black\/80, html.light .bg-black\/70 { background-color: rgba(15,23,42,.45); }
+
+    /* Warna aksen: lebih tua agar terbaca di latar terang */
+    html.light .text-cyan-200, html.light .text-cyan-300 { color: #2f6f9f; }
+    html.light .text-cyan-400 { color: #3b7fb0; }
+    html.light .text-pink-400 { color: #5a69b0; }
+    html.light .text-purple-300, html.light .text-purple-400 { color: #6d68a0; }
+    html.light .text-emerald-300, html.light .text-emerald-400 { color: #2f7a5a; }
+    html.light .text-teal-300, html.light .text-teal-400 { color: #2f7f75; }
+    html.light .text-amber-200, html.light .text-amber-300, html.light .text-amber-400 { color: #9a6b00; }
+    html.light .text-rose-300, html.light .text-rose-400 { color: #b5546a; }
+    html.light .text-red-300, html.light .text-red-400 { color: #b9524c; }
+    /* Kembalikan warna asli di tombol emas */
+    html.light .from-amber-300.text-amber-950 { color: #33280a; }
+    html.light .from-amber-300 .text-amber-900 { color: #5a4508; }
+
+    /* Kartu status siswa & panel berwarna */
+    html.light .bg-emerald-950\/40, html.light .bg-emerald-950\/25 { background-color: rgba(77,165,125,.13); }
+    html.light .bg-red-950\/40, html.light .bg-red-950\/25 { background-color: rgba(212,106,99,.11); }
+    html.light .bg-rose-950\/20 { background-color: rgba(207,106,127,.10); }
+    html.light .bg-amber-950\/60, html.light .bg-amber-900\/40 { background-color: rgba(212,164,23,.15); }
+    html.light .bg-yellow-950\/60 { background-color: rgba(212,164,23,.12); }
+    html.light .border-emerald-500\/50 { border-color: rgba(59,134,100,.45); }
+    html.light .border-red-500\/50 { border-color: rgba(185,82,76,.45); }
+    html.light .sirine .base { background: linear-gradient(#94a3b8, #64748b); }
+
+    /* Tombol pengalih tema */
+    #themeToggle { position: fixed; right: 1rem; bottom: 1rem; z-index: 80; width: 46px; height: 46px; border-radius: 9999px;
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer;
+      background: #172033; color: #e6bf3a; border: 1px solid #2b3a52; box-shadow: 0 4px 16px rgba(0,0,0,.35); transition: transform .15s ease, background-color .25s ease; }
+    #themeToggle:hover { transform: scale(1.08); }
+    #themeToggle:active { transform: scale(.94); }
+    html.light #themeToggle { background: #ffffff; color: #3b6082; border-color: #cbd5e1; box-shadow: 0 4px 14px rgba(15,23,42,.18); }
+</style>
+</head>
+<body class="p-3 md:p-6 flex flex-col justify-between min-h-screen">
+
+  <!-- Tombol ganti tema gelap / terang -->
+  <button id="themeToggle" type="button" onclick="toggleTheme()" title="Ganti tema" aria-label="Ganti tema gelap/terang">
+    <i id="themeIcon" class="fa-solid fa-sun"></i>
+  </button>
+
+  <!-- ======================== FLOATING BANNER SINKRONISASI (ATAS) ======================== -->
+  <div id="syncStatusBanner" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 pointer-events-none transform -translate-y-12 opacity-0">
+    <div id="syncStatusBox" class="flex items-center gap-3 px-6 py-2.5 rounded-full glass-inner border border-amber-400 glow-amber text-amber-300 text-xs font-cyber shadow-2xl">
+      <span id="syncStatusDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0"></span>
+      <span id="syncStatusText" class="tracking-wide">Sinkronisasi data sedang berlangsung...</span>
+    </div>
+  </div>
+
+  <!-- ======================== POPUP LOADING / NOTIFIKASI (TENGAH LAYAR) ======================== -->
+  <div id="toastNotification" onclick="if(event.target === this) cancelLoading()" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+    <div id="toastBox" class="relative flex flex-col items-center text-center gap-5 w-full max-w-md px-8 py-10 rounded-3xl glass-inner border-2 border-cyan-400 glow-cyan shadow-2xl">
+      <button id="toastClose" type="button" onclick="cancelLoading()" title="Tutup" aria-label="Tutup"
+        class="absolute top-3 right-3 w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 hover:text-white flex items-center justify-center transition">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+      </button>
+      <div id="toastIcon" class="w-24 h-24 rounded-3xl bg-cyan-500/20 border-2 border-cyan-400 flex items-center justify-center text-cyan-300 shrink-0">
+        <svg class="animate-spin" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.2-8.55" /></svg>
+      </div>
+      <div>
+        <div id="toastTitle" class="text-xl md:text-2xl font-cyber font-bold text-white tracking-wide">Memuat Data...</div>
+        <div id="toastDesc" class="text-sm md:text-base text-slate-300 font-tech mt-2">Menyiapkan data siswa...</div>
+      </div>
+      <div id="toastBar" class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+        <div class="loading-bar-fill h-full w-1/3 rounded-full bg-gradient-to-r from-cyan-400 via-pink-500 to-cyan-400"></div>
+      </div>
+      <div id="toastCancelWrap" class="w-full flex flex-col items-center gap-2">
+        <button id="toastCancel" type="button" onclick="cancelLoading()" class="px-6 py-2.5 rounded-xl border border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-tech font-bold transition">Batalkan dan Tutup</button>
+        <span class="text-[11px] text-slate-400 font-tech">Terlalu lama? Tekan X atau tombol di atas untuk keluar.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== SCREEN 1: MONITORING UTAMA ======================== -->
+  <main id="screenTracking" class="w-full max-w-7xl mx-auto flex flex-col gap-6">
+    
+    <!-- Header Aplikasi -->
+    <div class="rainbow-border-box">
+      <div class="glass-inner rounded-3xl p-5 md:p-7 flex flex-wrap items-center justify-between gap-4">
+        
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-400 flex items-center justify-center glow-cyan text-cyan-400 text-2xl">
+            <i class="fa-solid fa-atom animate-spin" style="animation-duration: 10s;"></i>
+          </div>
+          <div>
+            <h1 class="text-2xl md:text-3xl font-cyber font-extrabold tracking-wider text-glow-rainbow">
+              RUANG TRACKING DAN ASESMEN
+            </h1>
+            <p class="text-xs md:text-sm text-slate-400 font-tech tracking-wide flex items-center gap-2">
+              <span id="connectionBadge" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span id="connectionText">Terhubung ke Database Cloud</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Tombol LMS Pendidikan Pancasila (Gold, Tab Sama) -->
+          <a href="https://fansensei12.github.io/LMSpendidikanpancasila/" target="_self" class="px-5 py-3.5 rounded-2xl border-2 border-amber-300 bg-gradient-to-br from-amber-300 via-amber-400 to-amber-500 text-amber-950 hover:brightness-110 hover:border-amber-200 text-xs font-tech font-bold flex items-center gap-2.5 transition-all duration-300 cursor-pointer shadow-lg shadow-amber-500/25">
+            <i class="fa-solid fa-graduation-cap text-base text-amber-900"></i> LMS PANCASILA
+          </a>
+
+          <!-- Tombol Refresh Data -->
+          <button onclick="fetchTrackingData(false, true)" class="px-4 py-3.5 rounded-2xl border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10 text-xs font-tech flex items-center gap-2 transition cursor-pointer">
+            <i class="fa-solid fa-arrows-rotate text-sm"></i> REFRESH DATA
+          </button>
+
+          <!-- Tombol Aksi Ujian / Form -->
+          <button onclick="handlePrimaryAction()" id="btnActionPrimary" class="px-6 py-3.5 rounded-2xl font-cyber font-bold tracking-wider text-white bg-gradient-to-r from-pink-500 via-purple-600 to-cyan-500 hover:brightness-110 active:scale-95 transition duration-200 glow-pink flex items-center gap-3 cursor-pointer text-sm shadow-xl">
+            <i class="fa-solid fa-play text-amber-300 text-base"></i> <span id="lblActionPrimary">KERJAKAN ASESMEN</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bar Filter -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+      
+      <!-- Dropdown Tugas -->
+      <div class="md:col-span-4 flex items-center gap-2">
+        <div class="relative w-full">
+          <i class="fa-solid fa-list-check absolute left-4 top-1/2 -translate-y-1/2 text-pink-400 text-xs"></i>
+          <select id="filterTugas" onchange="onFilterTugasChange()" class="w-full bg-slate-900/90 border border-pink-500/40 rounded-2xl pl-10 pr-4 py-3 text-sm text-white focus:outline-none focus:border-pink-400 focus:glow-pink transition font-tech font-bold">
+            <option value="">-- Memuat Daftar Tugas... --</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Dropdown Kelas (Default: -- Pilih Kelas --) -->
+      <div class="md:col-span-3 flex items-center gap-2">
+        <div class="relative w-full">
+          <i class="fa-solid fa-filter absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400 text-xs"></i>
+          <select id="filterKelas" onchange="onFilterKelasChange()" class="w-full bg-slate-900/90 border border-cyan-500/40 rounded-2xl pl-10 pr-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400 focus:glow-cyan transition">
+            <option value="" selected>-- Pilih Kelas --</option>
+            <option value="SEMUA">-- Semua Kelas --</option>
+            <option value="TINGKAT-7">-- Semua Kelas 7 --</option>
+            <option value="TINGKAT-8">-- Semua Kelas 8 --</option>
+            <option value="TINGKAT-9">-- Semua Kelas 9 --</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Counter Belum & Sudah -->
+      <div class="md:col-span-5 grid grid-cols-2 gap-3">
+        <div class="bg-red-950/25 border border-red-500/40 rounded-2xl p-3 flex items-center justify-between glow-red">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-red-500/20 border border-red-500/60 flex items-center justify-center text-red-400 shrink-0">
+              <i class="fa-solid fa-user-xmark text-sm"></i>
+            </div>
+            <div>
+              <div class="text-[10px] text-red-300 font-bold uppercase tracking-wider">Belum Ada Nilai</div>
+              <div id="countBelum" class="text-xl font-cyber font-bold text-red-400">0 Siswa</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-emerald-950/25 border border-emerald-500/40 rounded-2xl p-3 flex items-center justify-between glow-green">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/60 flex items-center justify-center text-emerald-400 shrink-0">
+              <i class="fa-solid fa-user-check text-sm"></i>
+            </div>
+            <div>
+              <div class="text-[10px] text-emerald-300 font-bold uppercase tracking-wider">Sudah Dinilai</div>
+              <div id="countSudah" class="text-xl font-cyber font-bold text-emerald-400">0 Siswa</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tombol Kelas Cepat (hanya kelas yang ada di database) -->
+    <div id="kelasButtons" class="flex flex-wrap items-center gap-2 -mt-3">
+      <span class="text-xs text-slate-500 font-tech">Memuat daftar kelas...</span>
+    </div>
+
+    <!-- Papan Monitor Kartu Siswa -->
+    <div class="bg-slate-950/70 border border-slate-800 rounded-3xl p-5 md:p-6 min-h-[460px]">
+      <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 mb-4 gap-2">
+        <div class="flex items-center gap-3">
+          <h2 class="text-sm font-cyber font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-users text-cyan-400"></i> STATUS PENGERJAAN: <span id="currentTaskTitle" class="text-pink-400 uppercase tracking-wider ml-1">-</span>
+          </h2>
+          <span id="badgeTaskType" class="px-2.5 py-0.5 rounded text-[10px] font-cyber font-bold bg-cyan-500/20 border border-cyan-400 text-cyan-300">CBT</span>
+        </div>
+        <span class="text-xs text-slate-400 font-tech">Hijau = Nilai Terekam | Merah = Belum Mengerjakan</span>
+      </div>
+
+      <div id="trackingList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+        <div class="col-span-full py-16 text-center text-slate-400 font-tech">
+          <i class="fa-solid fa-hand-pointer text-3xl text-cyan-400 block mb-3 animate-bounce"></i>
+          <span class="text-base text-slate-200 block mb-1">Silakan Pilih Kelas Terlebih Dahulu</span>
+          <span class="text-xs text-slate-400">Pilih rombel kelas pada menu dropdown di atas untuk memantau status siswa.</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL LOGIN PESERTA (CBT) -->
+  <div id="modalLogin" onclick="if(event.target === this) closeLoginModal()" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="w-full max-w-md rainbow-border-box animate-scaleUp">
+      <div class="glass-inner rounded-3xl p-6 md:p-8 relative">
+        <button onclick="closeLoginModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+
+        <div class="text-center mb-6">
+          <div class="w-12 h-12 mx-auto rounded-2xl bg-purple-500/20 border border-purple-400 flex items-center justify-center text-purple-300 glow-purple mb-3">
+            <i class="fa-solid fa-user-astronaut text-xl"></i>
+          </div>
+          <h2 class="text-xl font-cyber font-bold text-white">LOGIN PESERTA CBT</h2>
+          <p id="modalTaskName" class="text-xs text-pink-400 font-tech mt-1">-</p>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-[11px] font-bold text-cyan-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <i class="fa-solid fa-graduation-cap"></i> Kelas
+            </label>
+            <select id="loginKelas" onchange="onLoginKelasChange()" class="w-full bg-slate-900 border border-cyan-500/40 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 focus:glow-cyan">
+              <option value="">-- Pilih Kelas --</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold text-pink-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <i class="fa-solid fa-user-tag"></i> Nama Siswa
+            </label>
+            <select id="loginNama" onchange="onLoginNamaChange()" class="w-full bg-slate-900 border border-pink-500/40 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-pink-400 focus:glow-pink">
+              <option value="">-- Pilih Siswa --</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-bold text-purple-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <i class="fa-solid fa-id-badge"></i> NIS
+              </label>
+              <input type="text" id="loginNIS" placeholder="-" readonly class="w-full bg-slate-900/90 border border-purple-500/40 rounded-xl px-3 py-2 text-purple-300 font-cyber text-xs tracking-wider cursor-not-allowed text-center">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-amber-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <i class="fa-solid fa-fingerprint"></i> NISN
+              </label>
+              <input type="text" id="loginNISN" placeholder="-" readonly class="w-full bg-slate-900/90 border border-amber-500/40 rounded-xl px-3 py-2 text-amber-300 font-cyber text-xs tracking-wider cursor-not-allowed text-center">
+            </div>
+          </div>
+
+          <button onclick="startExam()" class="w-full mt-4 py-3.5 rounded-xl font-cyber font-bold tracking-wider text-white bg-gradient-to-r from-pink-500 via-purple-600 to-cyan-500 hover:brightness-110 transition glow-pink flex items-center justify-center gap-2 cursor-pointer text-sm">
+            <i class="fa-solid fa-play text-amber-300"></i> MULAI PENGERJAAN
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL GOOGLE FORM -->
+  <div id="modalGForm" onclick="if(event.target === this) closeGFormModal()" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="w-full max-w-md rainbow-border-box animate-scaleUp">
+      <div class="glass-inner rounded-3xl p-6 md:p-8 relative text-center">
+        <button onclick="closeGFormModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-teal-500/20 border border-teal-400 flex items-center justify-center text-teal-300 glow-cyan mb-4">
+          <i class="fa-solid fa-file-lines text-2xl"></i>
+        </div>
+
+        <h2 class="text-xl font-cyber font-bold text-white mb-1">TUGAS GOOGLE FORM</h2>
+        <p id="gformModalTitle" class="text-xs text-pink-400 font-tech font-bold mb-4">-</p>
+
+        <div class="text-left bg-slate-900/80 border border-slate-700/80 rounded-2xl p-4 text-xs text-slate-300 space-y-2 mb-6">
+          <div class="flex items-start gap-2">
+            <i class="fa-solid fa-circle-check text-emerald-400 mt-0.5"></i>
+            <span>Tugas ini dikerjakan langsung pada formulir online.</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <i class="fa-solid fa-triangle-exclamation text-amber-400 mt-0.5"></i>
+            <span>Pastikan mengisi <strong>NIS atau NISN</strong> dengan benar di formulir agar nilai otomatis masuk ke papan monitoring.</span>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <a id="btnBukaLinkGForm" href="#" target="_blank" onclick="closeGFormModal()" class="w-full py-3.5 rounded-xl font-cyber font-bold tracking-wider text-white bg-gradient-to-r from-teal-500 via-emerald-600 to-cyan-500 hover:brightness-110 transition glow-green flex items-center justify-center gap-2 cursor-pointer text-sm">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> BUKA FORMULIR TUGAS
+          </a>
+          <button onclick="closeGFormModal()" class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-400 hover:text-white text-xs font-tech transition">
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: LEMBAR UJIAN CBT -->
+  <main id="screenExam" class="w-full max-w-6xl mx-auto hidden grid-cols-1 lg:grid-cols-12 gap-6 my-auto">
+    <div class="lg:col-span-12 flex flex-wrap items-center justify-between gap-4 py-3 px-6 rounded-2xl glass-inner border border-purple-500/40 glow-purple">
+      <div class="flex items-center gap-3">
+        <i class="fa-solid fa-terminal text-cyan-400 text-xl"></i>
+        <div>
+          <span class="text-xs text-slate-400 block font-tech uppercase tracking-wider">PESERTA:</span>
+          <span id="examHeaderNama" class="text-sm font-cyber font-bold text-white">-</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 bg-slate-900/90 px-4 py-1.5 rounded-xl border border-amber-400/50 glow-amber">
+        <i class="fa-regular fa-clock text-amber-400 text-lg animate-spin" style="animation-duration: 10s;"></i>
+        <div>
+          <span class="text-[10px] text-slate-400 block font-mono">SISA WAKTU</span>
+          <span id="timerText" class="font-cyber text-xl font-black text-amber-300">00:00:00</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="lg:col-span-8 glass-inner rounded-3xl p-6 md:p-8 border border-cyan-500/40 glow-cyan flex flex-col justify-between min-h-[480px]">
+      <div>
+        <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 mb-5">
+          <span class="px-4 py-1 rounded-full bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-cyber font-bold text-sm">
+            SOAL <span id="currentQuestionNumber">1</span>
+          </span>
+          <span class="text-xs text-pink-400 uppercase tracking-widest font-tech font-bold">PILIHAN GANDA</span>
+        </div>
+
+        <div id="questionText" class="text-base md:text-lg text-slate-100 font-medium leading-relaxed mb-6">
+          Memuat pertanyaan...
+        </div>
+
+        <div id="optionsContainer" class="space-y-3"></div>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-3 pt-6 border-t border-slate-700/60 mt-6">
+        <button onclick="prevQuestion()" id="btnPrev" class="px-5 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:border-cyan-400 hover:text-cyan-300 transition flex items-center gap-2 cursor-pointer font-tech text-sm">
+          <i class="fa-solid fa-arrow-left"></i> SEBELUMNYA
+        </button>
+
+        <button onclick="nextQuestion()" id="btnNext" class="px-6 py-2.5 rounded-xl bg-cyan-500/20 border border-cyan-400 text-cyan-300 hover:bg-cyan-500/30 glow-cyan transition flex items-center gap-2 cursor-pointer font-cyber text-sm">
+          SELANJUTNYA <i class="fa-solid fa-arrow-right"></i>
+        </button>
+
+        <button onclick="confirmSubmitExam()" id="btnFinish" class="hidden px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-600 text-white font-cyber font-bold glow-pink transition items-center gap-2 cursor-pointer text-sm">
+          <i class="fa-solid fa-flag-checkered"></i> SELESAIKAN UJIAN
+        </button>
+      </div>
+    </div>
+
+    <div class="lg:col-span-4 glass-inner rounded-3xl p-6 border border-purple-500/40 glow-purple flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 mb-4">
+          <h3 class="font-cyber font-bold text-white text-sm">LEMBAR NAVIGASI</h3>
+          <span id="answeredCounter" class="text-xs text-amber-300 font-mono">0 Terjawab</span>
+        </div>
+
+        <div id="numberGrid" class="grid grid-cols-5 gap-2 max-h-[320px] overflow-y-auto p-1"></div>
+      </div>
+
+      <div class="mt-6 pt-4 border-t border-slate-800 text-xs space-y-2">
+        <div class="flex items-center gap-2">
+          <span class="w-3.5 h-3.5 rounded bg-cyan-400 glow-cyan inline-block"></span>
+          <span class="text-slate-300">Sedang Dikerjakan</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-3.5 h-3.5 rounded bg-emerald-500 glow-green inline-block"></span>
+          <span class="text-slate-300">Sudah Dijawab</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-3.5 h-3.5 rounded bg-slate-900 border border-slate-700 inline-block"></span>
+          <span class="text-slate-400">Belum Dijawab</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- SCREEN 3: HASIL CBT -->
+  <main id="screenResult" class="w-full max-w-lg mx-auto hidden rainbow-border-box my-auto">
+    <div class="glass-inner rounded-3xl p-8 text-center">
+      <div class="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-tr from-pink-500 to-amber-400 flex items-center justify-center glow-pink text-white text-3xl mb-5">
+        <i class="fa-solid fa-award animate-bounce"></i>
+      </div>
+
+      <h2 class="text-2xl font-cyber font-bold text-white mb-1">UJIAN SELESAI</h2>
+      <p class="text-xs text-slate-400 mb-6 font-tech">Data pengerjaan Anda telah tersimpan ke database nilai.</p>
+
+      <div class="bg-slate-900/90 border border-cyan-400/50 rounded-2xl p-6 mb-6 glow-cyan">
+        <span class="text-xs uppercase tracking-widest text-slate-400 font-mono block mb-1">SKOR AKHIR</span>
+        <div id="finalScore" class="text-6xl font-cyber font-black text-glow-rainbow">0</div>
+        <div id="finalSummary" class="text-xs text-emerald-400 font-mono mt-2">0 dari 0 soal dijawab benar</div>
+      </div>
+
+      <div class="text-left bg-slate-950/70 p-4 rounded-xl text-xs space-y-1.5 mb-6 text-slate-300 border border-slate-800 font-tech">
+        <div><strong>NAMA:</strong> <span id="resNama" class="text-cyan-300">-</span></div>
+        <div><strong>NIS / NISN:</strong> <span id="resNISN" class="text-amber-300">-</span></div>
+        <div><strong>KELAS:</strong> <span id="resKelas" class="text-purple-300">-</span></div>
+      </div>
+
+      <button onclick="backToTracking()" class="w-full py-3.5 rounded-xl border border-cyan-400 text-cyan-300 hover:bg-cyan-500/10 glow-cyan transition font-cyber tracking-wider cursor-pointer text-sm">
+        <i class="fa-solid fa-table-columns"></i> LIHAT PAPAN MONITORING
+      </button>
+    </div>
+  </main>
+
+  <!-- JAVASCRIPT & AUDIO ENGINE -->
+  <script>
+    // GANTI TAUTAN DI BAWAH INI DENGAN URL DEPLOY HASIL APPS SCRIPT ANDA
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzTruZU7gGHmzCD7ZRLhG02UdGUO3cunofHI2Etqs16FaSXLMlv5n_1I5lYgYiWU1I2lw/exec";
+
+    const DAFTAR_KELAS_MASTER = {
+      "Kelas 7": ["7A", "7B", "7C", "7D", "7E", "7F", "7G", "7H"],
+      "Kelas 8": ["8A", "8B", "8C", "8D", "8E", "8F", "8G"],
+      "Kelas 9": ["9A", "9B", "9C", "9D", "9E", "9F"]
+    };
+
+    // 1. SYNTHESIZED SOUND EFFECTS
+    let audioCtx = null;
+    function initAudio() {
+      try {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) audioCtx = new AudioContextClass();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      } catch (e) {}
+    }
+
+    function playClickSound() {
+      initAudio();
+      if (!audioCtx) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(520, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1040, audioCtx.currentTime + 0.07);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.07);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.07);
+      } catch (e) {}
+    }
+
+    function playSelectSound() {
+      initAudio();
+      if (!audioCtx) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(700, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1400, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.14, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+      } catch (e) {}
+    }
+
+    function playSuccessSound() {
+      initAudio();
+      if (!audioCtx) return;
+      try {
+        const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+        notes.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.08, audioCtx.currentTime + (idx * 0.09));
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + (idx * 0.09) + 0.25);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(audioCtx.currentTime + (idx * 0.09));
+          osc.stop(audioCtx.currentTime + (idx * 0.09) + 0.25);
+        });
+      } catch (e) {}
+    }
+
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('button') || e.target.closest('a')) playClickSound();
+    });
+
+    // 2. STATUS SINKRONISASI BANNER
+    let syncHideTimeout = null;
+    function setSyncStatus(state, message) {
+      const banner = document.getElementById('syncStatusBanner');
+      const box = document.getElementById('syncStatusBox');
+      const dot = document.getElementById('syncStatusDot');
+      const text = document.getElementById('syncStatusText');
+
+      if (syncHideTimeout) clearTimeout(syncHideTimeout);
+      text.textContent = message;
+
+      if (state === 'loading') {
+        box.className = 'flex items-center gap-3 px-6 py-2.5 rounded-full glass-inner border border-amber-400 glow-amber text-amber-300 text-xs font-cyber shadow-2xl';
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0';
+        banner.classList.remove('-translate-y-12', 'opacity-0');
+        banner.classList.add('translate-y-0', 'opacity-100');
+      } else if (state === 'ready') {
+        box.className = 'flex items-center gap-3 px-6 py-2.5 rounded-full glass-inner border border-emerald-400 glow-green text-emerald-300 text-xs font-cyber shadow-2xl';
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0';
+        banner.classList.remove('-translate-y-12', 'opacity-0');
+        banner.classList.add('translate-y-0', 'opacity-100');
+
+        syncHideTimeout = setTimeout(() => {
+          banner.classList.add('-translate-y-12', 'opacity-0');
+          banner.classList.remove('translate-y-0', 'opacity-100');
+        }, 2200);
+      } else if (state === 'error') {
+        box.className = 'flex items-center gap-3 px-6 py-2.5 rounded-full glass-inner border border-rose-500 glow-red text-rose-300 text-xs font-cyber shadow-2xl';
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0';
+        banner.classList.remove('-translate-y-12', 'opacity-0');
+        banner.classList.add('translate-y-0', 'opacity-100');
+      }
+    }
+
+    // 2b. TEMA GELAP / TERANG
+    function updateThemeIcon() {
+      const light = document.documentElement.classList.contains('light');
+      const icon = document.getElementById('themeIcon');
+      const btn = document.getElementById('themeToggle');
+      if (icon) icon.className = light ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+      if (btn) btn.title = light ? 'Ganti ke mode gelap' : 'Ganti ke mode terang';
+    }
+    function toggleTheme() {
+      const root = document.documentElement;
+      const light = root.classList.toggle('light');
+      try { localStorage.setItem('tema-tracking', light ? 'light' : 'dark'); } catch (e) {}
+      updateThemeIcon();
+      if (typeof playClickSound === 'function') { try { playClickSound(); } catch (e) {} }
+    }
+    document.addEventListener('DOMContentLoaded', updateThemeIcon);
+
+    // 3. TOAST NOTIFIKASI
+    let toastTimeout = null;
+    let toastType = null;
+    let slowTimer = null;
+    let popupController = null; // permintaan yang sedang ditunggu popup (bisa dibatalkan dengan X)
+
+    function showToast(title, desc, type = 'loading', duration = 0) {
+      const toast = document.getElementById('toastNotification');
+      const box = document.getElementById('toastBox');
+      const icon = document.getElementById('toastIcon');
+      const bar = document.getElementById('toastBar');
+      const cancelWrap = document.getElementById('toastCancelWrap');
+      const titleEl = document.getElementById('toastTitle');
+      const descEl = document.getElementById('toastDesc');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      if (slowTimer) clearTimeout(slowTimer);
+      toastType = type;
+      titleEl.textContent = title;
+      descEl.textContent = desc;
+
+      const boxBase = 'relative flex flex-col items-center text-center gap-5 w-full max-w-md px-8 py-10 rounded-3xl glass-inner border-2 shadow-2xl ';
+      const iconBase = 'w-24 h-24 rounded-3xl border-2 flex items-center justify-center shrink-0 ';
+
+      if (type === 'loading') {
+        box.className = boxBase + 'border-cyan-400 glow-cyan';
+        icon.className = iconBase + 'bg-cyan-500/20 border-cyan-400 text-cyan-300';
+        icon.innerHTML = '<svg class="animate-spin" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.2-8.55" /></svg>';
+        bar.classList.remove('hidden');
+        cancelWrap.classList.remove('hidden');
+        slowTimer = setTimeout(() => {
+          if (toastType === 'loading') descEl.textContent = 'Jaringan terasa lambat. Anda bisa menutup popup ini lalu mencoba lagi.';
+        }, 8000);
+      } else if (type === 'success') {
+        box.className = boxBase + 'border-emerald-400 glow-green';
+        icon.className = iconBase + 'bg-emerald-500/20 border-emerald-400 text-emerald-300';
+        icon.innerHTML = '<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M7.5 12.5l3 3 6-6.5"/></svg>';
+        bar.classList.add('hidden');
+        cancelWrap.classList.add('hidden');
+      } else if (type === 'warning') {
+        box.className = boxBase + 'border-amber-400 glow-amber';
+        icon.className = iconBase + 'bg-amber-500/20 border-amber-400 text-amber-300';
+        icon.innerHTML = '<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.1"/></svg>';
+        bar.classList.add('hidden');
+        cancelWrap.classList.add('hidden');
+      }
+
+      toast.classList.remove('hidden');
+      setTimeout(() => { toast.classList.remove('opacity-0'); toast.classList.add('opacity-100'); }, 10);
+
+      if (duration > 0) {
+        toastTimeout = setTimeout(() => { hideToast(); }, duration);
+      }
+    }
+
+    function hideToast() {
+      const toast = document.getElementById('toastNotification');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      if (slowTimer) clearTimeout(slowTimer);
+      toastType = null;
+      toast.classList.remove('opacity-100');
+      toast.classList.add('opacity-0');
+      toastTimeout = setTimeout(() => { toast.classList.add('hidden'); }, 300);
+    }
+
+    // Tombol X / Batalkan / klik latar / tombol Esc: hentikan permintaan yang sedang ditunggu lalu tutup popup
+    function cancelLoading() {
+      if (toastType === 'loading' && popupController) popupController.abort();
+      hideToast();
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && toastType) cancelLoading();
+    });
+
+    // Ambil JSON dengan batas waktu. Error: err.cancelled = dibatalkan pengguna, selain itu waktu habis / jaringan
+    async function fetchJSON(url, { timeout = 25000, controller = null } = {}) {
+      const ctrl = controller || new AbortController();
+      let timedOut = false;
+      const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, timeout);
+      try {
+        const res = await fetch(url, { signal: ctrl.signal });
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (jsonErr) {
+          throw new Error("Respon bukan JSON. Pastikan Web App Apps Script disetel ke 'Anyone'.");
+        }
+      } catch (e) {
+        if (e.name === 'AbortError') {
+          const err = new Error(timedOut ? 'Waktu tunggu habis. Jaringan lambat atau terganggu.' : 'Dibatalkan');
+          err.cancelled = !timedOut;
+          throw err;
+        }
+        throw e;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    // Cache lokal: data terakhir langsung tampil, lalu diperbarui diam-diam dari DataBase
+    const CACHE_KEY = 'tracking-initial-v2';
+    function readCacheStore() { try { return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); } catch (e) { return {}; } }
+    function writeCacheStore(store) { try { localStorage.setItem(CACHE_KEY, JSON.stringify(store)); } catch (e) {} }
+    function readInitialCache(taskId) { return readCacheStore()[taskId || '_default'] || null; }
+    function writeInitialCache(requestedId, data) {
+      const store = readCacheStore();
+      const entry = { t: Date.now(), data: data };
+      store[requestedId || '_default'] = entry;
+      if (data.activeTask && data.activeTask.id) store[data.activeTask.id] = entry;
+      Object.keys(store).sort((a, b) => (store[b].t || 0) - (store[a].t || 0)).slice(8).forEach(k => delete store[k]);
+      writeCacheStore(store);
+    }
+    function updateSiswaCache(taskId, siswa) {
+      const store = readCacheStore();
+      let changed = false;
+      Object.keys(store).forEach(k => {
+        const d = store[k] && store[k].data;
+        if (d && d.activeTask && d.activeTask.id === taskId) { d.siswa = siswa; store[k].t = Date.now(); changed = true; }
+      });
+      if (changed) writeCacheStore(store);
+    }
+
+    // 4. STATE MANAGEMENT
+    let isTaskLoading = false;
+    let appState = {
+      tasks: [],
+      activeTask: null,
+      siswaList: [],
+      soalList: [],
+      activeUser: null,
+      currentQuestionIdx: 0,
+      userAnswers: {},
+      kelasTersedia: [],
+      timerInterval: null,
+      timeLeftSeconds: 60 * 30
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      populateDropdownKelasMaster();
+      loadInitialData();
+      setInterval(() => {
+        const examScreen = document.getElementById('screenExam');
+        if (examScreen && examScreen.classList.contains('hidden') && !isTaskLoading) {
+          fetchTrackingData(true);
+        }
+      }, 25000);
+    });
+
+    // Pilihan tingkat: nilai dropdown "TINGKAT-7" = semua rombel kelas 7 (7A, 7B, ...)
+    const TINGKAT_FILTER = ['7', '8', '9'];
+    function cocokKelas(siswa, kls) {
+      if (!kls || kls === 'SEMUA') return true;
+      const k = String(siswa.kelas || '').trim().toUpperCase();
+      if (kls.indexOf('TINGKAT-') === 0) {
+        const t = kls.replace('TINGKAT-', '');
+        return new RegExp('^' + t + '(?!\\d)').test(k);
+      }
+      return k === kls.toUpperCase();
+    }
+    function labelFilterKelas(kls) {
+      if (kls === 'SEMUA') return 'Semua Kelas';
+      if (kls.indexOf('TINGKAT-') === 0) return 'Semua Kelas ' + kls.replace('TINGKAT-', '');
+      return 'Kelas ' + kls;
+    }
+
+    // Urutan alami: 7A, 7B, 8A, ... 10A
+    function urutKelas(a, b) {
+      const pa = String(a).match(/^(\d+)\s*(.*)$/), pb = String(b).match(/^(\d+)\s*(.*)$/);
+      if (pa && pb && pa[1] !== pb[1]) return Number(pa[1]) - Number(pb[1]);
+      return String(a).localeCompare(String(b), 'id', { numeric: true });
+    }
+
+    // Kumpulkan kelas yang benar-benar ada di data siswa (gabungan, tidak hilang saat data difilter)
+    function updateKelasTersedia(list) {
+      const set = new Set(appState.kelasTersedia);
+      (Array.isArray(list) ? list : []).forEach(s => {
+        const k = String(s.kelas || '').trim().toUpperCase();
+        if (k) set.add(k);
+      });
+      appState.kelasTersedia = Array.from(set).sort(urutKelas);
+      populateDropdownKelasMaster();
+      renderKelasButtons();
+    }
+
+    function daftarKelasAktif() {
+      if (appState.kelasTersedia.length) return appState.kelasTersedia;
+      return Object.values(DAFTAR_KELAS_MASTER).flat();
+    }
+
+    function populateDropdownKelasMaster() {
+      const filterSel = document.getElementById('filterKelas');
+      const modalSel = document.getElementById('loginKelas');
+      const prev = filterSel.value, prevModal = modalSel.value;
+
+      let filterHtml = '<option value="">-- Pilih Kelas --</option><option value="SEMUA">-- Semua Kelas --</option>';
+      TINGKAT_FILTER.forEach(t => { filterHtml += `<option value="TINGKAT-${t}">-- Semua Kelas ${t} --</option>`; });
+      let modalHtml = '<option value="">-- Pilih Kelas --</option>';
+      daftarKelasAktif().forEach(kls => {
+        filterHtml += `<option value="${kls}">Kelas ${kls}</option>`;
+        modalHtml += `<option value="${kls}">Kelas ${kls}</option>`;
+      });
+
+      filterSel.innerHTML = filterHtml;
+      modalSel.innerHTML = modalHtml;
+      filterSel.value = prev; modalSel.value = prevModal;
+    }
+
+    function renderKelasButtons() {
+      const box = document.getElementById('kelasButtons');
+      // Tombol hanya untuk kelas berformat angka (7A, 8B, ...); format Romawi (VII A) dilewati
+      const list = appState.kelasTersedia.filter(k => /^\d/.test(k));
+      if (!list.length) {
+        box.innerHTML = '<span class="text-xs text-slate-500 font-tech">Belum ada data kelas.</span>';
+        return;
+      }
+      const base = 'kelas-btn px-4 py-2 rounded-xl border text-xs font-cyber font-bold tracking-wider transition cursor-pointer ';
+      let html = `<button type="button" data-kelas="SEMUA" onclick="pilihKelas('SEMUA')" class="${base}">SEMUA</button>`;
+      let lastTingkat = null;
+      list.forEach(k => {
+        const t = (String(k).match(/^\d+/) || [''])[0];
+        if (lastTingkat !== null && t !== lastTingkat) html += '<span class="w-px h-6 bg-slate-700 mx-1"></span>';
+        lastTingkat = t;
+        html += `<button type="button" data-kelas="${k}" onclick="pilihKelas('${k}')" class="${base}">${k}</button>`;
+      });
+      box.innerHTML = html;
+      highlightKelasButtons();
+    }
+
+    function highlightKelasButtons() {
+      const aktif = document.getElementById('filterKelas').value;
+      document.querySelectorAll('#kelasButtons .kelas-btn').forEach(b => {
+        const on = b.dataset.kelas === aktif;
+        b.classList.toggle('bg-gradient-to-r', on);
+        b.classList.toggle('from-pink-500', on);
+        b.classList.toggle('to-cyan-500', on);
+        b.classList.toggle('text-white', on);
+        b.classList.toggle('border-transparent', on);
+        b.classList.toggle('text-cyan-300', !on);
+        b.classList.toggle('border-cyan-500/40', !on);
+        b.classList.toggle('hover:bg-cyan-500/10', !on);
+      });
+    }
+
+    function pilihKelas(kls) {
+      document.getElementById('filterKelas').value = kls;
+      if (typeof playClickSound === 'function') { try { playClickSound(); } catch (e) {} }
+      onFilterKelasChange();
+    }
+
+    // 5. REST API CLIENT
+    function applyInitialData(data) {
+      if (data.tasks && Array.isArray(data.tasks)) {
+        appState.tasks = data.tasks;
+        appState.activeTask = data.activeTask || data.tasks[0];
+      } else {
+        appState.tasks = [{ id: 'TGS-01', judul: 'Penilaian Harian UUD 1945 (CBT)', tipe: 'CBT', sumber: 'Soal', link: '' }];
+        appState.activeTask = appState.tasks[0];
+      }
+      appState.soalList = Array.isArray(data.soal) ? data.soal : [];
+      appState.siswaList = Array.isArray(data.siswa) ? data.siswa : [];
+      updateKelasTersedia(appState.siswaList);
+      renderTaskSelector();
+      updateHeaderTaskBadge();
+      highlightKelasButtons();
+      renderCurrentFilter();
+    }
+
+    function renderCancelledPlaceholder() {
+      document.getElementById('trackingList').innerHTML = `
+        <div class="col-span-full py-16 text-center text-slate-400 font-tech">
+          <span class="text-base text-slate-200 block mb-1">Pemuatan dibatalkan</span>
+          <span class="text-xs text-slate-400 block mb-4">Data dari DataBase belum dimuat.</span>
+          <button onclick="loadInitialData(appState.activeTask ? appState.activeTask.id : null)" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-tech rounded-xl border border-slate-600 transition">Coba Lagi</button>
+        </div>`;
+    }
+
+    async function loadInitialData(selectedTaskId = null) {
+      if (popupController) popupController.abort();
+      const ctrl = popupController = new AbortController();
+      isTaskLoading = true;
+
+      // Tampilkan data tersimpan lebih dulu (langsung terlihat), lalu perbarui di latar belakang
+      let usedCache = false;
+      const cached = readInitialCache(selectedTaskId);
+      if (cached && cached.data) {
+        try { applyInitialData(cached.data); usedCache = true; isTaskLoading = false; } catch (e) { usedCache = false; isTaskLoading = true; }
+      }
+
+      if (usedCache) {
+        setSyncStatus('loading', 'Menampilkan data tersimpan, memperbarui dari DataBase...');
+      } else {
+        setSyncStatus('loading', 'Sinkronisasi data sedang berlangsung... Harap tunggu');
+        showToast('Memuat Data...', 'Mengambil data dari DataBase, mohon tunggu sebentar.', 'loading');
+      }
+
+      try {
+        let endpoint = `${SCRIPT_URL}?action=getInitialData`;
+        if (selectedTaskId) endpoint += `&taskId=${encodeURIComponent(selectedTaskId)}`;
+
+        const data = await fetchJSON(endpoint, { controller: ctrl, timeout: 30000 });
+        if (data.error) throw new Error("Pesan dari DataBase: " + data.error);
+        if (ctrl !== popupController) return; // sudah digantikan permintaan yang lebih baru
+
+        writeInitialCache(selectedTaskId, data);
+        applyInitialData(data);
+        lastTrackingFetch = Date.now();
+        isTaskLoading = false;
+        setSyncStatus('ready', '✓ Data sudah siap digunakan!');
+        if (!usedCache) {
+          if (!document.getElementById('filterKelas').value) {
+            showToast('Data Siap', 'Silakan pilih kelas untuk melihat status siswa.', 'success', 1500);
+          } else {
+            hideToast();
+          }
+        }
+      } catch (err) {
+        if (ctrl !== popupController) return;
+        isTaskLoading = false;
+
+        if (err.cancelled) {
+          if (usedCache) { setSyncStatus('ready', 'Menampilkan data tersimpan (pembaruan dibatalkan)'); return; }
+          setSyncStatus('error', 'Pemuatan dibatalkan');
+          renderCancelledPlaceholder();
+          return;
+        }
+
+        console.error("Gagal load API:", err);
+        if (usedCache) {
+          setSyncStatus('error', 'Gagal memperbarui, menampilkan data tersimpan');
+          hideToast();
+          return;
+        }
+        setSyncStatus('error', 'Koneksi DataBase terputus');
+        showToast('Gagal Memuat Data', err.message || 'Koneksi ke DataBase terputus.', 'warning', 3500);
+        renderErrorFallback(err.message);
+      }
+    }
+
+    function renderTaskSelector() {
+      const filterTugas = document.getElementById('filterTugas');
+      filterTugas.innerHTML = '';
+
+      if (!appState.tasks || appState.tasks.length === 0) {
+        filterTugas.innerHTML = '<option value="">-- Tidak ada tugas aktif --</option>';
+        return;
+      }
+
+      appState.tasks.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = `[${t.tipe}] ${t.judul}`;
+        if (appState.activeTask && appState.activeTask.id === t.id) {
+          opt.selected = true;
+        }
+        filterTugas.appendChild(opt);
+      });
+    }
+
+    function updateHeaderTaskBadge() {
+      if (!appState.activeTask) return;
+      document.getElementById('currentTaskTitle').textContent = appState.activeTask.judul;
+      
+      const badge = document.getElementById('badgeTaskType');
+      const lblBtn = document.getElementById('lblActionPrimary');
+      const isCBT = appState.activeTask.tipe === 'CBT';
+
+      badge.textContent = appState.activeTask.tipe;
+      badge.className = `px-2.5 py-0.5 rounded text-[10px] font-cyber font-bold ${
+        isCBT ? 'bg-cyan-500/20 border border-cyan-400 text-cyan-300' : 'bg-emerald-500/20 border border-emerald-400 text-emerald-300'
+      }`;
+
+      lblBtn.textContent = isCBT ? 'LOGIN & KERJAKAN CBT' : 'BUKA GOOGLE FORM';
+    }
+
+    function onFilterTugasChange() {
+      const selectedId = document.getElementById('filterTugas').value;
+      if (!selectedId) return;
+
+      const taskObj = appState.tasks.find(t => t.id === selectedId);
+      const title = taskObj ? taskObj.judul : selectedId;
+
+      setSyncStatus('loading', `Mengganti tugas ke: ${title}...`);
+      loadInitialData(selectedId);
+    }
+
+    function renderErrorFallback(msg) {
+      document.getElementById('connectionBadge').className = 'w-2 h-2 rounded-full bg-rose-500 animate-ping';
+      document.getElementById('connectionText').textContent = 'Koneksi DataBase Perlu Penyesuaian';
+
+      document.getElementById('trackingList').innerHTML = `
+        <div class="col-span-full py-10 px-6 text-center bg-rose-950/20 border border-rose-500/40 rounded-2xl glow-red">
+          <i class="fa-solid fa-triangle-exclamation text-3xl text-rose-400 mb-3"></i>
+          <h3 class="font-cyber font-bold text-white text-base mb-1">Gagal Sinkronisasi dengan DataBase</h3>
+          <p class="text-xs text-rose-300 font-mono mb-4 max-w-lg mx-auto">${msg}</p>
+          <div class="flex flex-wrap justify-center gap-3">
+            <button onclick="loadInitialData()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-tech rounded-xl border border-slate-600 transition">
+              <i class="fa-solid fa-rotate-right mr-1"></i> Hubungkan Ulang
+            </button>
+            <button onclick="useSimulationData()" class="px-5 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-cyber font-bold rounded-xl glow-pink hover:brightness-110 transition">
+              <i class="fa-solid fa-flask mr-1.5"></i> Mode Simulasi Uji Coba
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function useSimulationData() {
+      const mock = {
+        tasks: [
+          { id: "TGS-01", judul: "Penilaian Harian UUD 1945 (CBT)", tipe: "CBT", sumber: "Soal", link: "" },
+          { id: "TGS-02", judul: "Refleksi Nilai Pancasila (GForm)", tipe: "GForm", sumber: "Respons Formulir 1", link: "https://docs.google.com/forms" }
+        ],
+        activeTask: { id: "TGS-01", judul: "Penilaian Harian UUD 1945 (CBT)", tipe: "CBT", sumber: "Soal", link: "" },
+        siswa: [
+          { nis: "1001", nisn: "0081234567", nama: "Ahmad Fadillah", kelas: "7A", status: "Sudah", nilai: 85 },
+          { nis: "1002", nisn: "0082345678", nama: "Bella Cantika", kelas: "7A", status: "Belum", nilai: null },
+          { nis: "1003", nisn: "0083456789", nama: "Citra Lestari", kelas: "8A", status: "Belum", nilai: null },
+          { nis: "1004", nisn: "0084567890", nama: "Dodi Hermanto", kelas: "9A", status: "Sudah", nilai: 95 }
+        ],
+        soal: [
+          { no: 1, pertanyaan: "Rumusan resmi Pancasila tercantum dalam Pembukaan UUD 1945 alinea?", opsi: { A: "Alinea 1", B: "Alinea 2", C: "Alinea 3", D: "Alinea 4" } },
+          { no: 2, pertanyaan: "Hak warga negara untuk mendapatkan pendidikan diatur dalam pasal?", opsi: { A: "Pasal 27", B: "Pasal 29", C: "Pasal 31 ayat 1", D: "Pasal 34" } }
+        ]
+      };
+      appState.tasks = mock.tasks;
+      appState.activeTask = mock.activeTask;
+      appState.siswaList = mock.siswa;
+      appState.soalList = mock.soal;
+      updateKelasTersedia(appState.siswaList);
+
+      document.getElementById('connectionBadge').className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+      document.getElementById('connectionText').textContent = 'Mode Uji Coba (Simulasi)';
+
+      renderTaskSelector();
+      updateHeaderTaskBadge();
+      onFilterKelasChange();
+
+      setSyncStatus('ready', '✓ Mode simulasi aktif');
+    }
+
+    // 6. LOGIKA FILTER KELAS (POPUP & SINGLE-BATCH RENDERING CEPAT)
+    let lastTrackingFetch = 0;
+    let trackingFetching = false;
+
+    // Tampilkan daftar sesuai pilihan kelas dari data yang sudah ada di halaman (tanpa menunggu server)
+    function renderCurrentFilter() {
+      const kls = document.getElementById('filterKelas').value;
+      if (!kls) {
+        document.getElementById('trackingList').innerHTML = `
+          <div class="col-span-full py-16 text-center text-slate-400 font-tech">
+            <i class="fa-solid fa-hand-pointer text-3xl text-cyan-400 block mb-3 animate-bounce"></i>
+            <span class="text-base text-slate-200 block mb-1">Silakan Pilih Kelas Terlebih Dahulu</span>
+            <span class="text-xs text-slate-400">Pilih rombel kelas pada menu dropdown di atas untuk memantau status siswa.</span>
+          </div>
+        `;
+        document.getElementById('countBelum').textContent = '0 Siswa';
+        document.getElementById('countSudah').textContent = '0 Siswa';
+        return null;
+      }
+      const filtered = (appState.siswaList || []).filter(s => cocokKelas(s, kls));
+      renderTrackingBoard(filtered);
+      return filtered.length;
+    }
+
+    function onFilterKelasChange() {
+      highlightKelasButtons();
+      const kls = document.getElementById('filterKelas').value;
+      if (!kls) { renderCurrentFilter(); return; }
+
+      const labelKelas = labelFilterKelas(kls);
+
+      // Data awal belum sampai: popup pemuatan awal masih tampil (ada tombol X)
+      if (isTaskLoading && !(appState.siswaList || []).length) {
+        document.getElementById('trackingList').innerHTML = `
+          <div class="col-span-full py-16 text-center text-slate-400 font-tech">
+            <span class="text-base text-slate-200 block mb-1">Menunggu data ${labelKelas}...</span>
+            <span class="text-xs text-slate-400">Data akan tampil otomatis setelah diterima dari DataBase.</span>
+          </div>`;
+        return;
+      }
+
+      // Data sudah ada: tampil seketika tanpa popup
+      const n = renderCurrentFilter();
+      setSyncStatus('ready', `✓ Data ${labelKelas} siap! (${n} siswa)`);
+
+      // Perbarui diam-diam di latar belakang bila data sudah lebih dari 10 detik
+      if (Date.now() - lastTrackingFetch > 10000) fetchTrackingData(true);
+    }
+
+    function renderTrackingBoard(list) {
+      const container = document.getElementById('trackingList');
+      let countBelum = 0;
+      let countSudah = 0;
+
+      if (!list || list.length === 0) {
+        container.innerHTML = '<div class="col-span-full text-center text-slate-500 py-12">Tidak ada data peserta pada kategori atau kelas ini.</div>';
+        document.getElementById('countBelum').textContent = `0 Siswa`;
+        document.getElementById('countSudah').textContent = `0 Siswa`;
+        return;
+      }
+
+      let cardsHtml = '';
+
+      for (let i = 0; i < list.length; i++) {
+        const s = list[i];
+        const isFinished = s.status && s.status.toLowerCase() === 'sudah';
+        if (isFinished) countSudah++; else countBelum++;
+
+        const cardBgClass = isFinished 
+          ? 'bg-emerald-950/40 border-emerald-500/50 glow-green' 
+          : 'bg-red-950/40 border-red-500/50 glow-red';
+
+        const indikator = isFinished
+          ? '<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>'
+          : '<span class="sirine" title="Belum mengerjakan"><span class="beam"></span><span class="dome"></span><span class="base"></span></span>';
+
+        const badgeScore = isFinished
+          ? `<span class="px-2.5 py-0.5 rounded text-[11px] font-cyber font-bold bg-emerald-500/20 border border-emerald-400 text-emerald-300">NILAI: ${s.nilai !== null ? s.nilai : '-'}</span>`
+          : `<span class="px-2.5 py-0.5 rounded text-[11px] font-cyber font-bold bg-red-500/20 border border-red-400 text-red-300 animate-pulse">BELUM</span>`;
+
+        cardsHtml += `
+          <div class="p-4 rounded-2xl border flex flex-col justify-between gap-3 transition-all duration-300 relative overflow-hidden ${cardBgClass}">
+            <div class="flex items-start justify-between gap-2">
+              <div class="truncate">
+                <div class="text-sm font-bold text-white truncate">${s.nama}</div>
+                <div class="text-[11px] text-slate-400 font-mono mt-0.5">NIS: ${s.nis} | NISN: ${s.nisn || '-'}</div>
+                <div class="text-[10px] text-cyan-300 font-mono mt-0.5">Kelas ${s.kelas}</div>
+              </div>
+              ${indikator}
+            </div>
+            <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+              <span class="text-[11px] font-tech text-slate-400">STATUS:</span>
+              ${badgeScore}
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = cardsHtml;
+      document.getElementById('countBelum').textContent = `${countBelum} Siswa`;
+      document.getElementById('countSudah').textContent = `${countSudah} Siswa`;
+    }
+
+    async function fetchTrackingData(isSilent = false, withPopup = false) {
+      if (!appState.activeTask) return null;
+      if (trackingFetching && isSilent) return null;
+      trackingFetching = true;
+      const taskId = appState.activeTask.id;
+
+      let ctrl = null;
+      if (withPopup) {
+        if (popupController) popupController.abort();
+        ctrl = popupController = new AbortController();
+        showToast('Menyegarkan Data...', 'Mengambil data terbaru dari DataBase, mohon tunggu.', 'loading');
+      }
+      if (!isSilent) setSyncStatus('loading', 'Menyinkronkan data terbaru...');
+
+      try {
+        // Selalu minta semua kelas sekali; penyaringan kelas dilakukan di halaman
+        const data = await fetchJSON(
+          `${SCRIPT_URL}?action=getTrackingData&taskId=${encodeURIComponent(taskId)}&kelas=SEMUA`,
+          { controller: ctrl, timeout: isSilent ? 20000 : 30000 }
+        );
+        if (!Array.isArray(data)) throw new Error('Format data tidak valid');
+        if (!appState.activeTask || appState.activeTask.id !== taskId) return null; // tugas sudah diganti
+
+        appState.siswaList = data;
+        lastTrackingFetch = Date.now();
+        updateSiswaCache(taskId, data);
+        const n = renderCurrentFilter();
+
+        if (!isSilent) setSyncStatus('ready', '✓ Data berhasil diperbarui!');
+        if (withPopup && ctrl === popupController) {
+          showToast('Data Diperbarui', `${n === null ? data.length : n} siswa berhasil ditampilkan.`, 'success', 1500);
+        }
+        return n;
+      } catch (e) {
+        if (withPopup && ctrl !== popupController) return null;
+        if (e.cancelled) {
+          if (!isSilent) setSyncStatus('ready', 'Penyegaran dibatalkan, menampilkan data sebelumnya');
+          return null;
+        }
+        if (!isSilent) setSyncStatus('error', 'Gagal menyinkronkan data');
+        if (withPopup) showToast('Gagal Memuat Data', e.message || 'Koneksi ke DataBase bermasalah.', 'warning', 3500);
+        return null;
+      } finally {
+        trackingFetching = false;
+      }
+    }
+
+    // 7. TOMBOL PINTAR: CBT VS GOOGLE FORM
+    function handlePrimaryAction() {
+      if (isTaskLoading) {
+        setSyncStatus('loading', 'Sinkronisasi data masih berlangsung... Harap tunggu');
+        return;
+      }
+
+      if (!appState.activeTask) {
+        alert("Pilih tugas yang ingin dikerjakan terlebih dahulu!");
+        return;
+      }
+
+      if (appState.activeTask.tipe === 'GForm') {
+        openGFormModal();
+      } else {
+        openLoginModal();
+      }
+    }
+
+    function openGFormModal() {
+      document.getElementById('gformModalTitle').textContent = appState.activeTask.judul;
+      const btnLink = document.getElementById('btnBukaLinkGForm');
+      btnLink.href = appState.activeTask.link || '#';
+      document.getElementById('modalGForm').classList.remove('hidden');
+    }
+
+    function closeGFormModal() {
+      document.getElementById('modalGForm').classList.add('hidden');
+    }
+
+    // 8. MODAL LOGIN PESERTA (CBT)
+    function openLoginModal() {
+      document.getElementById('modalTaskName').textContent = appState.activeTask ? appState.activeTask.judul : '';
+      document.getElementById('modalLogin').classList.remove('hidden');
+    }
+
+    function closeLoginModal() {
+      document.getElementById('modalLogin').classList.add('hidden');
+    }
+
+    function onLoginKelasChange() {
+      const kls = document.getElementById('loginKelas').value;
+      const selNama = document.getElementById('loginNama');
+      document.getElementById('loginNIS').value = '';
+      document.getElementById('loginNISN').value = '';
+      selNama.innerHTML = '<option value="">-- Pilih Siswa --</option>';
+
+      if (!kls || !Array.isArray(appState.siswaList)) return;
+
+      const filtered = appState.siswaList.filter(s => String(s.kelas).trim().toUpperCase() === kls.toUpperCase());
+      
+      if (filtered.length === 0) {
+        selNama.innerHTML = '<option value="">-- Tidak ada siswa di kelas ini --</option>';
+        return;
+      }
+
+      filtered.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.nis || s.nisn;
+        opt.textContent = `${s.nama} (${s.status === 'Sudah' ? '✓ Sudah Dinilai' : 'Belum'})`;
+        selNama.appendChild(opt);
+      });
+    }
+
+    function onLoginNamaChange() {
+      const val = document.getElementById('loginNama').value;
+      const siswa = appState.siswaList.find(s => s.nis === val || s.nisn === val);
+      if (siswa) {
+        document.getElementById('loginNIS').value = siswa.nis || '-';
+        document.getElementById('loginNISN').value = siswa.nisn || '-';
+      } else {
+        document.getElementById('loginNIS').value = '';
+        document.getElementById('loginNISN').value = '';
+      }
+    }
+
+    // 9. CBT EXAM LOGIC
+    function startExam() {
+      const nisVal = document.getElementById('loginNIS').value.trim();
+      const nisnVal = document.getElementById('loginNISN').value.trim();
+
+      if (!nisVal && !nisnVal) {
+        alert("Silakan pilih Kelas dan Nama Siswa!");
+        return;
+      }
+
+      if (!appState.soalList || appState.soalList.length === 0) {
+        alert("Soal untuk tugas ini belum tersedia di sheet 'Soal'.");
+        return;
+      }
+
+      const siswa = appState.siswaList.find(s => (nisVal && s.nis === nisVal) || (nisnVal && s.nisn === nisnVal));
+      if (!siswa) {
+        alert("Data siswa tidak ditemukan.");
+        return;
+      }
+
+      if (siswa.status && siswa.status.toLowerCase() === 'sudah') {
+        const confirmRetry = confirm(`Siswa ${siswa.nama} sudah memiliki nilai (${siswa.nilai}). Mengerjakan ulang?`);
+        if (!confirmRetry) return;
+      }
+
+      closeLoginModal();
+      appState.activeUser = siswa;
+      appState.userAnswers = {};
+      appState.currentQuestionIdx = 0;
+
+      document.getElementById('examHeaderNama').textContent = `${siswa.nama} (${siswa.kelas})`;
+
+      document.getElementById('screenTracking').classList.add('hidden');
+      document.getElementById('screenExam').classList.remove('hidden');
+      document.getElementById('screenExam').classList.add('grid');
+
+      startTimer();
+      renderNumberGrid();
+      displayQuestion(0);
+    }
+
+    function startTimer() {
+      updateTimerDisplay();
+      clearInterval(appState.timerInterval);
+      appState.timerInterval = setInterval(() => {
+        appState.timeLeftSeconds--;
+        updateTimerDisplay();
+        if (appState.timeLeftSeconds <= 0) {
+          clearInterval(appState.timerInterval);
+          alert("Waktu habis! Jawaban dikirim otomatis.");
+          submitExam();
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const hours = Math.floor(appState.timeLeftSeconds / 3600);
+      const minutes = Math.floor((appState.timeLeftSeconds % 3600) / 60);
+      const seconds = appState.timeLeftSeconds % 60;
+      
+      const str = `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+      const elem = document.getElementById('timerText');
+      elem.textContent = str;
+
+      if (appState.timeLeftSeconds < 300) {
+        elem.classList.add('text-red-500', 'animate-pulse');
+      }
+    }
+
+    function displayQuestion(index) {
+      if (index < 0 || index >= appState.soalList.length) return;
+      appState.currentQuestionIdx = index;
+      const q = appState.soalList[index];
+
+      document.getElementById('currentQuestionNumber').textContent = index + 1;
+      document.getElementById('questionText').textContent = q.pertanyaan;
+
+      const optContainer = document.getElementById('optionsContainer');
+      optContainer.innerHTML = '';
+
+      const letters = ['A', 'B', 'C', 'D'];
+      letters.forEach(letter => {
+        const optText = q.opsi[letter];
+        if (!optText) return;
+
+        const isSelected = appState.userAnswers[q.no] === letter;
+
+        const optDiv = document.createElement('div');
+        optDiv.className = `option-card p-4 rounded-xl border border-slate-700/80 bg-slate-900/60 flex items-center gap-4 ${isSelected ? 'selected' : ''}`;
+        optDiv.onclick = () => selectOption(q.no, letter);
+
+        optDiv.innerHTML = `
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center font-cyber font-bold text-sm ${isSelected ? 'bg-cyan-400 text-slate-950 glow-cyan' : 'bg-slate-800 text-cyan-300 border border-slate-700'}">
+            ${letter}
+          </div>
+          <div class="text-sm md:text-base text-slate-200">${optText}</div>
+        `;
+        optContainer.appendChild(optDiv);
+      });
+
+      const btnPrev = document.getElementById('btnPrev');
+      btnPrev.disabled = (index === 0);
+      btnPrev.style.opacity = (index === 0) ? '0.35' : '1';
+      btnPrev.style.pointerEvents = (index === 0) ? 'none' : 'auto';
+
+      const isLast = (index === appState.soalList.length - 1);
+      const btnNext = document.getElementById('btnNext');
+      const btnFinish = document.getElementById('btnFinish');
+
+      if (isLast) {
+        btnNext.classList.add('hidden');
+        btnFinish.classList.remove('hidden');
+        btnFinish.classList.add('flex');
+      } else {
+        btnNext.classList.remove('hidden');
+        btnFinish.classList.add('hidden');
+        btnFinish.classList.remove('flex');
+      }
+
+      highlightActiveGridNumber();
+    }
+
+    function selectOption(soalNo, letter) {
+      playSelectSound();
+      appState.userAnswers[soalNo] = letter;
+      displayQuestion(appState.currentQuestionIdx);
+      renderNumberGrid();
+    }
+
+    function prevQuestion() {
+      if (appState.currentQuestionIdx > 0) displayQuestion(appState.currentQuestionIdx - 1);
+    }
+
+    function nextQuestion() {
+      if (appState.currentQuestionIdx < appState.soalList.length - 1) displayQuestion(appState.currentQuestionIdx + 1);
+    }
+
+    function renderNumberGrid() {
+      const grid = document.getElementById('numberGrid');
+      grid.innerHTML = '';
+
+      let answeredCount = 0;
+      appState.soalList.forEach((q, idx) => {
+        const isAnswered = !!appState.userAnswers[q.no];
+        if (isAnswered) answeredCount++;
+
+        const isCurrent = (idx === appState.currentQuestionIdx);
+        const btn = document.createElement('button');
+        btn.className = `h-10 rounded-lg font-cyber text-xs font-bold transition flex items-center justify-center cursor-pointer ${
+          isCurrent 
+            ? 'bg-cyan-400 text-slate-950 glow-cyan border-2 border-cyan-200'
+            : isAnswered
+              ? 'bg-emerald-600/90 text-white border border-emerald-400 glow-green'
+              : 'bg-slate-900 border border-slate-800 text-slate-400 hover:border-slate-600'
+        }`;
+        btn.textContent = idx + 1;
+        btn.onclick = () => displayQuestion(idx);
+        grid.appendChild(btn);
+      });
+
+      document.getElementById('answeredCounter').textContent = `${answeredCount} / ${appState.soalList.length} Terjawab`;
+    }
+
+    function highlightActiveGridNumber() {
+      const grid = document.getElementById('numberGrid');
+      const buttons = grid.getElementsByTagName('button');
+      if (buttons[appState.currentQuestionIdx]) {
+        buttons[appState.currentQuestionIdx].focus();
+      }
+    }
+
+    // 10. SUBMISSION & RESULT
+    function confirmSubmitExam() {
+      const answered = Object.keys(appState.userAnswers).length;
+      const total = appState.soalList.length;
+
+      let msg = `Kamu telah menjawab ${answered} dari ${total} butir soal.\nYakin ingin mengumpulkan ujian sekarang?`;
+      if (answered < total) {
+        msg = `PERINGATAN: Masih ada ${total - answered} butir soal belum dijawab!\nYakin ingin tetap mengumpulkan?`;
+      }
+
+      if (confirm(msg)) submitExam();
+    }
+
+    async function submitExam() {
+      clearInterval(appState.timerInterval);
+
+      const btnFinish = document.getElementById('btnFinish');
+      btnFinish.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Menyimpan...';
+      btnFinish.disabled = true;
+
+      const payload = {
+        taskId: appState.activeTask ? appState.activeTask.id : 'TGS-01',
+        nis: appState.activeUser.nis,
+        nisn: appState.activeUser.nisn,
+        nama: appState.activeUser.nama,
+        kelas: appState.activeUser.kelas,
+        jawaban: appState.userAnswers
+      };
+
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'submitExam', payload: payload })
+        });
+        const text = await res.text();
+        const result = JSON.parse(text);
+        onExamSubmitted(result);
+      } catch (err) {
+        console.warn("Gagal submit via POST, beralih ke hitung lokal:", err);
+        let benar = 0;
+        appState.soalList.forEach(q => {
+          if (appState.userAnswers[q.no]) benar++;
+        });
+        const skor = Math.round((benar / Math.max(appState.soalList.length, 1)) * 100);
+        onExamSubmitted({ success: true, skor: skor, benar: benar, totalSoal: appState.soalList.length });
+      }
+    }
+
+    function onExamSubmitted(res) {
+      playSuccessSound();
+
+      document.getElementById('screenExam').classList.add('hidden');
+      document.getElementById('screenResult').classList.remove('hidden');
+
+      document.getElementById('finalScore').textContent = res.skor;
+      document.getElementById('finalSummary').textContent = `${res.benar} dari ${res.totalSoal} butir soal dijawab benar`;
+      document.getElementById('resNama').textContent = appState.activeUser.nama;
+      document.getElementById('resNISN').textContent = `${appState.activeUser.nis} / ${appState.activeUser.nisn || '-'}`;
+      document.getElementById('resKelas').textContent = appState.activeUser.kelas;
+
+      const found = appState.siswaList.find(s => s.nis === appState.activeUser.nis);
+      if (found) {
+        found.status = 'Sudah';
+        found.nilai = res.skor;
+      }
+    }
+
+    function backToTracking() {
+      document.getElementById('screenResult').classList.add('hidden');
+      document.getElementById('screenTracking').classList.remove('hidden');
+      fetchTrackingData();
+    }
+  </script>
+</body>
+</html>
